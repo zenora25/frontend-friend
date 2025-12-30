@@ -1,3 +1,4 @@
+// Register.tsx (updated)
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -12,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -26,6 +28,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { register } = useAuth();
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -34,6 +37,15 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.role) {
+      toast({
+        title: "Role required",
+        description: "Please select your role.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -43,17 +55,66 @@ const Register = () => {
       return;
     }
 
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate registration - replace with actual API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Map frontend role values to backend role values
+      const roleMap: { [key: string]: string } = {
+        'supervisor': 'institutionSupervisor',
+        'industry_supervisor': 'industrySupervisor',
+        'coordinator': 'siwesCoordinator',
+        'hod': 'hod'
+      };
+
+      const backendRole = roleMap[formData.role] || formData.role;
+
+      await register({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        department: formData.department,
+      }, backendRole);
+
       toast({
         title: "Registration successful",
-        description: "Your account has been created. Please login.",
+        description: `Welcome as ${formData.role}! Redirecting to dashboard...`,
       });
-      navigate("/login");
-    }, 1000);
+
+      // Navigate to appropriate dashboard
+      switch (backendRole) {
+        case 'institutionSupervisor':
+          navigate("/supervisor-dashboard");
+          break;
+        case 'industrySupervisor':
+          navigate("/industry-dashboard");
+          break;
+        case 'siwesCoordinator':
+          navigate("/coordinator-dashboard");
+          break;
+        case 'hod':
+          navigate("/hod-dashboard");
+          break;
+        default:
+          navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error || "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -143,10 +204,11 @@ const Register = () => {
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Create a password"
+              placeholder="Create a password (min. 6 chars)"
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
               required
+              minLength={6}
               className="h-11 pr-10"
             />
             <button

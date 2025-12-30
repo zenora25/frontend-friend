@@ -1,3 +1,4 @@
+// StudentRegister.tsx (updated)
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Eye, EyeOff, ArrowRight, ShieldCheck } from "lucide-react";
@@ -12,13 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const StudentRegister = () => {
   const [step, setStep] = useState<"verify" | "register">("verify");
   const [verificationCode, setVerificationCode] = useState("");
+  const [email, setEmail] = useState("");
   const [formData, setFormData] = useState({
     fullName: "",
-    email: "",
     matricNumber: "",
     department: "",
     companyName: "",
@@ -30,28 +32,47 @@ const StudentRegister = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { verifyEmail, register } = useAuth();
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (verificationCode.length !== 6) {
+      toast({
+        title: "Invalid code",
+        description: "Please enter a valid 6-digit verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate verification - replace with actual API call
-    setTimeout(() => {
+    try {
+      await verifyEmail(email, verificationCode);
+      toast({
+        title: "Code verified",
+        description: "Please complete your registration.",
+      });
+      setStep("register");
+    } catch (error: any) {
+      toast({
+        title: "Verification failed",
+        description: error || "Invalid verification code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      if (verificationCode.length === 6) {
-        toast({
-          title: "Code verified",
-          description: "Please complete your registration.",
-        });
-        setStep("register");
-      } else {
-        toast({
-          title: "Invalid code",
-          description: "Please enter a valid 6-digit verification code.",
-          variant: "destructive",
-        });
-      }
-    }, 1000);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -70,17 +91,39 @@ const StudentRegister = () => {
       return;
     }
 
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate registration - replace with actual API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await register({
+        ...formData,
+        email,
+        verificationCode,
+      });
+
       toast({
         title: "Registration successful",
-        description: "Welcome to InternTrack! Please login to continue.",
+        description: "Welcome to InternTrack! Redirecting to dashboard...",
       });
-      navigate("/login");
-    }, 1000);
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error || "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (step === "verify") {
@@ -105,6 +148,19 @@ const StudentRegister = () => {
         </div>
 
         <form onSubmit={handleVerify} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@baze.edu.ng"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="h-12"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="verificationCode">Verification Code</Label>
             <Input
@@ -167,17 +223,16 @@ const StudentRegister = () => {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+          <div className="space-y-2 col-span-2">
+            <Label>Email</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="you@baze.edu.ng"
-              value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              required
-              className="h-11"
+              value={email}
+              disabled
+              className="h-11 bg-muted"
             />
+            <p className="text-xs text-muted-foreground">
+              This email was verified with your code
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -191,24 +246,24 @@ const StudentRegister = () => {
               className="h-11"
             />
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="department">Department</Label>
-          <Select
-            value={formData.department}
-            onValueChange={(value) => handleChange("department", value)}
-          >
-            <SelectTrigger className="h-11">
-              <SelectValue placeholder="Select your department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cs">Computer Science</SelectItem>
-              <SelectItem value="se">Software Engineering</SelectItem>
-              <SelectItem value="it">Information Technology</SelectItem>
-              <SelectItem value="cy">Cybersecurity</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label htmlFor="department">Department</Label>
+            <Select
+              value={formData.department}
+              onValueChange={(value) => handleChange("department", value)}
+            >
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cs">Computer Science</SelectItem>
+                <SelectItem value="se">Software Engineering</SelectItem>
+                <SelectItem value="it">Information Technology</SelectItem>
+                <SelectItem value="cy">Cybersecurity</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -242,10 +297,11 @@ const StudentRegister = () => {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Create password"
+                placeholder="Create password (min. 6 chars)"
                 value={formData.password}
                 onChange={(e) => handleChange("password", e.target.value)}
                 required
+                minLength={6}
                 className="h-11 pr-10"
               />
               <button

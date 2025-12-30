@@ -1,8 +1,11 @@
+// App.tsx (updated)
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthLayout from "./components/layouts/AuthLayout";
@@ -28,31 +31,96 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          
-          {/* Auth routes */}
-          <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/student-register" element={<StudentRegister />} />
-          </Route>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            
+            {/* Auth routes (public) */}
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/student-register" element={<StudentRegister />} />
+            </Route>
 
-          {/* Dashboard routes */}
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<StudentDashboard />} />
-            <Route path="/supervisor-dashboard" element={<SupervisorDashboard />} />
-            <Route path="/coordinator-dashboard" element={<CoordinatorDashboard />} />
-            <Route path="/hod-dashboard" element={<HODDashboard />} />
-            <Route path="/industry-dashboard" element={<IndustrySupervisorDashboard />} />
-            <Route path="/logbook" element={<WeeklyLogbook />} />
-            <Route path="/logbook/new" element={<SubmitLogbook />} />
-            <Route path="/defense" element={<StudentDefense />} />
-            <Route path="/defense-management" element={<DefenseManagement />} />
-          </Route>
+            {/* Protected dashboard routes */}
+            <Route element={<DashboardLayout />}>
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/supervisor-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['institutionSupervisor']}>
+                    <SupervisorDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/coordinator-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['siwesCoordinator']}>
+                    <CoordinatorDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/hod-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['hod']}>
+                    <HODDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/industry-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['industrySupervisor']}>
+                    <IndustrySupervisorDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/logbook" 
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <WeeklyLogbook />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/logbook/new" 
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <SubmitLogbook />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/defense" 
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <StudentDefense />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/defense-management" 
+                element={
+                  <ProtectedRoute allowedRoles={['institutionSupervisor', 'hod', 'siwesCoordinator']}>
+                    <DefenseManagement />
+                  </ProtectedRoute>
+                } 
+              />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

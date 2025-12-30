@@ -1,32 +1,71 @@
+// Login.tsx (updated)
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("student");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login - replace with actual API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await login(email, password, role !== 'student' ? role : undefined);
+      
       toast({
         title: "Login successful",
         description: "Welcome back to InternTrack!",
       });
-      navigate("/dashboard");
-    }, 1000);
+
+      // Navigate based on role
+      switch (role) {
+        case 'student':
+          navigate("/dashboard");
+          break;
+        case 'institutionSupervisor':
+          navigate("/supervisor-dashboard");
+          break;
+        case 'industrySupervisor':
+          navigate("/industry-dashboard");
+          break;
+        case 'hod':
+          navigate("/hod-dashboard");
+          break;
+        case 'siwesCoordinator':
+          navigate("/coordinator-dashboard");
+          break;
+        default:
+          navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error || "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -47,6 +86,22 @@ const Login = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="role">Login as</Label>
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger className="h-12">
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="student">Student</SelectItem>
+              <SelectItem value="institutionSupervisor">Institution Supervisor</SelectItem>
+              <SelectItem value="industrySupervisor">Industry Supervisor</SelectItem>
+              <SelectItem value="hod">Head of Department</SelectItem>
+              <SelectItem value="siwesCoordinator">SIWES Coordinator</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="email">Email address</Label>
           <Input
