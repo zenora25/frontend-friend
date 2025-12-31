@@ -15,6 +15,7 @@ import {
   Shield,
   UserCheck,
   Building2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,7 +101,7 @@ const DashboardLayout = () => {
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-foreground/20 z-40 lg:hidden"
+          className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -108,15 +109,15 @@ const DashboardLayout = () => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border transform transition-transform duration-200 lg:translate-x-0",
+          "fixed top-0 left-0 z-50 h-full w-72 bg-card border-r border-border transform transition-transform duration-300 lg:translate-x-0 shadow-xl lg:shadow-none",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-border">
-            <Link to="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center">
+            <Link to="/dashboard" className="flex items-center gap-3 group">
+              <div className="w-11 h-11 bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg">
                 <BookOpen className="w-6 h-6 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold text-foreground">InternTrack</span>
@@ -124,7 +125,7 @@ const DashboardLayout = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 p-4 space-y-2">
             {config.navItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
@@ -133,24 +134,30 @@ const DashboardLayout = () => {
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+                    "group flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className={cn(
+                    "w-5 h-5 transition-transform",
+                    !isActive && "group-hover:scale-110"
+                  )} />
                   {item.label}
+                  {isActive && (
+                    <Sparkles className="w-4 h-4 ml-auto opacity-70" />
+                  )}
                 </Link>
               );
             })}
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-border">
-            <div className="flex items-center gap-3 px-4 py-2">
-              <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+          <div className="p-4 border-t border-border bg-gradient-to-b from-transparent to-accent/30">
+            <div className="flex items-center gap-3 p-3 bg-card border border-border/50">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-sm font-semibold">
                   {mockUser.avatar}
                 </AvatarFallback>
               </Avatar>
@@ -164,9 +171,9 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-72">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-card border-b border-border">
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border">
           <div className="flex items-center justify-between h-16 px-4 lg:px-8">
             <div className="flex items-center gap-4">
               <Button
@@ -177,22 +184,34 @@ const DashboardLayout = () => {
               >
                 <Menu className="w-5 h-5" />
               </Button>
-              <h1 className="text-lg font-semibold text-foreground hidden sm:block">
-                {config.navItems.find((item) => item.href === location.pathname)?.label || "Dashboard"}
-              </h1>
+              <div className="hidden sm:flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary/10 flex items-center justify-center">
+                  {(() => {
+                    const currentItem = config.navItems.find((item) => item.href === location.pathname);
+                    if (currentItem) {
+                      const Icon = currentItem.icon;
+                      return <Icon className="w-4 h-4 text-primary" />;
+                    }
+                    return <LayoutDashboard className="w-4 h-4 text-primary" />;
+                  })()}
+                </div>
+                <h1 className="text-lg font-semibold text-foreground">
+                  {config.navItems.find((item) => item.href === location.pathname)?.label || "Dashboard"}
+                </h1>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" className="relative group">
+                <Bell className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-destructive rounded-full ring-2 ring-card animate-pulse" />
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  <Button variant="ghost" className="flex items-center gap-3 pr-2 hover:bg-accent">
+                    <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-xs font-semibold">
                         {mockUser.avatar}
                       </AvatarFallback>
                     </Avatar>
@@ -200,18 +219,17 @@ const DashboardLayout = () => {
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5">
+                <DropdownMenuContent align="end" className="w-60 p-2">
+                  <div className="px-3 py-2 bg-gradient-to-r from-primary/5 to-secondary/5 mb-2">
                     <p className="text-sm font-medium">{mockUser.name}</p>
                     <p className="text-xs text-muted-foreground">{mockUser.email}</p>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="py-2.5 cursor-pointer">
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <DropdownMenuItem onClick={handleLogout} className="py-2.5 text-destructive cursor-pointer hover:bg-destructive/10">
                     <LogOut className="w-4 h-4 mr-2" />
                     Log out
                   </DropdownMenuItem>

@@ -7,6 +7,9 @@ import {
   AlertCircle,
   ArrowRight,
   TrendingUp,
+  Sparkles,
+  Target,
+  Award,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,117 +49,135 @@ const mockData = {
 const StudentDashboard = () => {
   const progressPercentage = (mockData.progress.weeksCompleted / mockData.progress.totalWeeks) * 100;
 
+  const statCards = [
+    {
+      title: "Weeks Completed",
+      value: mockData.progress.weeksCompleted,
+      subtitle: `of ${mockData.progress.totalWeeks}`,
+      icon: TrendingUp,
+      gradient: "from-primary to-secondary",
+      bgGradient: "from-primary/10 to-secondary/10",
+    },
+    {
+      title: "Logbooks Submitted",
+      value: mockData.progress.logbooksSubmitted,
+      icon: BookText,
+      gradient: "from-chart-2 to-chart-3",
+      bgGradient: "from-chart-2/10 to-chart-3/10",
+    },
+    {
+      title: "Approved Entries",
+      value: mockData.progress.logbooksApproved,
+      icon: CheckCircle2,
+      gradient: "from-chart-5 to-chart-4",
+      bgGradient: "from-chart-5/10 to-chart-4/10",
+    },
+    {
+      title: "Pending Review",
+      value: mockData.progress.logbooksPending,
+      icon: Clock,
+      gradient: "from-destructive to-destructive",
+      bgGradient: "from-destructive/10 to-destructive/5",
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Welcome section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Welcome back, {mockData.student.name.split(" ")[0]}!
-          </h1>
-          <p className="text-muted-foreground">
-            Track your SIWES progress and manage your logbook submissions.
-          </p>
+    <div className="space-y-8">
+      {/* Welcome section with gradient banner */}
+      <div className="relative overflow-hidden p-6 -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 bg-gradient-to-r from-primary via-secondary to-primary">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 lg:px-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-primary-foreground/20 backdrop-blur flex items-center justify-center">
+              <Sparkles className="w-7 h-7 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-primary-foreground">
+                Welcome back, {mockData.student.name.split(" ")[0]}!
+              </h1>
+              <p className="text-primary-foreground/70">
+                Track your SIWES progress and manage your logbook submissions.
+              </p>
+            </div>
+          </div>
+          <Button asChild className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 shadow-lg">
+            <Link to="/logbook/new">
+              <BookText className="w-4 h-4 mr-2" />
+              Submit Logbook Entry
+            </Link>
+          </Button>
         </div>
-        <Button asChild>
-          <Link to="/logbook/new">
-            <BookText className="w-4 h-4 mr-2" />
-            Submit Logbook Entry
-          </Link>
-        </Button>
       </div>
 
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Weeks Completed</p>
-                <p className="text-3xl font-bold text-foreground">
-                  {mockData.progress.weeksCompleted}
-                  <span className="text-lg text-muted-foreground">/{mockData.progress.totalWeeks}</span>
-                </p>
+        {statCards.map((stat, index) => (
+          <Card 
+            key={index} 
+            className="group overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          >
+            <div className={`h-1 bg-gradient-to-r ${stat.gradient}`} />
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-foreground">{stat.value}</span>
+                    {stat.subtitle && (
+                      <span className="text-lg text-muted-foreground">{stat.subtitle}</span>
+                    )}
+                  </div>
+                </div>
+                <div className={`w-12 h-12 bg-gradient-to-br ${stat.bgGradient} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <stat.icon className={`w-6 h-6 bg-gradient-to-r ${stat.gradient} bg-clip-text`} style={{ color: 'hsl(var(--primary))' }} />
+                </div>
               </div>
-              <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Logbooks Submitted</p>
-                <p className="text-3xl font-bold text-foreground">{mockData.progress.logbooksSubmitted}</p>
-              </div>
-              <div className="w-12 h-12 bg-chart-2/20 flex items-center justify-center">
-                <BookText className="w-6 h-6 text-chart-2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Approved Entries</p>
-                <p className="text-3xl font-bold text-foreground">{mockData.progress.logbooksApproved}</p>
-              </div>
-              <div className="w-12 h-12 bg-chart-5/20 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-chart-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Review</p>
-                <p className="text-3xl font-bold text-foreground">{mockData.progress.logbooksPending}</p>
-              </div>
-              <div className="w-12 h-12 bg-destructive/10 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-destructive" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Progress section */}
-      <Card>
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <div className="h-1 bg-gradient-to-r from-primary via-chart-2 to-chart-5" />
         <CardHeader>
-          <CardTitle className="text-lg">SIWES Progress</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/10 flex items-center justify-center">
+              <Target className="w-5 h-5 text-primary" />
+            </div>
+            <CardTitle className="text-xl">SIWES Progress</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Overall Completion</span>
-              <span className="font-medium text-foreground">{Math.round(progressPercentage)}%</span>
+          <div className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between text-sm mb-3">
+                <span className="text-muted-foreground">Overall Completion</span>
+                <span className="text-2xl font-bold text-primary">{Math.round(progressPercentage)}%</span>
+              </div>
+              <div className="relative h-4 bg-muted/30 overflow-hidden">
+                <div 
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-chart-2 to-chart-5 transition-all duration-500"
+                  style={{ width: `${progressPercentage}%` }}
+                />
+              </div>
             </div>
-            <Progress value={progressPercentage} className="h-3" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-              <div className="text-center p-4 bg-accent">
-                <p className="text-2xl font-bold text-foreground">{mockData.student.matricNumber}</p>
-                <p className="text-xs text-muted-foreground">Matric Number</p>
-              </div>
-              <div className="text-center p-4 bg-accent">
-                <p className="text-lg font-semibold text-foreground">{mockData.student.department}</p>
-                <p className="text-xs text-muted-foreground">Department</p>
-              </div>
-              <div className="text-center p-4 bg-accent">
-                <p className="text-lg font-semibold text-foreground">{mockData.student.company}</p>
-                <p className="text-xs text-muted-foreground">Organization</p>
-              </div>
-              <div className="text-center p-4 bg-accent">
-                <p className="text-lg font-semibold text-foreground">{mockData.student.supervisor}</p>
-                <p className="text-xs text-muted-foreground">Supervisor</p>
-              </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Matric Number", value: mockData.student.matricNumber },
+                { label: "Department", value: mockData.student.department },
+                { label: "Organization", value: mockData.student.company },
+                { label: "Supervisor", value: mockData.student.supervisor },
+              ].map((item, index) => (
+                <div 
+                  key={index} 
+                  className="p-4 bg-gradient-to-br from-accent/50 to-accent/20 border border-border/50 hover:border-primary/30 transition-colors"
+                >
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{item.label}</p>
+                  <p className="font-semibold text-foreground text-sm truncate">{item.value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -164,10 +185,16 @@ const StudentDashboard = () => {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent logbook entries */}
-        <Card>
+        <Card className="overflow-hidden border-0 shadow-lg">
+          <div className="h-1 bg-gradient-to-r from-primary to-chart-2" />
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Recent Logbook Entries</CardTitle>
-            <Button variant="ghost" size="sm" asChild>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-chart-2/10 flex items-center justify-center">
+                <BookText className="w-5 h-5 text-chart-2" />
+              </div>
+              <CardTitle className="text-lg">Recent Logbook Entries</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary">
               <Link to="/logbook">
                 View all
                 <ArrowRight className="w-4 h-4 ml-1" />
@@ -175,15 +202,16 @@ const StudentDashboard = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {mockData.recentActivities.map((entry) => (
+            <div className="space-y-3">
+              {mockData.recentActivities.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-4 bg-accent"
+                  className="group flex items-center justify-between p-4 bg-gradient-to-r from-card to-accent/20 border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all"
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-card flex items-center justify-center">
-                      <BookText className="w-5 h-5 text-muted-foreground" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center font-semibold text-primary">
+                      W{entry.week}
                     </div>
                     <div>
                       <p className="font-medium text-foreground">Week {entry.week} Entry</p>
@@ -191,8 +219,11 @@ const StudentDashboard = () => {
                     </div>
                   </div>
                   <Badge
-                    variant={entry.status === "approved" ? "default" : "secondary"}
-                    className={entry.status === "approved" ? "bg-chart-5" : ""}
+                    className={`${
+                      entry.status === "approved" 
+                        ? "bg-chart-5/20 text-chart-5 border-chart-5/30" 
+                        : "bg-muted/30 text-muted-foreground border-muted/50"
+                    }`}
                   >
                     {entry.status === "approved" ? (
                       <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -208,38 +239,45 @@ const StudentDashboard = () => {
         </Card>
 
         {/* Upcoming defense */}
-        <Card>
+        <Card className="overflow-hidden border-0 shadow-lg">
+          <div className="h-1 bg-gradient-to-r from-chart-5 to-chart-4" />
           <CardHeader>
-            <CardTitle className="text-lg">Upcoming Defense</CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-chart-5/10 flex items-center justify-center">
+                <Award className="w-5 h-5 text-chart-5" />
+              </div>
+              <CardTitle className="text-lg">Upcoming Defense</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             {mockData.upcomingDefense ? (
               <div className="space-y-4">
-                <div className="p-6 bg-primary/5 border border-primary/10">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-primary flex items-center justify-center flex-shrink-0">
-                      <Calendar className="w-6 h-6 text-primary-foreground" />
+                <div className="relative p-6 bg-gradient-to-br from-chart-5/10 to-chart-5/5 border border-chart-5/20 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-chart-5/10 rounded-full blur-2xl" />
+                  <div className="relative flex items-start gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-chart-5 to-chart-4 flex items-center justify-center flex-shrink-0 shadow-lg">
+                      <Calendar className="w-7 h-7 text-primary-foreground" />
                     </div>
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-foreground">SIWES Defense Presentation</h3>
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        <p className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          {mockData.upcomingDefense.date}
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-foreground text-lg">SIWES Defense Presentation</h3>
+                      <div className="space-y-2 text-sm">
+                        <p className="flex items-center gap-3 text-muted-foreground">
+                          <Calendar className="w-4 h-4 text-chart-5" />
+                          <span className="font-medium text-foreground">{mockData.upcomingDefense.date}</span>
                         </p>
-                        <p className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          {mockData.upcomingDefense.time}
+                        <p className="flex items-center gap-3 text-muted-foreground">
+                          <Clock className="w-4 h-4 text-chart-5" />
+                          <span className="font-medium text-foreground">{mockData.upcomingDefense.time}</span>
                         </p>
-                        <p className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          {mockData.upcomingDefense.venue}
+                        <p className="flex items-center gap-3 text-muted-foreground">
+                          <AlertCircle className="w-4 h-4 text-chart-5" />
+                          <span className="font-medium text-foreground">{mockData.upcomingDefense.venue}</span>
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-                <Button className="w-full" variant="outline" asChild>
+                <Button className="w-full h-12 bg-gradient-to-r from-chart-5 to-chart-4 hover:opacity-90" asChild>
                   <Link to="/defense">
                     View Defense Details
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -247,9 +285,9 @@ const StudentDashboard = () => {
                 </Button>
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No defense scheduled yet</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <Calendar className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                <p className="text-lg">No defense scheduled yet</p>
               </div>
             )}
           </CardContent>
