@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-    
+
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       let response;
-      
+
       if (role && role !== 'student') {
         // Login for supervisors, HOD, coordinator
         response = await authAPI.roleLogin({ email, password, role });
@@ -85,14 +85,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         response = await authAPI.studentLogin({ email, password });
       }
 
-      const { token, user } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      setToken(token);
-      setUser(user);
-      
+      const { token: newToken, user: userData } = response.data;
+
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      setToken(newToken);
+      setUser(userData);
+
       return response.data;
     } catch (error: any) {
       throw error.response?.data?.error || 'Login failed';
@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       let response;
-      
+
       if (role && role !== 'student') {
         // Register supervisors, HOD, coordinator
         response = await authAPI.registerRole({
@@ -113,6 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: data.email,
           password: data.password,
           role: role,
+          department: data.department,
         });
       } else {
         // Student registration (with verification code)
@@ -121,17 +122,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: data.email,
           verificationCode: data.verificationCode,
           password: data.password,
+          matricNumber: data.matricNumber,
+          department: data.department,
+          companyName: data.companyName,
+          companyAddress: data.companyAddress,
         });
       }
 
-      const { token, user } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      setToken(token);
-      setUser(user);
-      
+      const { token: newToken, user: userData } = response.data;
+
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      setToken(newToken);
+      setUser(userData);
+
       return response.data;
     } catch (error: any) {
       throw error.response?.data?.error || 'Registration failed';
@@ -158,18 +163,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isLoading,
-        login,
-        register,
-        verifyEmail,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider
+          value={{
+            user,
+            token,
+            isLoading,
+            login,
+            register,
+            verifyEmail,
+            logout,
+          }}
+      >
+        {children}
+      </AuthContext.Provider>
   );
 };

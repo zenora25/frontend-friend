@@ -7,20 +7,19 @@ import IndustrySupervisor from "../models/industrySupervisor.js";
 import HOD from "../models/hod.js";
 import SIWESCoordinator from "../models/siwesCoordinator.js";
 import VerificationCode from "../models/VerificationCode.js";
-import Department from "../models/department.js";
 
 // -----------------------------------
 // 🔐 Generate JWT Token
 // -----------------------------------
 const generateToken = (user, role) => {
   return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      role,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+      {
+        id: user.id,
+        email: user.email,
+        role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
   );
 };
 
@@ -29,20 +28,42 @@ const generateToken = (user, role) => {
 // -----------------------------------
 const studentSignup = async (req, res) => {
   try {
-    const { fullName, email, verificationCode, password, matricNumber, department, companyName, companyAddress } = req.body;
+    const {
+      fullName,
+      email,
+      verificationCode,
+      password,
+      matricNumber,
+      department,
+      companyName,
+      companyAddress
+    } = req.body;
 
     if (!fullName || !email || !verificationCode || !password || !matricNumber || !department || !companyName || !companyAddress) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    const codeExists = await VerificationCode.findOne({
-      where: { email, code: verificationCode },
+    // Find and validate verification code
+    const codeRecord = await VerificationCode.findOne({
+      where: {
+        email,
+        code: verificationCode.toUpperCase(),
+        isUsed: false
+      },
     });
 
-    if (!codeExists) {
+    if (!codeRecord) {
       return res.status(400).json({ error: "Invalid or expired verification code" });
     }
 
+    // Check if code has expired
+    const now = new Date();
+    if (now > new Date(codeRecord.expiresAt)) {
+      await VerificationCode.destroy({ where: { id: codeRecord.id } });
+      return res.status(400).json({ error: "Verification code has expired" });
+    }
+
+    // Check if student already exists
     const existingStudent = await Student.findOne({ where: { email } });
     if (existingStudent) {
       return res.status(400).json({ error: "Student already registered" });
@@ -53,8 +74,10 @@ const studentSignup = async (req, res) => {
       return res.status(400).json({ error: "Matric number already registered" });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create student
     const student = await Student.create({
       fullName,
       email,
@@ -64,11 +87,16 @@ const studentSignup = async (req, res) => {
       companyAddress,
       password: hashedPassword,
       isVerified: true,
+      verificationCodeUsed: true,
     });
 
-    // Delete used verification code
-    await VerificationCode.destroy({ where: { email, code: verificationCode } });
+    // Mark verification code as used
+    await VerificationCode.update(
+        { isUsed: true },
+        { where: { id: codeRecord.id } }
+    );
 
+    // Generate token
     const token = generateToken(student, "student");
 
     res.status(201).json({
@@ -118,16 +146,24 @@ const roleLogin = async (req, res) => {
       case "siwesCoordinator":
         UserModel = SIWESCoordinator;
         break;
+      case "student":
+        // Redirect to student login endpoint
+        return res.status(400).json({
+          error: "Please use /api/auth/student/login for student login"
+        });
       default:
         return res.status(400).json({ error: "Invalid role" });
     }
 
     const user = await UserModel.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ error: "User not found" });
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword)
+    if (!validPassword) {
       return res.status(401).json({ error: "Incorrect password" });
+    }
 
     const token = generateToken(user, role);
 
@@ -156,19 +192,23 @@ const studentLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password)
+    if (!email || !password) {
       return res.status(400).json({ error: "Email and password required" });
+    }
 
     const student = await Student.findOne({ where: { email } });
-    if (!student) return res.status(400).json({ error: "Student not found" });
+    if (!student) {
+      return res.status(400).json({ error: "Student not found" });
+    }
 
     if (!student.isVerified) {
       return res.status(403).json({ error: "Account not verified. Please complete verification." });
     }
 
     const validPassword = await bcrypt.compare(password, student.password);
-    if (!validPassword)
+    if (!validPassword) {
       return res.status(401).json({ error: "Incorrect password" });
+    }
 
     const token = generateToken(student, "student");
 
@@ -204,21 +244,22 @@ const verifyStudentEmail = async (req, res) => {
       return res.status(400).json({ error: "Email and code required" });
     }
 
-    const record = await VerificationCode.findOne({ 
-      where: { email, code } 
+    const record = await VerificationCode.findOne({
+      where: {
+        email,
+        code: code.toUpperCase(),
+        isUsed: false
+      }
     });
 
     if (!record) {
       return res.status(400).json({ error: "Invalid verification code" });
     }
 
-    // Check if code has expired (24 hours)
+    // Check if code has expired
     const now = new Date();
-    const codeCreatedAt = new Date(record.createdAt);
-    const hoursDiff = (now - codeCreatedAt) / (1000 * 60 * 60);
-    
-    if (hoursDiff > 24) {
-      await VerificationCode.destroy({ where: { email, code } });
+    if (now > new Date(record.expiresAt)) {
+      await VerificationCode.destroy({ where: { id: record.id } });
       return res.status(400).json({ error: "Verification code has expired" });
     }
 
@@ -228,10 +269,10 @@ const verifyStudentEmail = async (req, res) => {
       return res.status(400).json({ error: "Student already registered" });
     }
 
-    res.json({ 
+    res.json({
       message: "Verification successful",
       email,
-      code,
+      code: record.code,
     });
 
   } catch (err) {
@@ -245,8 +286,9 @@ const verifyStudentEmail = async (req, res) => {
 // -----------------------------------
 const verifyToken = async (req, res) => {
   try {
-    if (!req.user)
+    if (!req.user) {
       return res.status(401).json({ error: "No user data found" });
+    }
 
     const { id, role } = req.user;
 
@@ -254,36 +296,37 @@ const verifyToken = async (req, res) => {
 
     switch (role) {
       case "student":
-        userData = await Student.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await Student.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "institutionSupervisor":
-        userData = await InstitutionSupervisor.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await InstitutionSupervisor.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "industrySupervisor":
-        userData = await IndustrySupervisor.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await IndustrySupervisor.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "hod":
-        userData = await HOD.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await HOD.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "siwesCoordinator":
-        userData = await SIWESCoordinator.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await SIWESCoordinator.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       default:
         return res.status(400).json({ error: "Invalid role" });
     }
 
-    if (!userData)
+    if (!userData) {
       return res.status(404).json({ error: "User not found" });
+    }
 
     res.json({
       message: "Token is valid",
@@ -303,8 +346,9 @@ const registerRole = async (req, res) => {
   try {
     const { fullName, email, password, role, department } = req.body;
 
-    if (!fullName || !email || !password || !role || !department)
+    if (!fullName || !email || !password || !role || !department) {
       return res.status(400).json({ error: "All fields required" });
+    }
 
     let UserModel;
 
@@ -326,8 +370,9 @@ const registerRole = async (req, res) => {
     }
 
     const existingUser = await UserModel.findOne({ where: { email } });
-    if (existingUser)
+    if (existingUser) {
       return res.status(400).json({ error: "User already registered" });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -363,8 +408,9 @@ const registerRole = async (req, res) => {
 // -----------------------------------
 const getProfile = async (req, res) => {
   try {
-    if (!req.user)
+    if (!req.user) {
       return res.status(401).json({ error: "No user data found" });
+    }
 
     const { id, role } = req.user;
 
@@ -372,36 +418,37 @@ const getProfile = async (req, res) => {
 
     switch (role) {
       case "student":
-        userData = await Student.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await Student.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "institutionSupervisor":
-        userData = await InstitutionSupervisor.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await InstitutionSupervisor.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "industrySupervisor":
-        userData = await IndustrySupervisor.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await IndustrySupervisor.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "hod":
-        userData = await HOD.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await HOD.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       case "siwesCoordinator":
-        userData = await SIWESCoordinator.findByPk(id, { 
-          attributes: { exclude: ["password"] } 
+        userData = await SIWESCoordinator.findByPk(id, {
+          attributes: { exclude: ["password"] }
         });
         break;
       default:
         return res.status(400).json({ error: "Invalid role" });
     }
 
-    if (!userData)
+    if (!userData) {
       return res.status(404).json({ error: "User not found" });
+    }
 
     res.json({
       message: "Profile retrieved successfully",
@@ -420,13 +467,13 @@ const getProfile = async (req, res) => {
 const checkAuth = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    
+
     if (!token) {
       return res.status(401).json({ authenticated: false });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     if (!decoded) {
       return res.status(401).json({ authenticated: false });
     }

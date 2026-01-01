@@ -15,15 +15,34 @@ const Student = sequelize.define("Student", {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
+    validate: {
+      isEmail: true,
+    },
+  },
+  matricNumber: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
   },
   department: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: 'Computer Science',
   },
   password: {
     type: DataTypes.STRING,
     allowNull: false,
+  },
+  companyName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  companyAddress: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  isVerified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
   verificationCodeUsed: {
     type: DataTypes.BOOLEAN,
@@ -36,7 +55,11 @@ const Student = sequelize.define("Student", {
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
-  }
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
 });
 
 export default Student;

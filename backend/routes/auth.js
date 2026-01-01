@@ -5,10 +5,12 @@ import {
   roleLogin,
   verifyStudentEmail,
   verifyToken,
-  registerRole
+  registerRole,
+  getProfile,
+  checkAuth
 } from "../controllers/authcontroller.js";
 
-import protect from "../middleware/authMiddleware.js";   // protect middleware
+import protect from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -34,8 +36,11 @@ router.post("/verify-email", verifyStudentEmail);
 // Verify Token (Protected Route)
 router.get("/verify", protect, verifyToken);
 
-// Add this route
+// Get user profile (Protected Route)
 router.get("/profile", protect, getProfile);
+
+// Check authentication status
+router.get("/check", checkAuth);
 
 // Export router as DEFAULT
 export default router;
