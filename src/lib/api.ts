@@ -1,7 +1,6 @@
-// lib/api.ts
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,77 +11,104 @@ const api = axios.create({
 
 // Request interceptor to add token
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
 );
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
 
 // =========================
 // AUTH API
 // =========================
 export const authAPI = {
-  // Student endpoints
-  studentSignup: (data: Record<string, any>) => 
-    api.post('/auth/student/signup', data),
-  
-  studentLogin: (data: { email: string; password: string }) => 
-    api.post('/auth/student/login', data),
+  studentSignup: (data: {
+    fullName: string;
+    email: string;
+    verificationCode: string;
+    password: string;
+    matricNumber: string;
+    department: string;
+    companyName: string;
+    companyAddress: string;
+  }) => api.post('/auth/student/signup', data),
 
-  // Role endpoints (institution supervisor, industry supervisor, HOD, coordinator)
-  roleLogin: (data: { email: string; password: string; role: string }) => 
-    api.post('/auth/role/login', data),
-  
-  registerRole: (data: Record<string, any>) => 
-    api.post('/auth/role/register', data),
+  studentLogin: (data: { email: string; password: string }) =>
+      api.post('/auth/student/login', data),
 
-  // Verification
-  verifyStudentEmail: (data: Record<string, any>) => 
-    api.post('/auth/verify-email', data),
+  roleLogin: (data: { email: string; password: string; role: string }) =>
+      api.post('/auth/role/login', data),
 
-  // Token verification (protected)
+  registerRole: (data: {
+    fullName: string;
+    email: string;
+    password: string;
+    role: string;
+    department: string;
+  }) => api.post('/auth/role/register', data),
+
+  verifyStudentEmail: (data: { email: string; code: string }) =>
+      api.post('/auth/verify-email', data),
+
   verifyToken: () => api.get('/auth/verify'),
 
-  // Get user profile (protected)
   getProfile: () => api.get('/auth/profile'),
 
-  // Check auth status
   checkAuth: () => api.get('/auth/check'),
+};
+
+// =========================
+// DASHBOARD API
+// =========================
+export const dashboardAPI = {
+  getStudentDashboard: () => api.get('/dashboard/student'),
+  getSupervisorDashboard: () => api.get('/dashboard/supervisor'),
+  getHODDashboard: () => api.get('/dashboard/hod'),
+  getCoordinatorDashboard: () => api.get('/dashboard/coordinator'),
+  getSystemStats: () => api.get('/dashboard/system-stats'),
 };
 
 // =========================
 // STUDENT API
 // =========================
 export const studentAPI = {
-  getAll: () => api.get('/students'),
+  getAll: (params?: { page?: number; limit?: number; department?: string }) =>
+      api.get('/students', { params }),
+
   getById: (id: string) => api.get(`/students/${id}`),
+
   update: (id: string, data: {
-    organization?: string;
-    department?: string;
     phone?: string;
+    profileImage?: string;
+    companyName?: string;
+    companyAddress?: string;
   }) => api.put(`/students/${id}`, data),
+
   getProfile: () => api.get('/students/profile'),
-  getDashboardStats: () => api.get('/students/dashboard'),
+
+  getDashboardStats: () => api.get('/dashboard/student'),
+
+  updateProgress: (id: string, progress: number) =>
+      api.put(`/students/${id}/progress`, { progress }),
 };
 
 // =========================
@@ -105,9 +131,11 @@ export const logbookAPI = {
     lessonsLearned?: string;
     skillsAcquired?: string;
   }) => api.post('/logbook', data),
-  
+
   getMyLogbook: () => api.get('/logbook/my-logbook'),
+
   getById: (id: string) => api.get(`/logbook/${id}`),
+
   update: (id: string, data: Partial<{
     title: string;
     mondayActivities: string;
@@ -120,35 +148,59 @@ export const logbookAPI = {
     lessonsLearned: string;
     skillsAcquired: string;
   }>) => api.put(`/logbook/${id}`, data),
+
   delete: (id: string) => api.delete(`/logbook/${id}`),
 
+  getLogbookStats: () => api.get('/logbook/stats'),
+
   // Supervisor routes
-  getSupervisorLogbooks: () => api.get('/logbook/supervisor'),
-  reviewLogbook: (logbookId: string, data: { 
-    status: 'APPROVED' | 'NEEDS_REVIEW'; 
-    comment?: string 
+  getSupervisorLogbooks: (params?: { status?: string }) =>
+      api.get('/logbook/supervisor/assigned', { params }),
+
+  reviewLogbook: (logbookId: string, data: {
+    status: 'APPROVED' | 'REVISION';
+    comment?: string;
+    isIndustrySupervisor?: boolean;
   }) => api.put(`/logbook/review/${logbookId}`, data),
 
-  // General routes
-  getAll: () => api.get('/logbook'),
-  getStudentLogbook: (studentId: string) => api.get(`/logbook/student/${studentId}`),
+  getSupervisorStats: () => api.get('/logbook/supervisor/stats'),
+
+  // Admin routes
+  getAll: (params?: {
+    page?: number;
+    limit?: number;
+    department?: string;
+    status?: string;
+  }) => api.get('/logbook', { params }),
+
+  getStudentLogbook: (studentId: string) =>
+      api.get(`/logbook/student/${studentId}`),
 };
 
 // =========================
 // VERIFICATION CODE API
 // =========================
 export const verificationAPI = {
-  // Coordinator routes
-  generateCode: (data: { department: string }) => 
-    api.post('/verification/generate', data),
-  getCodes: () => api.get('/verification'),
-  getUnusedCodes: (department: string) => 
-    api.get(`/verification/unused/${department}`),
+  generateCode: (data: { email: string; department: string }) =>
+      api.post('/verification/generate', data),
+
+  getCodes: (params?: {
+    page?: number;
+    limit?: number;
+    isUsed?: boolean;
+    department?: string;
+  }) => api.get('/verification', { params }),
+
+  getUnusedCodes: (department: string) =>
+      api.get(`/verification/unused/${department}`),
+
   deleteCode: (id: string) => api.delete(`/verification/${id}`),
-  
-  // Public route (for student registration)
-  verifyCode: (data: { code: string }) => 
-    api.post('/verification/verify', data),
+
+  verifyCode: (data: { email: string; code: string }) =>
+      api.post('/verification/verify', data),
+
+  bulkGenerateCodes: (data: { emails: string[]; department: string }) =>
+      api.post('/verification/bulk-generate', data),
 };
 
 // =========================
@@ -156,120 +208,249 @@ export const verificationAPI = {
 // =========================
 export const assignmentAPI = {
   // HOD routes
-  assignStudentToSupervisor: (data: { 
-    studentId: string; 
-    supervisorId: string 
+  assignStudentToSupervisor: (data: {
+    studentId: string;
+    institutionSupervisorId?: string;
+    industrySupervisorId?: string;
   }) => api.post('/assignments/assign', data),
-  
+
   getDepartmentalAssignments: () => api.get('/assignments/department'),
+
+  removeAssignment: (assignmentId: string) => api.delete(`/assignments/${assignmentId}`),
 
   // Supervisor routes
   getSupervisorStudents: () => api.get('/assignments/my-students'),
+
+  // Coordinator routes
+  getAllAssignments: (params?: { page?: number; limit?: number; department?: string }) =>
+      api.get('/assignments', { params }),
 };
 
 // =========================
-// GRADING/DEFENSE API
+// DEFENSE API
 // =========================
-export const gradingAPI = {
+export const defenseAPI = {
+  // Student routes
+  getMyDefense: () => api.get('/defense/my-defense'),
+  getStudentDefenseStats: () => api.get('/defense/student-stats'),
+
+  // Supervisor routes
+  submitGrade: (defenseId: string, data: {
+    score: number;
+    remarks?: string;
+    verdict: 'PASS' | 'FAIL';
+  }) => api.put(`/defense/grade/${defenseId}`, data),
+
   // Coordinator routes
   scheduleDefense: (data: {
     studentId: string;
     defenseDate: string;
-    assessor: string;
-    venue?: string;
-    time?: string;
-  }) => api.post('/grading/schedule', data),
-  
-  submitGrade: (data: {
-    studentId: string;
-    score: number;
-    remarks?: string;
-  }) => api.post('/grading/submit', data),
-  
-  getAllDefenses: () => api.get('/grading/all'),
+    defenseTime: string;
+    venue: string;
+    duration?: string;
+    panelMembers?: string[];
+  }) => api.post('/defense/schedule', data),
 
-  // Student routes
-  getMyDefense: () => api.get('/grading/my-defense'),
+  getAllDefenses: (params?: {
+    page?: number;
+    limit?: number;
+    department?: string;
+    status?: string;
+  }) => api.get('/defense', { params }),
+
+  getDefenseStats: () => api.get('/defense/stats'),
+
+  cancelDefense: (defenseId: string) => api.delete(`/defense/${defenseId}`),
+
+  // HOD routes
+  getDepartmentDefenses: () => api.get('/defense/department'),
 
   // General routes
-  getStudentDefense: (studentId: string) => 
-    api.get(`/grading/student/${studentId}`),
+  getStudentDefense: (studentId: string) => api.get(`/defense/student/${studentId}`),
 };
 
 // =========================
 // LETTER API
 // =========================
 export const letterAPI = {
-  uploadLetter: (data: { 
-    studentId: string; 
-    fileUrl: string 
+  uploadLetter: (data: {
+    studentId: string;
+    fileUrl: string;
+    letterType: 'ACCEPTANCE' | 'COMPLETION' | 'RECOMMENDATION';
   }) => api.post('/letters', data),
-  
-  getStudentLetters: (studentId: string) => 
-    api.get(`/letters/student/${studentId}`),
-  
-  getAllLetters: () => api.get('/letters'),
+
+  getStudentLetters: (studentId: string) => api.get(`/letters/student/${studentId}`),
+
+  getAllLetters: (params?: { page?: number; limit?: number }) => api.get('/letters', { params }),
+
+  deleteLetter: (letterId: string) => api.delete(`/letters/${letterId}`),
 };
 
 // =========================
 // INSTITUTION SUPERVISOR API
 // =========================
 export const institutionSupervisorAPI = {
-  getAll: () => api.get('/institution-supervisors'),
+  getAll: (params?: { page?: number; limit?: number; department?: string }) =>
+      api.get('/institution-supervisors', { params }),
+
   getById: (id: string) => api.get(`/institution-supervisors/${id}`),
+
   update: (id: string, data: {
-    firstName?: string;
-    lastName?: string;
+    fullName?: string;
     department?: string;
+    phone?: string;
+    profileImage?: string;
   }) => api.put(`/institution-supervisors/${id}`, data),
-  getAssignedStudents: () => api.get('/institution-supervisors/students'),
-  getDashboardStats: () => api.get('/institution-supervisors/dashboard'),
+
+  getAssignedStudents: () => api.get('/assignments/my-students'),
+
+  getDashboardStats: () => api.get('/dashboard/supervisor'),
+
+  getSupervisorStats: () => api.get('/logbook/supervisor/stats'),
 };
 
 // =========================
 // INDUSTRY SUPERVISOR API
 // =========================
 export const industrySupervisorAPI = {
-  getAll: () => api.get('/industry-supervisors'),
+  getAll: (params?: { page?: number; limit?: number; companyName?: string }) =>
+      api.get('/industry-supervisors', { params }),
+
   getById: (id: string) => api.get(`/industry-supervisors/${id}`),
+
   update: (id: string, data: {
-    firstName?: string;
-    lastName?: string;
-    organization?: string;
+    fullName?: string;
+    companyName?: string;
+    phone?: string;
+    email?: string;
+    profileImage?: string;
   }) => api.put(`/industry-supervisors/${id}`, data),
-  getAssignedInterns: () => api.get('/industry-supervisors/interns'),
-  getDashboardStats: () => api.get('/industry-supervisors/dashboard'),
+
+  getAssignedInterns: () => api.get('/assignments/my-students'),
+
+  getDashboardStats: () => api.get('/dashboard/supervisor'),
 };
 
 // =========================
 // HOD API
 // =========================
 export const hodAPI = {
-  getAll: () => api.get('/hods'),
+  getAll: (params?: { page?: number; limit?: number }) =>
+      api.get('/hods', { params }),
+
   getById: (id: string) => api.get(`/hods/${id}`),
+
   update: (id: string, data: {
-    firstName?: string;
-    lastName?: string;
+    fullName?: string;
     department?: string;
+    phone?: string;
+    profileImage?: string;
   }) => api.put(`/hods/${id}`, data),
-  getDepartmentStats: () => api.get('/hods/department/stats'),
-  getSupervisorPerformance: () => api.get('/hods/supervisors/performance'),
-  getDashboardStats: () => api.get('/hods/dashboard'),
+
+  getDepartmentStats: () => api.get('/dashboard/hod'),
+
+  getSupervisorPerformance: () => api.get('/dashboard/hod'),
+
+  getDashboardStats: () => api.get('/dashboard/hod'),
+
+  getDepartmentalAssignments: () => api.get('/assignments/department'),
+
+  getDepartmentDefenses: () => api.get('/defense/department'),
 };
 
 // =========================
 // SIWES COORDINATOR API
 // =========================
 export const coordinatorAPI = {
-  getAll: () => api.get('/siwes-coordinators'),
+  getAll: (params?: { page?: number; limit?: number }) =>
+      api.get('/siwes-coordinators', { params }),
+
   getById: (id: string) => api.get(`/siwes-coordinators/${id}`),
+
   update: (id: string, data: {
-    firstName?: string;
-    lastName?: string;
+    fullName?: string;
+    phone?: string;
+    profileImage?: string;
   }) => api.put(`/siwes-coordinators/${id}`, data),
-  getAllStudents: () => api.get('/siwes-coordinators/students'),
-  getDashboardStats: () => api.get('/siwes-coordinators/dashboard'),
-  getVerificationCodes: () => api.get('/siwes-coordinators/verification-codes'),
+
+  getAllStudents: (params?: { page?: number; limit?: number; department?: string }) =>
+      api.get('/students', { params }),
+
+  getDashboardStats: () => api.get('/dashboard/coordinator'),
+
+  getVerificationCodes: (params?: {
+    page?: number;
+    limit?: number;
+    isUsed?: boolean;
+    department?: string;
+  }) => api.get('/verification', { params }),
+
+  getSystemStats: () => api.get('/dashboard/system-stats'),
+
+  getAllDefenses: (params?: {
+    page?: number;
+    limit?: number;
+    department?: string;
+    status?: string;
+  }) => api.get('/defense', { params }),
+
+  getAllAssignments: (params?: { page?: number; limit?: number; department?: string }) =>
+      api.get('/assignments', { params }),
+};
+
+// =========================
+// PROFILE API
+// =========================
+export const profileAPI = {
+  updateProfile: (data: {
+    fullName?: string;
+    phone?: string;
+    profileImage?: string;
+    companyName?: string;
+    companyAddress?: string;
+  }) => api.put('/profile', data),
+
+  changePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+  }) => api.put('/profile/password', data),
+
+  uploadProfileImage: (formData: FormData) => api.post('/profile/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+};
+
+// =========================
+// NOTIFICATION API
+// =========================
+export const notificationAPI = {
+  getNotifications: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) =>
+      api.get('/notifications', { params }),
+
+  markAsRead: (notificationId: string) => api.put(`/notifications/${notificationId}/read`),
+
+  markAllAsRead: () => api.put('/notifications/read-all'),
+
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+};
+
+// =========================
+// REPORT API
+// =========================
+export const reportAPI = {
+  generateStudentReport: (studentId: string) => api.get(`/reports/student/${studentId}`),
+
+  generateDepartmentReport: (department: string) => api.get(`/reports/department/${department}`),
+
+  generateSupervisorReport: (supervisorId: string) => api.get(`/reports/supervisor/${supervisorId}`),
+
+  generateDefenseReport: (params?: { startDate?: string; endDate?: string; department?: string }) =>
+      api.get('/reports/defense', { params }),
+
+  generateLogbookReport: (params?: { startDate?: string; endDate?: string; department?: string }) =>
+      api.get('/reports/logbook', { params }),
 };
 
 export default api;

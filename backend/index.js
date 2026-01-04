@@ -18,6 +18,17 @@ import siwesCoordinatorRoutes from "./routes/siwesCoordinator.js";
 // Import new routes
 import assignmentRoutes from "./routes/assignment.js";
 import gradingRoutes from "./routes/grading.js";
+// import authRoutes from "./routes/auth.js";
+// import studentRoutes from "./routes/student.js";
+// import institutionSupervisorRoutes from "./routes/institutionSupervisor.js";
+// import industrySupervisorRoutes from "./routes/industrySupervisor.js";
+// import hodRoutes from "./routes/hod.js";
+// import siwesCoordinatorRoutes from "./routes/siwesCoordinator.js";
+import verificationCodeRoutes from "./routes/verificationCode.js";
+// import logbookRoutes from "./routes/logbook.js";
+import defenseRoutes from "./routes/defense.js";
+// import assignmentRoutes from "./routes/assignment.js";
+import dashboardRoutes from "./routes/dashboard.js";
 
 dotenv.config();
 
@@ -46,10 +57,15 @@ app.get("/health", (req, res) => res.json({
 // Api routes
 app.use("/api/auth", authRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/institution-supervisors", institutionSupervisorRoutes);
+app.use("/api/industry-supervisors", industrySupervisorRoutes);
+app.use("/api/hods", hodRoutes);
+app.use("/api/siwes-coordinators", siwesCoordinatorRoutes);
+app.use("/api/verification", verificationCodeRoutes);
 app.use("/api/logbook", logbookRoutes);
-app.use("/api/letters", letterRoutes);
-app.use("/api/verification", verificationRoutes);
+app.use("/api/defense", defenseRoutes);
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/grading", gradingRoutes);
 
 // Role-based routes

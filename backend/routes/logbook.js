@@ -1,29 +1,41 @@
 import express from "express";
 import {
-  createLogbookEntry,
-  getLogbookEntries,
-  getStudentLogbook,
+  createLogbook,
+  getMyLogbooks,
+  getLogbookById,
+  updateLogbook,
+  deleteLogbook,
+  getSupervisorLogbooks,
   reviewLogbook,
-  getSupervisorLogbooks
-} from "../controllers/logbookcontroller.js";
-import { requireRole, requireStudent, requireInstitutionSupervisor } from "../middleware/roleAuth.js";
+  getAllLogbooks,
+  getStudentLogbook,
+  getLogbookStats,
+} from "../controllers/logbookController.js";
 import protect from "../middleware/authMiddleware.js";
+import {
+  requireStudent,
+  requireSupervisor,
+  requireAdmin,
+  requireCoordinator,
+} from "../middleware/roleAuth.js";
 
 const router = express.Router();
 
 // Student routes
-router.post("/", protect, requireStudent, createLogbookEntry);
-router.get("/my-logbook", protect, requireStudent, (req, res) => {
-  // Redirect to student's own logbook
-  return getStudentLogbook(req, res);
-});
+router.post("/", protect, requireStudent, createLogbook);
+router.get("/my-logbook", protect, requireStudent, getMyLogbooks);
+router.get("/stats", protect, requireStudent, getLogbookStats);
+router.get("/:id", protect, requireStudent, getLogbookById);
+router.put("/:id", protect, requireStudent, updateLogbook);
+router.delete("/:id", protect, requireStudent, deleteLogbook);
 
 // Supervisor routes
-router.get("/supervisor", protect, requireInstitutionSupervisor, getSupervisorLogbooks);
-router.put("/review/:logbookId", protect, requireInstitutionSupervisor, reviewLogbook);
+router.get("/supervisor/assigned", protect, requireSupervisor, getSupervisorLogbooks);
+router.put("/review/:logbookId", protect, requireSupervisor, reviewLogbook);
+router.get("/supervisor/stats", protect, requireSupervisor, getLogbookStats);
 
-// General routes (protected)
-router.get("/", protect, getLogbookEntries);
-router.get("/student/:studentId", protect, getStudentLogbook);
+// Admin/HOD/Coordinator routes
+router.get("/", protect, requireAdmin, getAllLogbooks);
+router.get("/student/:studentId", protect, requireAdmin, getStudentLogbook);
 
 export default router;

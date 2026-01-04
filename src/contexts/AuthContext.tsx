@@ -1,12 +1,11 @@
-// src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authAPI } from '@/lib/api';
 
 interface User {
   id: string;
   email: string;
-  fullName?: string;
   role: string;
+  fullName: string;
   department?: string;
   matricNumber?: string;
   companyName?: string;
@@ -16,11 +15,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  isLoading: boolean;
   login: (email: string, password: string, role?: string) => Promise<void>;
   register: (data: any, role?: string) => Promise<void>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   logout: () => void;
+  isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,44 +33,34 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for saved token on mount
   useEffect(() => {
+    // Check for saved token and user on mount
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
 
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
-      // Verify token with backend
-      verifyToken(savedToken);
+
+      // Verify token validity
+      authAPI.verifyToken()
+          .catch(() => {
+            // Token invalid, clear storage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+          })
+          .finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
   }, []);
-
-  const verifyToken = async (tokenToVerify: string) => {
-    try {
-      const response = await authAPI.verifyToken();
-      if (response.data.user) {
-        setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      logout();
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const login = async (email: string, password: string, role?: string) => {
     setIsLoading(true);
@@ -78,24 +68,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       let response;
 
       if (role && role !== 'student') {
-        // Login for supervisors, HOD, coordinator
+        // Role login (supervisor, HOD, coordinator)
         response = await authAPI.roleLogin({ email, password, role });
       } else {
-        // Student login (no role parameter needed)
+        // Student login
         response = await authAPI.studentLogin({ email, password });
       }
 
-      const { token: newToken, user: userData } = response.data;
+      const { token: authToken, user: userData } = response.data;
 
-      localStorage.setItem('token', newToken);
+      // Save to state and localStorage
+      setToken(authToken);
+      setUser(userData);
+      localStorage.setItem('token', authToken);
       localStorage.setItem('user', JSON.stringify(userData));
 
-      setToken(newToken);
-      setUser(userData);
-
-      return response.data;
     } catch (error: any) {
-      throw error.response?.data?.error || 'Login failed';
+      const errorMessage = error.response?.data?.error || 'Login failed';
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -106,40 +96,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       let response;
 
-      if (role && role !== 'student') {
-        // Register supervisors, HOD, coordinator
+      if (role) {
+        // Register role (supervisor, HOD, coordinator)
         response = await authAPI.registerRole({
-          fullName: data.fullName,
-          email: data.email,
-          password: data.password,
-          role: role,
-          department: data.department,
+          ...data,
+          role: role === 'siwesCoordinator' ? 'coordinator' : role,
         });
       } else {
-        // Student registration (with verification code)
-        response = await authAPI.studentSignup({
-          fullName: data.fullName,
-          email: data.email,
-          verificationCode: data.verificationCode,
-          password: data.password,
-          matricNumber: data.matricNumber,
-          department: data.department,
-          companyName: data.companyName,
-          companyAddress: data.companyAddress,
-        });
+        // Student registration (requires verification code)
+        response = await authAPI.studentSignup(data);
       }
 
-      const { token: newToken, user: userData } = response.data;
+      const { token: authToken, user: userData } = response.data;
 
-      localStorage.setItem('token', newToken);
+      // Save to state and localStorage
+      setToken(authToken);
+      setUser(userData);
+      localStorage.setItem('token', authToken);
       localStorage.setItem('user', JSON.stringify(userData));
 
-      setToken(newToken);
-      setUser(userData);
-
-      return response.data;
     } catch (error: any) {
-      throw error.response?.data?.error || 'Registration failed';
+      const errorMessage = error.response?.data?.error || 'Registration failed';
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -147,34 +125,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyEmail = async (email: string, code: string) => {
     try {
-      const response = await authAPI.verifyStudentEmail({ email, code });
-      return response.data;
+      await authAPI.verifyStudentEmail({ email, code });
     } catch (error: any) {
-      throw error.response?.data?.error || 'Verification failed';
+      const errorMessage = error.response?.data?.error || 'Verification failed';
+      throw new Error(errorMessage);
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-    window.location.href = '/login';
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   };
 
-  return (
-      <AuthContext.Provider
-          value={{
-            user,
-            token,
-            isLoading,
-            login,
-            register,
-            verifyEmail,
-            logout,
-          }}
-      >
-        {children}
-      </AuthContext.Provider>
-  );
+  const value = {
+    user,
+    token,
+    login,
+    register,
+    verifyEmail,
+    logout,
+    isLoading,
+    isAuthenticated: !!token,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
