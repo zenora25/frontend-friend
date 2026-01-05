@@ -32,6 +32,7 @@ import Profile from "./pages/Profile";
 // import Reports from "./pages/Reports";
 import LogbookReview from "./pages/logbook/LogbookReview";
 import LogbookDetails from "./pages/logbook/LogbookDetails";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -44,6 +45,7 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
         <TooltipProvider>
             <Toaster />
@@ -236,6 +238,7 @@ const App = () => (
             </BrowserRouter>
         </TooltipProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
 );
 
 export default App;
