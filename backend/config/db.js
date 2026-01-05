@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Use MYSQL_* variables or fall back to DB_* variables
 const sequelize = new Sequelize(
     process.env.MYSQL_DB || process.env.DB_NAME || "intern",
     process.env.MYSQL_USER || process.env.DB_USER || "root",
@@ -26,8 +25,8 @@ const sequelize = new Sequelize(
     }
 );
 
-// Test connection
-const testConnection = async () => {
+// Test connection function
+export const connectMYSQL = async () => {
     try {
         await sequelize.authenticate();
         console.log("✅ Database connection established successfully.");
