@@ -1,4 +1,4 @@
-// api.ts (FULL FIXED CODE)
+// api.ts (FULL FIXED CODE WITH ALL IMPLEMENTED CHANGES)
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -38,6 +38,19 @@ api.interceptors.response.use(
     }
 );
 
+// Helper function to map frontend role to backend role
+const mapRoleToBackend = (role: string): string => {
+  const roleMap: Record<string, string> = {
+    'student': 'student',
+    'institutionSupervisor': 'institutionSupervisor',
+    'industrySupervisor': 'industrySupervisor',
+    'hod': 'hod',
+    'siwesCoordinator': 'siwesCoordinator',
+    'coordinator': 'siwesCoordinator', // Alias for coordinator
+  };
+  return roleMap[role] || role;
+};
+
 // =========================
 // AUTH API
 // =========================
@@ -56,8 +69,16 @@ export const authAPI = {
   studentLogin: (data: { email: string; password: string }) =>
       api.post('/auth/student/login', data),
 
-  roleLogin: (data: { email: string; password: string; role: string }) =>
-      api.post('/auth/role/login', data),
+  roleLogin: (data: { email: string; password: string; role: string }) => {
+    // Map the role to backend expected format
+    const backendRole = mapRoleToBackend(data.role);
+    console.log('Role login - Frontend role:', data.role, 'Backend role:', backendRole);
+    return api.post('/auth/role/login', {
+      email: data.email,
+      password: data.password,
+      role: backendRole
+    });
+  },
 
   registerRole: (data: {
     fullName: string;
@@ -65,11 +86,20 @@ export const authAPI = {
     password: string;
     role: string;
     department: string;
-  }) => api.post('/auth/role/register', data),
+  }) => {
+    // Map role for registration too
+    const backendRole = mapRoleToBackend(data.role);
+    return api.post('/auth/role/register', {
+      ...data,
+      role: backendRole
+    });
+  },
 
-  // UPDATED: Changed from /auth/verify-email to /verification/verify
   verifyEmail: (data: { email: string; code: string }) =>
-      api.post('/verification/verify', data),
+      api.post('/verification/verify', {
+        email: data.email,
+        code: data.code.toUpperCase()
+      }),
 
   verifyToken: () => api.get('/auth/verify'),
 
@@ -79,7 +109,7 @@ export const authAPI = {
 };
 
 // =========================
-// VERIFICATION CODE API (NEW - for backward compatibility)
+// VERIFICATION CODE API
 // =========================
 export const verificationAPI = {
   generateCode: (data: { email: string; department: string }) =>
@@ -97,9 +127,14 @@ export const verificationAPI = {
 
   deleteCode: (id: string) => api.delete(`/verification/${id}`),
 
-  // UPDATED: This is the main verification endpoint
-  verifyCode: (data: { email: string; code: string }) =>
-      api.post('/verification/verify', data),
+  verifyCode: (data: { email: string; code: string }) => {
+    console.log('Verification API called with:', { email: data.email, code: data.code });
+    // Ensure code is uppercase for verification
+    return api.post('/verification/verify', {
+      email: data.email,
+      code: data.code.toUpperCase()
+    });
+  },
 
   bulkGenerateCodes: (data: { emails: string[]; department: string }) =>
       api.post('/verification/bulk-generate', data),

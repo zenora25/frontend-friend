@@ -53,7 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Verify token validity
         authAPI.verifyToken()
             .then(() => {
-              // Token is valid
               console.log('Token verified successfully');
             })
             .catch((error) => {
@@ -81,15 +80,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string, role?: string) => {
     setIsLoading(true);
     try {
+      console.log('Login attempt:', { email, role: role || 'student' });
+
       let response;
 
       if (role && role !== 'student') {
         // Role login (supervisor, HOD, coordinator)
-        response = await authAPI.roleLogin({ email, password, role });
+        console.log('Calling roleLogin with:', { email, role });
+        response = await authAPI.roleLogin({
+          email,
+          password,
+          role: role // This will be mapped in api.ts
+        });
       } else {
         // Student login
+        console.log('Calling studentLogin');
         response = await authAPI.studentLogin({ email, password });
       }
+
+      console.log('Login response:', response.data);
 
       const { token: authToken, user: userData } = response.data;
 
@@ -100,7 +109,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(userData));
 
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Login failed. Please check your credentials.';
+      console.error('Full login error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+
+      let errorMessage = 'Login failed. Please check your credentials.';
+
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      console.error('Throwing error:', errorMessage);
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -110,18 +133,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (data: any, role?: string) => {
     setIsLoading(true);
     try {
+      console.log('Register attempt:', { email: data.email, role });
+
       let response;
 
       if (role) {
         // Register role (supervisor, HOD, coordinator)
+        console.log('Calling registerRole with:', {
+          ...data,
+          role: role === 'siwesCoordinator' ? 'coordinator' : role
+        });
+
         response = await authAPI.registerRole({
           ...data,
           role: role === 'siwesCoordinator' ? 'coordinator' : role,
         });
       } else {
         // Student registration (requires verification code)
+        console.log('Calling studentSignup');
         response = await authAPI.studentSignup(data);
       }
+
+      console.log('Register response:', response.data);
 
       const { token: authToken, user: userData } = response.data;
 
@@ -132,7 +165,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(userData));
 
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Registration failed. Please try again.';
+      console.error('Full registration error:', error);
+      console.error('Error response data:', error.response?.data);
+
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -141,9 +186,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyEmail = async (email: string, code: string) => {
     try {
-      // Use the correct verification endpoint
-      await verificationAPI.verifyCode({ email, code });
+      console.log('Verifying email:', { email, code });
+
+      // Convert code to uppercase before sending
+      const uppercaseCode = code.toUpperCase();
+
+      // Use the verification endpoint
+      const response = await verificationAPI.verifyCode({
+        email,
+        code: uppercaseCode
+      });
+
+      console.log('Verification response:', response.data);
+      return response.data;
+
     } catch (error: any) {
+      console.error('Full verification error:', error);
+      console.error('Error response data:', error.response?.data);
+
       // Extract error message from response
       let errorMessage = 'Verification failed';
 
@@ -155,11 +215,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         errorMessage = error.message;
       }
 
+      console.error('Throwing verification error:', errorMessage);
       throw new Error(errorMessage);
     }
   };
 
   const logout = () => {
+    console.log('Logging out');
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
