@@ -1,3 +1,4 @@
+// api.ts (FULL FIXED CODE)
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -66,14 +67,42 @@ export const authAPI = {
     department: string;
   }) => api.post('/auth/role/register', data),
 
-  verifyStudentEmail: (data: { email: string; code: string }) =>
-      api.post('/auth/verify-email', data),
+  // UPDATED: Changed from /auth/verify-email to /verification/verify
+  verifyEmail: (data: { email: string; code: string }) =>
+      api.post('/verification/verify', data),
 
   verifyToken: () => api.get('/auth/verify'),
 
   getProfile: () => api.get('/auth/profile'),
 
   checkAuth: () => api.get('/auth/check'),
+};
+
+// =========================
+// VERIFICATION CODE API (NEW - for backward compatibility)
+// =========================
+export const verificationAPI = {
+  generateCode: (data: { email: string; department: string }) =>
+      api.post('/verification/generate', data),
+
+  getCodes: (params?: {
+    page?: number;
+    limit?: number;
+    isUsed?: boolean;
+    department?: string;
+  }) => api.get('/verification', { params }),
+
+  getUnusedCodes: (department: string) =>
+      api.get(`/verification/unused/${department}`),
+
+  deleteCode: (id: string) => api.delete(`/verification/${id}`),
+
+  // UPDATED: This is the main verification endpoint
+  verifyCode: (data: { email: string; code: string }) =>
+      api.post('/verification/verify', data),
+
+  bulkGenerateCodes: (data: { emails: string[]; department: string }) =>
+      api.post('/verification/bulk-generate', data),
 };
 
 // =========================
@@ -175,32 +204,6 @@ export const logbookAPI = {
 
   getStudentLogbook: (studentId: string) =>
       api.get(`/logbook/student/${studentId}`),
-};
-
-// =========================
-// VERIFICATION CODE API
-// =========================
-export const verificationAPI = {
-  generateCode: (data: { email: string; department: string }) =>
-      api.post('/verification/generate', data),
-
-  getCodes: (params?: {
-    page?: number;
-    limit?: number;
-    isUsed?: boolean;
-    department?: string;
-  }) => api.get('/verification', { params }),
-
-  getUnusedCodes: (department: string) =>
-      api.get(`/verification/unused/${department}`),
-
-  deleteCode: (id: string) => api.delete(`/verification/${id}`),
-
-  verifyCode: (data: { email: string; code: string }) =>
-      api.post('/verification/verify', data),
-
-  bulkGenerateCodes: (data: { emails: string[]; department: string }) =>
-      api.post('/verification/bulk-generate', data),
 };
 
 // =========================

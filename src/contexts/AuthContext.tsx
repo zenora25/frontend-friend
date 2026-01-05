@@ -1,5 +1,6 @@
+// AuthContext.tsx (FULL FIXED CODE)
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { authAPI } from '@/lib/api';
+import { authAPI, verificationAPI } from '@/lib/api';
 
 interface User {
   id: string;
@@ -45,18 +46,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (savedToken && savedUser) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
 
-      // Verify token validity
-      authAPI.verifyToken()
-          .catch(() => {
-            // Token invalid, clear storage
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setToken(null);
-            setUser(null);
-          })
-          .finally(() => setIsLoading(false));
+        // Verify token validity
+        authAPI.verifyToken()
+            .then(() => {
+              // Token is valid
+              console.log('Token verified successfully');
+            })
+            .catch((error) => {
+              console.error('Token verification failed:', error);
+              // Token invalid, clear storage
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setToken(null);
+              setUser(null);
+            })
+            .finally(() => setIsLoading(false));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+        setIsLoading(false);
+      }
     } else {
       setIsLoading(false);
     }
@@ -84,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(userData));
 
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Login failed';
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Login failed. Please check your credentials.';
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -116,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(userData));
 
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Registration failed';
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Registration failed. Please try again.';
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -125,9 +141,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyEmail = async (email: string, code: string) => {
     try {
-      await authAPI.verifyStudentEmail({ email, code });
+      // Use the correct verification endpoint
+      await verificationAPI.verifyCode({ email, code });
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Verification failed';
+      // Extract error message from response
+      let errorMessage = 'Verification failed';
+
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       throw new Error(errorMessage);
     }
   };
@@ -137,6 +164,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Optional: Redirect to login page
+    window.location.href = '/login';
   };
 
   const value = {
