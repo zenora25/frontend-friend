@@ -1,8 +1,5 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
-import Student from "./student.js";
-import InstitutionSupervisor from "./institutionSupervisor.js";
-import IndustrySupervisor from "./industrySupervisor.js";
 
 const Assignment = sequelize.define(
     "Assignment",
@@ -16,21 +13,21 @@ const Assignment = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: Student,
+                model: "students", // Use string table name
                 key: "id",
             },
         },
         institutionSupervisorId: {
             type: DataTypes.INTEGER,
             references: {
-                model: InstitutionSupervisor,
+                model: "institutionsupervisors", // Use string table name
                 key: "id",
             },
         },
         industrySupervisorId: {
             type: DataTypes.INTEGER,
             references: {
-                model: IndustrySupervisor,
+                model: "industrysupervisors", // Use string table name
                 key: "id",
             },
         },
@@ -44,9 +41,5 @@ const Assignment = sequelize.define(
         timestamps: true,
     }
 );
-
-Assignment.belongsTo(Student, { foreignKey: "studentId" });
-Assignment.belongsTo(InstitutionSupervisor, { foreignKey: "institutionSupervisorId" });
-Assignment.belongsTo(IndustrySupervisor, { foreignKey: "industrySupervisorId" });
 
 export default Assignment;
