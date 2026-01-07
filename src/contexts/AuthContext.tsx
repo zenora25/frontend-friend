@@ -1,4 +1,4 @@
-// AuthContext.tsx (FULL FIXED CODE)
+// AuthContext.tsx (FIXED - Student Registration Issue)
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authAPI, verificationAPI } from '@/lib/api';
 
@@ -18,7 +18,7 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string, role?: string) => Promise<void>;
   register: (data: any, role?: string) => Promise<void>;
-  verifyEmail: (email: string, code: string) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<any>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         response = await authAPI.roleLogin({
           email,
           password,
-          role: role // This will be mapped in api.ts
+          role: role
         });
       } else {
         // Student login
@@ -150,7 +150,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } else {
         // Student registration (requires verification code)
-        console.log('Calling studentSignup');
+        console.log('Calling studentSignup with data:', {
+          fullName: data.fullName,
+          email: data.email,
+          verificationCode: data.verificationCode,
+          matricNumber: data.matricNumber,
+          department: data.department,
+          companyName: data.companyName,
+          companyAddress: data.companyAddress,
+          // password hidden for security
+        });
+
         response = await authAPI.studentSignup(data);
       }
 
@@ -186,23 +196,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyEmail = async (email: string, code: string) => {
     try {
-      console.log('Verifying email:', { email, code });
+      console.log('✅ Verifying email with:', { email, code });
 
       // Convert code to uppercase before sending
-      const uppercaseCode = code.toUpperCase();
+      const uppercaseCode = code.toUpperCase().trim();
+
+      console.log('📤 Sending verification request to:', '/verification/verify');
+      console.log('📦 With payload:', { email: email.trim(), code: uppercaseCode });
 
       // Use the verification endpoint
       const response = await verificationAPI.verifyCode({
-        email,
+        email: email.trim(),
         code: uppercaseCode
       });
 
-      console.log('Verification response:', response.data);
+      console.log('✅ Verification response:', response.data);
+
+      // Return the response data for the registration form
       return response.data;
 
     } catch (error: any) {
-      console.error('Full verification error:', error);
-      console.error('Error response data:', error.response?.data);
+      console.error('❌ Full verification error:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error response data:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
 
       // Extract error message from response
       let errorMessage = 'Verification failed';
@@ -215,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         errorMessage = error.message;
       }
 
-      console.error('Throwing verification error:', errorMessage);
+      console.error('❌ Throwing verification error:', errorMessage);
       throw new Error(errorMessage);
     }
   };
