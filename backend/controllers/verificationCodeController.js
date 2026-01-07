@@ -18,6 +18,8 @@ export const generateCode = async (req, res) => {
     const { email, department } = req.body;
     const coordinatorId = req.user.id;
 
+    console.log('🔵 Generate code request:', { email, department, coordinatorId });
+
     if (!email || !department) {
       return res.status(400).json({ error: "Email and department required" });
     }
@@ -60,8 +62,7 @@ export const generateCode = async (req, res) => {
       isUsed: false,
     });
 
-    // In production, send email here
-    console.log(`Verification code for ${email}: ${code}`);
+    console.log('✅ Code generated successfully:', { code, email, expiresAt });
 
     res.status(201).json({
       message: "Verification code generated successfully",
@@ -71,7 +72,7 @@ export const generateCode = async (req, res) => {
       department: newCode.department,
     });
   } catch (err) {
-    console.error("Generate code error:", err);
+    console.error("❌ Generate code error:", err);
     res.status(500).json({
       error: "Failed to generate verification code",
       details: err.message,
@@ -84,29 +85,118 @@ export const verifyCode = async (req, res) => {
   try {
     const { email, code } = req.body;
 
+    console.log('\n🔍 ========== VERIFICATION REQUEST ==========');
+    console.log('📧 Email received:', email);
+    console.log('🔑 Code received:', code);
+    console.log('📝 Email type:', typeof email);
+    console.log('📝 Code type:', typeof code);
+    console.log('📝 Email length:', email?.length);
+    console.log('📝 Code length:', code?.length);
+    console.log('📝 Email trimmed:', email?.trim());
+    console.log('📝 Code trimmed:', code?.trim());
+    console.log('📝 Code uppercase:', code?.toUpperCase());
+
     if (!email || !code) {
+      console.log('❌ Missing email or code');
       return res.status(400).json({ error: "Email and code required" });
     }
 
+    // Clean the inputs
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanCode = code.trim().toUpperCase();
+
+    console.log('🧹 Cleaned email:', cleanEmail);
+    console.log('🧹 Cleaned code:', cleanCode);
+
+    // First, let's see all codes in database
+    const allCodes = await VerificationCode.findAll({
+      attributes: ['id', 'code', 'email', 'isUsed', 'expiresAt'],
+      limit: 10
+    });
+
+    console.log('\n📊 All verification codes in database:');
+    allCodes.forEach(c => {
+      console.log(`  - ID: ${c.id}, Code: ${c.code}, Email: ${c.email}, Used: ${c.isUsed}, Expires: ${c.expiresAt}`);
+    });
+
+    // Now try to find the specific code
+    console.log('\n🔍 Searching for verification code with:');
+    console.log('  - email:', cleanEmail);
+    console.log('  - code:', cleanCode);
+    console.log('  - isUsed: false');
+
     const verification = await VerificationCode.findOne({
       where: {
-        email,
-        code: code.toUpperCase(),
+        email: cleanEmail,
+        code: cleanCode,
         isUsed: false,
       },
     });
 
+    console.log('\n📋 Query result:', verification ? 'FOUND ✅' : 'NOT FOUND ❌');
+
+    if (verification) {
+      console.log('✅ Verification code details:');
+      console.log('  - ID:', verification.id);
+      console.log('  - Code:', verification.code);
+      console.log('  - Email:', verification.email);
+      console.log('  - Is Used:', verification.isUsed);
+      console.log('  - Expires At:', verification.expiresAt);
+      console.log('  - Department:', verification.department);
+    } else {
+      console.log('❌ Code not found. Possible reasons:');
+      console.log('  1. Code does not exist');
+      console.log('  2. Email mismatch');
+      console.log('  3. Code already used (isUsed = true)');
+      console.log('  4. Case sensitivity issue');
+
+      // Check if code exists with different email
+      const codeWithDifferentEmail = await VerificationCode.findOne({
+        where: { code: cleanCode }
+      });
+
+      if (codeWithDifferentEmail) {
+        console.log('⚠️  Code exists but with different email:');
+        console.log('   Expected:', cleanEmail);
+        console.log('   Found:', codeWithDifferentEmail.email);
+      }
+
+      // Check if email exists with different code
+      const emailWithDifferentCode = await VerificationCode.findOne({
+        where: { email: cleanEmail, isUsed: false }
+      });
+
+      if (emailWithDifferentCode) {
+        console.log('⚠️  Email has a different code:');
+        console.log('   Expected:', cleanCode);
+        console.log('   Found:', emailWithDifferentCode.code);
+      }
+    }
+
     if (!verification) {
-      return res
-          .status(400)
-          .json({ error: "Invalid verification code or email" });
+      console.log('❌ Returning error: Invalid verification code or email\n');
+      return res.status(400).json({
+        error: "Invalid verification code or email"
+      });
     }
 
     // Check if code is expired
-    if (new Date() > new Date(verification.expiresAt)) {
+    const now = new Date();
+    const expiryDate = new Date(verification.expiresAt);
+
+    console.log('⏰ Checking expiration:');
+    console.log('  - Now:', now);
+    console.log('  - Expires:', expiryDate);
+    console.log('  - Is Expired:', now > expiryDate);
+
+    if (now > expiryDate) {
+      console.log('❌ Code has expired, deleting...');
       await VerificationCode.destroy({ where: { id: verification.id } });
       return res.status(400).json({ error: "Verification code has expired" });
     }
+
+    console.log('✅ Verification successful!\n');
+    console.log('========================================\n');
 
     res.json({
       message: "Verification successful",
@@ -115,7 +205,7 @@ export const verifyCode = async (req, res) => {
       email: verification.email,
     });
   } catch (err) {
-    console.error("Verify code error:", err);
+    console.error("❌ Verify code error:", err);
     res.status(500).json({
       error: "Verification failed",
       details: err.message,
@@ -300,13 +390,3 @@ export const bulkGenerateCodes = async (req, res) => {
     });
   }
 };
-
-/*
-export {
-  generateCode,
-  verifyCode,
-  getCodes,
-  getUnusedCodes,
-  deleteCode,
-  bulkGenerateCodes,
-};*/
