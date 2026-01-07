@@ -196,13 +196,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyEmail = async (email: string, code: string) => {
     try {
-      console.log('✅ Verifying email with:', { email, code });
+      console.log('✅ Verifying email - Email:', email);
+      console.log('✅ Verifying email - Code:', code);
 
       // Convert code to uppercase before sending
       const uppercaseCode = code.toUpperCase().trim();
 
       console.log('📤 Sending verification request to:', '/verification/verify');
-      console.log('📦 With payload:', { email: email.trim(), code: uppercaseCode });
+      console.log('📦 Email being sent:', email.trim());
+      console.log('📦 Code being sent:', uppercaseCode);
 
       // Use the verification endpoint
       const response = await verificationAPI.verifyCode({

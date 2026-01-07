@@ -1,4 +1,4 @@
-// api.ts (FULL FIXED CODE WITH ALL IMPLEMENTED CHANGES)
+// api.ts - FIXED LOGGING VERSION
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -46,7 +46,7 @@ const mapRoleToBackend = (role: string): string => {
     'industrySupervisor': 'industrySupervisor',
     'hod': 'hod',
     'siwesCoordinator': 'siwesCoordinator',
-    'coordinator': 'siwesCoordinator', // Alias for coordinator
+    'coordinator': 'siwesCoordinator',
   };
   return roleMap[role] || role;
 };
@@ -70,7 +70,6 @@ export const authAPI = {
       api.post('/auth/student/login', data),
 
   roleLogin: (data: { email: string; password: string; role: string }) => {
-    // Map the role to backend expected format
     const backendRole = mapRoleToBackend(data.role);
     console.log('Role login - Frontend role:', data.role, 'Backend role:', backendRole);
     return api.post('/auth/role/login', {
@@ -87,7 +86,6 @@ export const authAPI = {
     role: string;
     department: string;
   }) => {
-    // Map role for registration too
     const backendRole = mapRoleToBackend(data.role);
     return api.post('/auth/role/register', {
       ...data,
@@ -128,12 +126,18 @@ export const verificationAPI = {
   deleteCode: (id: string) => api.delete(`/verification/${id}`),
 
   verifyCode: (data: { email: string; code: string }) => {
-    console.log('Verification API called with:', { email: data.email, code: data.code });
-    // Ensure code is uppercase for verification
-    return api.post('/verification/verify', {
+    console.log('🔵 Verification API - Email:', data.email);
+    console.log('🔵 Verification API - Code:', data.code);
+
+    const payload = {
       email: data.email,
       code: data.code.toUpperCase()
-    });
+    };
+
+    console.log('🔵 Verification API - Final payload:', payload);
+    console.log('🔵 Verification API - URL:', `${API_BASE_URL}/verification/verify`);
+
+    return api.post('/verification/verify', payload);
   },
 
   bulkGenerateCodes: (data: { emails: string[]; department: string }) =>
@@ -179,7 +183,6 @@ export const studentAPI = {
 // LOGBOOK API
 // =========================
 export const logbookAPI = {
-  // Student routes
   create: (data: {
     weekNumber: number;
     startDate: string;
@@ -217,7 +220,6 @@ export const logbookAPI = {
 
   getLogbookStats: () => api.get('/logbook/stats'),
 
-  // Supervisor routes
   getSupervisorLogbooks: (params?: { status?: string }) =>
       api.get('/logbook/supervisor/assigned', { params }),
 
@@ -229,7 +231,6 @@ export const logbookAPI = {
 
   getSupervisorStats: () => api.get('/logbook/supervisor/stats'),
 
-  // Admin routes
   getAll: (params?: {
     page?: number;
     limit?: number;
@@ -245,7 +246,6 @@ export const logbookAPI = {
 // ASSIGNMENT API
 // =========================
 export const assignmentAPI = {
-  // HOD routes
   assignStudentToSupervisor: (data: {
     studentId: string;
     institutionSupervisorId?: string;
@@ -256,10 +256,8 @@ export const assignmentAPI = {
 
   removeAssignment: (assignmentId: string) => api.delete(`/assignments/${assignmentId}`),
 
-  // Supervisor routes
   getSupervisorStudents: () => api.get('/assignments/my-students'),
 
-  // Coordinator routes
   getAllAssignments: (params?: { page?: number; limit?: number; department?: string }) =>
       api.get('/assignments', { params }),
 };
@@ -268,18 +266,15 @@ export const assignmentAPI = {
 // DEFENSE API
 // =========================
 export const defenseAPI = {
-  // Student routes
   getMyDefense: () => api.get('/defense/my-defense'),
   getStudentDefenseStats: () => api.get('/defense/student-stats'),
 
-  // Supervisor routes
   submitGrade: (defenseId: string, data: {
     score: number;
     remarks?: string;
     verdict: 'PASS' | 'FAIL';
   }) => api.put(`/defense/grade/${defenseId}`, data),
 
-  // Coordinator routes
   scheduleDefense: (data: {
     studentId: string;
     defenseDate: string;
@@ -300,10 +295,8 @@ export const defenseAPI = {
 
   cancelDefense: (defenseId: string) => api.delete(`/defense/${defenseId}`),
 
-  // HOD routes
   getDepartmentDefenses: () => api.get('/defense/department'),
 
-  // General routes
   getStudentDefense: (studentId: string) => api.get(`/defense/student/${studentId}`),
 };
 
