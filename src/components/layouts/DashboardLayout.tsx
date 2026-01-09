@@ -9,13 +9,17 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
   ChevronDown,
   Bell,
   Shield,
   UserCheck,
   Building2,
   Sparkles,
+  FileText,
+  ClipboardList,
+  BarChart3,
+  GraduationCap,
+  Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,51 +31,57 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Mock user data - in real app, this would come from auth context
-const mockUser = {
-  name: "John Doe",
-  email: "john.doe@baze.edu.ng",
-  role: "student" as const,
-  avatar: "JD",
-};
+type RoleKey = "student" | "institutionSupervisor" | "industrySupervisor" | "siwesCoordinator" | "hod";
 
-const roleConfig = {
+const roleConfig: Record<RoleKey, {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  navItems: { label: string; href: string; icon: React.ComponentType<{ className?: string }> }[];
+}> = {
   student: {
     label: "Student",
-    icon: BookOpen,
+    icon: GraduationCap,
     navItems: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "My Logbook", href: "/logbook", icon: BookText },
-      { label: "Defense", href: "/defense", icon: Calendar },
+      { label: "Weekly Logbook", href: "/logbook", icon: BookText },
+      { label: "Submit Entry", href: "/logbook/submit", icon: FileText },
+      { label: "My Defense", href: "/defense", icon: Calendar },
+      { label: "My Profile", href: "/profile", icon: Users },
     ],
   },
-  supervisor: {
-    label: "Supervisor",
+  institutionSupervisor: {
+    label: "Institution Supervisor",
     icon: UserCheck,
     navItems: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Student Logbooks", href: "/logbooks", icon: BookText },
+      { label: "My Students", href: "/students", icon: Users },
+      { label: "Logbook Reviews", href: "/logbook-review", icon: ClipboardList },
       { label: "Defense Schedule", href: "/defense", icon: Calendar },
+      { label: "Profile", href: "/profile", icon: Settings },
     ],
   },
-  industry_supervisor: {
+  industrySupervisor: {
     label: "Industry Supervisor",
     icon: Building2,
     navItems: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Student Progress", href: "/students", icon: Users },
-      { label: "Weekly Reviews", href: "/reviews", icon: BookText },
+      { label: "Assigned Students", href: "/students", icon: Users },
+      { label: "Weekly Reviews", href: "/logbook-review", icon: BookText },
+      { label: "Company Profile", href: "/profile", icon: Briefcase },
     ],
   },
-  coordinator: {
-    label: "Coordinator",
+  siwesCoordinator: {
+    label: "SIWES Coordinator",
     icon: Shield,
     navItems: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Verification Codes", href: "/verification-codes", icon: Shield },
-      { label: "Students", href: "/students", icon: Users },
+      { label: "All Students", href: "/students", icon: Users },
+      { label: "Assignments", href: "/assignments", icon: ClipboardList },
       { label: "Defense Management", href: "/defense-management", icon: Calendar },
+      { label: "Reports", href: "/reports", icon: BarChart3 },
     ],
   },
   hod: {
@@ -79,9 +89,11 @@ const roleConfig = {
     icon: Users,
     navItems: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Students", href: "/students", icon: Users },
+      { label: "Department Students", href: "/students", icon: GraduationCap },
       { label: "Supervisors", href: "/supervisors", icon: UserCheck },
-      { label: "Reports", href: "/reports", icon: BookText },
+      { label: "Assignments", href: "/assignments", icon: ClipboardList },
+      { label: "Defense Overview", href: "/defense", icon: Calendar },
+      { label: "Department Reports", href: "/reports", icon: BarChart3 },
     ],
   },
 };
@@ -90,9 +102,36 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const config = roleConfig[mockUser.role];
+  const { user, logout } = useAuth();
+
+  // Map user role to config key
+  const getRoleKey = (role?: string): RoleKey => {
+    const roleMap: Record<string, RoleKey> = {
+      student: "student",
+      institutionSupervisor: "institutionSupervisor",
+      industrySupervisor: "industrySupervisor",
+      siwesCoordinator: "siwesCoordinator",
+      coordinator: "siwesCoordinator",
+      hod: "hod",
+    };
+    return roleMap[role || "student"] || "student";
+  };
+
+  const roleKey = getRoleKey(user?.role);
+  const config = roleConfig[roleKey];
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const handleLogout = () => {
+    logout();
     navigate("/login");
   };
 
@@ -158,11 +197,11 @@ const DashboardLayout = () => {
             <div className="flex items-center gap-3 p-3 bg-card border border-border/50">
               <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                 <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-sm font-semibold">
-                  {mockUser.avatar}
+                  {getInitials(user?.fullName)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{mockUser.name}</p>
+                <p className="text-sm font-medium text-foreground truncate">{user?.fullName || "User"}</p>
                 <p className="text-xs text-muted-foreground truncate">{config.label}</p>
               </div>
             </div>
@@ -212,17 +251,17 @@ const DashboardLayout = () => {
                   <Button variant="ghost" className="flex items-center gap-3 pr-2 hover:bg-accent">
                     <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                       <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-xs font-semibold">
-                        {mockUser.avatar}
+                        {getInitials(user?.fullName)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden sm:block text-sm font-medium">{mockUser.name}</span>
+                    <span className="hidden sm:block text-sm font-medium">{user?.fullName || "User"}</span>
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60 p-2">
                   <div className="px-3 py-2 bg-gradient-to-r from-primary/5 to-secondary/5 mb-2">
-                    <p className="text-sm font-medium">{mockUser.name}</p>
-                    <p className="text-xs text-muted-foreground">{mockUser.email}</p>
+                    <p className="text-sm font-medium">{user?.fullName || "User"}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email || ""}</p>
                   </div>
                   <DropdownMenuItem className="py-2.5 cursor-pointer">
                     <Settings className="w-4 h-4 mr-2" />
