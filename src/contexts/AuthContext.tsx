@@ -1,4 +1,3 @@
-// AuthContext.tsx (FIXED - Student Registration Issue)
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authAPI, verificationAPI } from '@/lib/api';
 
@@ -22,6 +21,7 @@ interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  checkToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,42 +39,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for saved token and user on mount
+  // Function to check token validity
+  const checkToken = async (): Promise<boolean> => {
     const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    if (!savedToken) return false;
 
-    if (savedToken && savedUser) {
-      setToken(savedToken);
+    try {
+      await authAPI.verifyToken();
+      return true;
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      setIsLoading(true);
       try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
+        const savedToken = localStorage.getItem('token');
+        const savedUser = localStorage.getItem('user');
 
-        // Verify token validity
-        authAPI.verifyToken()
-            .then(() => {
-              console.log('Token verified successfully');
-            })
-            .catch((error) => {
-              console.error('Token verification failed:', error);
-              // Token invalid, clear storage
+        if (savedToken && savedUser) {
+          // Verify token is still valid
+          const isValid = await checkToken();
+
+          if (isValid) {
+            setToken(savedToken);
+            try {
+              const parsedUser = JSON.parse(savedUser);
+              setUser(parsedUser);
+            } catch (parseError) {
+              console.error('Error parsing user data:', parseError);
+              // Clear invalid data
               localStorage.removeItem('token');
               localStorage.removeItem('user');
               setToken(null);
               setUser(null);
-            })
-            .finally(() => setIsLoading(false));
+            }
+          } else {
+            // Token invalid, clear storage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+          }
+        }
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        console.error('Auth initialization error:', error);
+        // Clear on error
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
+      } finally {
         setIsLoading(false);
       }
-    } else {
-      setIsLoading(false);
-    }
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string, role?: string) => {
@@ -199,17 +222,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('✅ Verifying email - Email:', email);
       console.log('✅ Verifying email - Code:', code);
 
-      // Convert code to uppercase before sending
-      const uppercaseCode = code.toUpperCase().trim();
+      // Clean inputs
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanCode = code.trim().toUpperCase();
 
       console.log('📤 Sending verification request to:', '/verification/verify');
-      console.log('📦 Email being sent:', email.trim());
-      console.log('📦 Code being sent:', uppercaseCode);
+      console.log('📦 Cleaned Email:', cleanEmail);
+      console.log('📦 Cleaned Code:', cleanCode);
 
       // Use the verification endpoint
       const response = await verificationAPI.verifyCode({
-        email: email.trim(),
-        code: uppercaseCode
+        email: cleanEmail,
+        code: cleanCode
       });
 
       console.log('✅ Verification response:', response.data);
@@ -258,6 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     isLoading,
     isAuthenticated: !!token,
+    checkToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

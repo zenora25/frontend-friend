@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Users,
@@ -11,6 +12,7 @@ import {
   Search,
   Download,
   Loader2,
+  Mail,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { dashboardAPI, verificationAPI } from "@/lib/api";
@@ -40,10 +49,12 @@ import { dashboardAPI, verificationAPI } from "@/lib/api";
 interface VerificationCode {
   id: number;
   code: string;
+  email: string;
   department: string;
   usedBy: string | null;
   createdAt: string;
   expiresAt: string;
+  isUsed: boolean;
 }
 
 interface CoordinatorDashboardData {
@@ -61,11 +72,16 @@ const CoordinatorDashboard = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [newCodeEmail, setNewCodeEmail] = useState("");
   const [newCodeDepartment, setNewCodeDepartment] = useState("");
+  const [bulkEmails, setBulkEmails] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [dashboardData, setDashboardData] = useState<CoordinatorDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [generatingBulk, setGeneratingBulk] = useState(false);
+  const [activeTab, setActiveTab] = useState("single");
 
   useEffect(() => {
     fetchDashboardData();
@@ -75,7 +91,7 @@ const CoordinatorDashboard = () => {
     try {
       const [dashboardRes, codesRes] = await Promise.all([
         dashboardAPI.getCoordinatorDashboard(),
-        verificationAPI.getCodes(),
+        verificationAPI.getCodes({ limit: 50 }),
       ]);
 
       const data = dashboardRes.data;
@@ -91,8 +107,10 @@ const CoordinatorDashboard = () => {
         verificationCodes: codes.map((code: any) => ({
           id: code.id,
           code: code.code,
+          email: code.email,
           department: code.department,
           usedBy: code.isUsed ? code.email : null,
+          isUsed: code.isUsed,
           createdAt: new Date(code.createdAt).toISOString().split('T')[0],
           expiresAt: new Date(code.expiresAt).toISOString().split('T')[0],
         })),
@@ -110,11 +128,11 @@ const CoordinatorDashboard = () => {
           pendingLogbooks: 24,
         },
         verificationCodes: [
-          { id: 1, code: "BU2024A1", department: "Computer Science", usedBy: null, createdAt: "2024-03-10", expiresAt: "2024-03-17" },
-          { id: 2, code: "BU2024A2", department: "Computer Science", usedBy: "John Doe", createdAt: "2024-03-08", expiresAt: "2024-03-15" },
-          { id: 3, code: "BU2024B1", department: "Software Engineering", usedBy: null, createdAt: "2024-03-11", expiresAt: "2024-03-18" },
-          { id: 4, code: "BU2024C1", department: "Information Technology", usedBy: "Jane Smith", createdAt: "2024-03-05", expiresAt: "2024-03-12" },
-          { id: 5, code: "BU2024D1", department: "Cybersecurity", usedBy: null, createdAt: "2024-03-11", expiresAt: "2024-03-18" },
+          { id: 1, code: "ABC123", email: "newstudent1@baze.edu.ng", department: "Computer Science", usedBy: null, isUsed: false, createdAt: "2024-03-10", expiresAt: "2024-03-17" },
+          { id: 2, code: "DEF456", email: "newstudent2@baze.edu.ng", department: "Software Engineering", usedBy: null, isUsed: false, createdAt: "2024-03-08", expiresAt: "2024-03-15" },
+          { id: 3, code: "GHI789", email: "student3@baze.edu.ng", department: "Software Engineering", usedBy: null, isUsed: false, createdAt: "2024-03-11", expiresAt: "2024-03-18" },
+          { id: 4, code: "JKL012", email: "student4@baze.edu.ng", department: "Information Technology", usedBy: "Jane Smith", isUsed: true, createdAt: "2024-03-05", expiresAt: "2024-03-12" },
+          { id: 5, code: "MNO345", email: "student5@baze.edu.ng", department: "Cybersecurity", usedBy: null, isUsed: false, createdAt: "2024-03-11", expiresAt: "2024-03-18" },
         ],
       });
     } finally {
@@ -133,10 +151,21 @@ const CoordinatorDashboard = () => {
   };
 
   const handleGenerateCode = async () => {
-    if (!newCodeDepartment) {
+    if (!newCodeEmail || !newCodeDepartment) {
       toast({
-        title: "Select department",
-        description: "Please select a department to generate a code.",
+        title: "Missing information",
+        description: "Please enter both email and department.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newCodeEmail)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
         variant: "destructive",
       });
       return;
@@ -144,22 +173,20 @@ const CoordinatorDashboard = () => {
 
     setGeneratingCode(true);
     try {
-      // Generate a dummy email for testing - in production, you'd have an email input
-      const testEmail = `student-${Date.now()}@baze.edu.ng`;
-
-      await verificationAPI.generateCode({
-        email: testEmail,
+      const response = await verificationAPI.generateCode({
+        email: newCodeEmail.trim(),
         department: newCodeDepartment,
       });
 
       toast({
         title: "Code generated",
-        description: `New verification code created for ${newCodeDepartment}.`,
+        description: `Verification code created for ${newCodeEmail}.`,
       });
 
       // Refresh data
       fetchDashboardData();
       setIsDialogOpen(false);
+      setNewCodeEmail("");
       setNewCodeDepartment("");
     } catch (error: any) {
       toast({
@@ -172,11 +199,97 @@ const CoordinatorDashboard = () => {
     }
   };
 
+  const handleBulkGenerate = async () => {
+    if (!bulkEmails || !newCodeDepartment) {
+      toast({
+        title: "Missing information",
+        description: "Please enter emails and select a department.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emails = bulkEmails
+        .split('\n')
+        .map(email => email.trim())
+        .filter(email => email.length > 0);
+
+    if (emails.length === 0) {
+      toast({
+        title: "No emails",
+        description: "Please enter at least one email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingBulk(true);
+    try {
+      const response = await verificationAPI.bulkGenerateCodes({
+        emails: emails,
+        department: newCodeDepartment,
+      });
+
+      toast({
+        title: "Codes generated",
+        description: `Generated ${response.data.generatedCodes?.length || 0} verification codes.`,
+      });
+
+      if (response.data.errors?.length > 0) {
+        toast({
+          title: "Some errors occurred",
+          description: `${response.data.errors.length} emails failed.`,
+          variant: "destructive",
+        });
+      }
+
+      // Refresh data
+      fetchDashboardData();
+      setIsBulkDialogOpen(false);
+      setBulkEmails("");
+      setNewCodeDepartment("");
+    } catch (error: any) {
+      toast({
+        title: "Bulk generation failed",
+        description: error.response?.data?.error || "Failed to generate codes",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingBulk(false);
+    }
+  };
+
+  const handleDeleteCode = async (codeId: number, code: string) => {
+    if (!confirm(`Are you sure you want to delete code ${code}?`)) {
+      return;
+    }
+
+    try {
+      await verificationAPI.deleteCode(codeId.toString());
+      toast({
+        title: "Code deleted",
+        description: `Verification code ${code} has been deleted.`,
+      });
+      fetchDashboardData();
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.response?.data?.error || "Failed to delete code",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredCodes = dashboardData?.verificationCodes.filter(
       (code) =>
           code.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          code.department.toLowerCase().includes(searchQuery.toLowerCase())
+          code.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          code.email.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  const activeCodes = filteredCodes.filter(code => !code.isUsed && new Date(code.expiresAt) > new Date());
+  const usedCodes = filteredCodes.filter(code => code.isUsed);
+  const expiredCodes = filteredCodes.filter(code => !code.isUsed && new Date(code.expiresAt) <= new Date());
 
   if (isLoading || !dashboardData) {
     return (
@@ -196,46 +309,115 @@ const CoordinatorDashboard = () => {
               Manage verification codes, students, and defense schedules.
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Generate Code
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Generate Verification Code</DialogTitle>
-                <DialogDescription>
-                  Create a new verification code for student registration.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Department</Label>
-                  <Select value={newCodeDepartment} onValueChange={setNewCodeDepartment}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Computer Science">Computer Science</SelectItem>
-                      <SelectItem value="Software Engineering">Software Engineering</SelectItem>
-                      <SelectItem value="Information Technology">Information Technology</SelectItem>
-                      <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
-                    </SelectContent>
-                  </Select>
+          <div className="flex gap-2">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Generate Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Generate Verification Code</DialogTitle>
+                  <DialogDescription>
+                    Create a new verification code for a specific student's email.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Student Email</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        placeholder="student@baze.edu.ng"
+                        value={newCodeEmail}
+                        onChange={(e) => setNewCodeEmail(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Only this email can use this verification code
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <Select value={newCodeDepartment} onValueChange={setNewCodeDepartment}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Computer Science">Computer Science</SelectItem>
+                        <SelectItem value="Software Engineering">Software Engineering</SelectItem>
+                        <SelectItem value="Information Technology">Information Technology</SelectItem>
+                        <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleGenerateCode} disabled={generatingCode}>
+                    {generatingCode ? "Generating..." : "Generate Code"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Bulk Generate
                 </Button>
-                <Button onClick={handleGenerateCode} disabled={generatingCode}>
-                  {generatingCode ? "Generating..." : "Generate Code"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Bulk Generate Codes</DialogTitle>
+                  <DialogDescription>
+                    Generate multiple verification codes at once (one per line).
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bulk-emails">Student Emails (one per line)</Label>
+                    <Textarea
+                        id="bulk-emails"
+                        placeholder="student1@baze.edu.ng&#10;student2@baze.edu.ng&#10;student3@baze.edu.ng"
+                        value={bulkEmails}
+                        onChange={(e) => setBulkEmails(e.target.value)}
+                        rows={5}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Each email will receive a unique verification code
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <Select value={newCodeDepartment} onValueChange={setNewCodeDepartment}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Computer Science">Computer Science</SelectItem>
+                        <SelectItem value="Software Engineering">Software Engineering</SelectItem>
+                        <SelectItem value="Information Technology">Information Technology</SelectItem>
+                        <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleBulkGenerate} disabled={generatingBulk}>
+                    {generatingBulk ? "Generating..." : "Generate Codes"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Stats cards */}
@@ -300,81 +482,173 @@ const CoordinatorDashboard = () => {
         {/* Verification codes table */}
         <Card>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="text-lg">Verification Codes</CardTitle>
+            <div>
+              <CardTitle className="text-lg">Verification Codes</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Each code is linked to a specific student email
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                    placeholder="Search codes..."
+                    placeholder="Search codes, emails, or departments..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 w-full sm:w-64"
                 />
               </div>
-              <Button variant="outline" size="icon">
-                <Download className="w-4 h-4" />
+              <Button variant="outline" size="icon" onClick={fetchDashboardData}>
+                <Loader2 className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Code</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Department</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Expires</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                {filteredCodes.map((code) => (
-                    <tr key={code.id} className="border-b border-border last:border-0">
-                      <td className="py-3 px-4">
-                        <code className="px-2 py-1 bg-accent font-mono text-sm">{code.code}</code>
-                      </td>
-                      <td className="py-3 px-4 text-sm">{code.department}</td>
-                      <td className="py-3 px-4">
-                        {code.usedBy ? (
-                            <Badge variant="secondary" className="bg-chart-5/20 text-chart-5">
-                              Used by {code.usedBy}
-                            </Badge>
-                        ) : (
-                            <Badge variant="secondary" className="bg-chart-2/20 text-chart-2">
-                              Available
-                            </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">{code.createdAt}</td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">{code.expiresAt}</td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleCopyCode(code.code)}
-                              disabled={!!code.usedBy}
-                          >
-                            {copiedCode === code.code ? (
-                                <Check className="w-4 h-4 text-chart-5" />
-                            ) : (
-                                <Copy className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button variant="ghost" size="icon" disabled={!!code.usedBy}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                ))}
-                </tbody>
-              </table>
-            </div>
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="all">All Codes ({filteredCodes.length})</TabsTrigger>
+                <TabsTrigger value="active">Active ({activeCodes.length})</TabsTrigger>
+                <TabsTrigger value="used">Used ({usedCodes.length})</TabsTrigger>
+                <TabsTrigger value="expired">Expired ({expiredCodes.length})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="all">
+                <CodeTable
+                    codes={filteredCodes}
+                    copiedCode={copiedCode}
+                    onCopyCode={handleCopyCode}
+                    onDeleteCode={handleDeleteCode}
+                />
+              </TabsContent>
+              <TabsContent value="active">
+                <CodeTable
+                    codes={activeCodes}
+                    copiedCode={copiedCode}
+                    onCopyCode={handleCopyCode}
+                    onDeleteCode={handleDeleteCode}
+                />
+              </TabsContent>
+              <TabsContent value="used">
+                <CodeTable
+                    codes={usedCodes}
+                    copiedCode={copiedCode}
+                    onCopyCode={handleCopyCode}
+                    onDeleteCode={handleDeleteCode}
+                />
+              </TabsContent>
+              <TabsContent value="expired">
+                <CodeTable
+                    codes={expiredCodes}
+                    copiedCode={copiedCode}
+                    onCopyCode={handleCopyCode}
+                    onDeleteCode={handleDeleteCode}
+                />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
+      </div>
+  );
+};
+
+interface CodeTableProps {
+  codes: VerificationCode[];
+  copiedCode: string | null;
+  onCopyCode: (code: string) => void;
+  onDeleteCode: (id: number, code: string) => void;
+}
+
+const CodeTable = ({ codes, copiedCode, onCopyCode, onDeleteCode }: CodeTableProps) => {
+  if (codes.length === 0) {
+    return (
+        <div className="text-center py-8 text-muted-foreground">
+          No verification codes found
+        </div>
+    );
+  }
+
+  return (
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+          <tr className="border-b border-border">
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Code</th>
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Mail className="w-3 h-3" />
+                Email
+              </div>
+            </th>
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Department</th>
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Expires</th>
+            <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          {codes.map((code) => {
+            const isExpired = !code.isUsed && new Date(code.expiresAt) <= new Date();
+            return (
+                <tr key={code.id} className="border-b border-border last:border-0 hover:bg-accent/50">
+                  <td className="py-3 px-4">
+                    <code className="px-2 py-1 bg-accent font-mono text-sm">{code.code}</code>
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-3 h-3 text-muted-foreground" />
+                      {code.email}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-sm">{code.department}</td>
+                  <td className="py-3 px-4">
+                    {code.isUsed ? (
+                        <Badge variant="secondary" className="bg-chart-5/20 text-chart-5">
+                          Used
+                        </Badge>
+                    ) : isExpired ? (
+                        <Badge variant="secondary" className="bg-destructive/20 text-destructive">
+                          Expired
+                        </Badge>
+                    ) : (
+                        <Badge variant="secondary" className="bg-chart-2/20 text-chart-2">
+                          Available
+                        </Badge>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">{code.createdAt}</td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">{code.expiresAt}</td>
+                  <td className="py-3 px-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onCopyCode(code.code)}
+                          disabled={code.isUsed || isExpired}
+                          title="Copy code"
+                      >
+                        {copiedCode === code.code ? (
+                            <Check className="w-4 h-4 text-chart-5" />
+                        ) : (
+                            <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDeleteCode(code.id, code.code)}
+                          disabled={code.isUsed}
+                          title="Delete code"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+            );
+          })}
+          </tbody>
+        </table>
       </div>
   );
 };

@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import sequelize from "../config/database.js";
+import sequelize from "../config/db.js";
 
 // Import models
 import Student from "../models/student.js";
@@ -135,7 +135,7 @@ const seedDatabase = async () => {
         });
         console.log(`✅ Students created: ${student1.email}, ${student2.email}`);
 
-        // Create verification codes
+        // Create verification codes - FIXED: DEF456 should be unused
         console.log("🔐 Creating Verification Codes...");
         const verificationCode1 = await VerificationCode.create({
             code: "ABC123",
@@ -151,7 +151,7 @@ const seedDatabase = async () => {
             email: "newstudent2@baze.edu.ng",
             department: "Software Engineering",
             issuedBy: coordinator.id,
-            isUsed: true,
+            isUsed: false, // CHANGED FROM true TO false
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         });
         console.log(`✅ Verification codes created`);
@@ -240,6 +240,11 @@ const seedDatabase = async () => {
         console.log("   Code: ABC123");
         console.log("   Email: newstudent1@baze.edu.ng");
         console.log("   Department: Computer Science");
+
+        console.log("\n🔐 Verification Code (unused - FIXED):");
+        console.log("   Code: DEF456");
+        console.log("   Email: newstudent2@baze.edu.ng");
+        console.log("   Department: Software Engineering");
 
         console.log("\n📊 Summary:");
         console.log(`   Total Users: ${await Student.count() + await InstitutionSupervisor.count() + await IndustrySupervisor.count() + await HOD.count() + await SIWESCoordinator.count()}`);

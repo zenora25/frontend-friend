@@ -1,3 +1,4 @@
+
 import VerificationCode from "../models/VerificationCode.js";
 import Student from "../models/student.js";
 import { Op } from "sequelize";
@@ -12,7 +13,7 @@ const generateVerificationCode = () => {
   return code;
 };
 
-// Generate a new verification code (Coordinator only)
+// Generate a new verification code (Coordinator only) - UPDATED WITH EMAIL VALIDATION
 export const generateCode = async (req, res) => {
   try {
     const { email, department } = req.body;
@@ -24,10 +25,33 @@ export const generateCode = async (req, res) => {
       return res.status(400).json({ error: "Email and department required" });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
     // Check if student already exists
     const existingStudent = await Student.findOne({ where: { email } });
     if (existingStudent) {
       return res.status(400).json({ error: "Student already registered" });
+    }
+
+    // Check if verification code already exists for this email and is unused
+    const existingCode = await VerificationCode.findOne({
+      where: {
+        email,
+        isUsed: false,
+        expiresAt: { [Op.gt]: new Date() }
+      }
+    });
+
+    if (existingCode) {
+      return res.status(400).json({
+        error: "Active verification code already exists for this email",
+        code: existingCode.code,
+        expiresAt: existingCode.expiresAt
+      });
     }
 
     // Generate unique code
@@ -55,7 +79,7 @@ export const generateCode = async (req, res) => {
 
     const newCode = await VerificationCode.create({
       code,
-      email,
+      email, // Save the email for this specific code
       issuedBy: coordinatorId,
       department,
       expiresAt,
@@ -68,7 +92,7 @@ export const generateCode = async (req, res) => {
       message: "Verification code generated successfully",
       code: newCode.code,
       expiresAt: newCode.expiresAt,
-      email: newCode.email,
+      email: newCode.email, // Return the email
       department: newCode.department,
     });
   } catch (err) {
@@ -80,7 +104,7 @@ export const generateCode = async (req, res) => {
   }
 };
 
-// Verify a student's code (during registration)
+// Verify a student's code (during registration) - ALREADY HAS EMAIL VALIDATION
 export const verifyCode = async (req, res) => {
   try {
     const { email, code } = req.body;
@@ -88,13 +112,6 @@ export const verifyCode = async (req, res) => {
     console.log('\n🔍 ========== VERIFICATION REQUEST ==========');
     console.log('📧 Email received:', email);
     console.log('🔑 Code received:', code);
-    console.log('📝 Email type:', typeof email);
-    console.log('📝 Code type:', typeof code);
-    console.log('📝 Email length:', email?.length);
-    console.log('📝 Code length:', code?.length);
-    console.log('📝 Email trimmed:', email?.trim());
-    console.log('📝 Code trimmed:', code?.trim());
-    console.log('📝 Code uppercase:', code?.toUpperCase());
 
     if (!email || !code) {
       console.log('❌ Missing email or code');
@@ -108,23 +125,7 @@ export const verifyCode = async (req, res) => {
     console.log('🧹 Cleaned email:', cleanEmail);
     console.log('🧹 Cleaned code:', cleanCode);
 
-    // First, let's see all codes in database
-    const allCodes = await VerificationCode.findAll({
-      attributes: ['id', 'code', 'email', 'isUsed', 'expiresAt'],
-      limit: 10
-    });
-
-    console.log('\n📊 All verification codes in database:');
-    allCodes.forEach(c => {
-      console.log(`  - ID: ${c.id}, Code: ${c.code}, Email: ${c.email}, Used: ${c.isUsed}, Expires: ${c.expiresAt}`);
-    });
-
-    // Now try to find the specific code
-    console.log('\n🔍 Searching for verification code with:');
-    console.log('  - email:', cleanEmail);
-    console.log('  - code:', cleanCode);
-    console.log('  - isUsed: false');
-
+    // Find verification code for this specific email
     const verification = await VerificationCode.findOne({
       where: {
         email: cleanEmail,
@@ -135,46 +136,8 @@ export const verifyCode = async (req, res) => {
 
     console.log('\n📋 Query result:', verification ? 'FOUND ✅' : 'NOT FOUND ❌');
 
-    if (verification) {
-      console.log('✅ Verification code details:');
-      console.log('  - ID:', verification.id);
-      console.log('  - Code:', verification.code);
-      console.log('  - Email:', verification.email);
-      console.log('  - Is Used:', verification.isUsed);
-      console.log('  - Expires At:', verification.expiresAt);
-      console.log('  - Department:', verification.department);
-    } else {
-      console.log('❌ Code not found. Possible reasons:');
-      console.log('  1. Code does not exist');
-      console.log('  2. Email mismatch');
-      console.log('  3. Code already used (isUsed = true)');
-      console.log('  4. Case sensitivity issue');
-
-      // Check if code exists with different email
-      const codeWithDifferentEmail = await VerificationCode.findOne({
-        where: { code: cleanCode }
-      });
-
-      if (codeWithDifferentEmail) {
-        console.log('⚠️  Code exists but with different email:');
-        console.log('   Expected:', cleanEmail);
-        console.log('   Found:', codeWithDifferentEmail.email);
-      }
-
-      // Check if email exists with different code
-      const emailWithDifferentCode = await VerificationCode.findOne({
-        where: { email: cleanEmail, isUsed: false }
-      });
-
-      if (emailWithDifferentCode) {
-        console.log('⚠️  Email has a different code:');
-        console.log('   Expected:', cleanCode);
-        console.log('   Found:', emailWithDifferentCode.code);
-      }
-    }
-
     if (!verification) {
-      console.log('❌ Returning error: Invalid verification code or email\n');
+      console.log('❌ Code not found for this email');
       return res.status(400).json({
         error: "Invalid verification code or email"
       });
@@ -193,6 +156,12 @@ export const verifyCode = async (req, res) => {
       console.log('❌ Code has expired, deleting...');
       await VerificationCode.destroy({ where: { id: verification.id } });
       return res.status(400).json({ error: "Verification code has expired" });
+    }
+
+    // Check if student already registered with this email
+    const existingStudent = await Student.findOne({ where: { email: cleanEmail } });
+    if (existingStudent) {
+      return res.status(400).json({ error: "Student already registered with this email" });
     }
 
     console.log('✅ Verification successful!\n');
@@ -216,7 +185,7 @@ export const verifyCode = async (req, res) => {
 // Get all codes (Coordinator only)
 export const getCodes = async (req, res) => {
   try {
-    const { page = 1, limit = 20, isUsed, department } = req.query;
+    const { page = 1, limit = 20, isUsed, department, email } = req.query;
 
     const where = {};
     if (isUsed !== undefined) {
@@ -224,6 +193,9 @@ export const getCodes = async (req, res) => {
     }
     if (department) {
       where.department = department;
+    }
+    if (email) {
+      where.email = { [Op.like]: `%${email}%` };
     }
 
     const offset = (page - 1) * limit;
@@ -305,7 +277,7 @@ export const deleteCode = async (req, res) => {
   }
 };
 
-// Bulk generate codes (Coordinator only)
+// Bulk generate codes (Coordinator only) - UPDATED WITH EMAIL VALIDATION
 export const bulkGenerateCodes = async (req, res) => {
   try {
     const { emails, department } = req.body;
@@ -317,6 +289,17 @@ export const bulkGenerateCodes = async (req, res) => {
       });
     }
 
+    // Validate all emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter(email => !emailRegex.test(email));
+
+    if (invalidEmails.length > 0) {
+      return res.status(400).json({
+        error: "Some emails have invalid format",
+        invalidEmails
+      });
+    }
+
     // Check existing students
     const existingStudents = await Student.findAll({
       where: { email: emails },
@@ -324,8 +307,24 @@ export const bulkGenerateCodes = async (req, res) => {
 
     if (existingStudents.length > 0) {
       return res.status(400).json({
-        error: "Some emails are already registered",
+        error: "Some emails are already registered as students",
         existingEmails: existingStudents.map((s) => s.email),
+      });
+    }
+
+    // Check existing verification codes
+    const existingCodes = await VerificationCode.findAll({
+      where: {
+        email: emails,
+        isUsed: false,
+        expiresAt: { [Op.gt]: new Date() }
+      },
+    });
+
+    if (existingCodes.length > 0) {
+      return res.status(400).json({
+        error: "Some emails already have active verification codes",
+        existingCodeEmails: existingCodes.map((c) => ({ email: c.email, code: c.code })),
       });
     }
 
@@ -371,6 +370,7 @@ export const bulkGenerateCodes = async (req, res) => {
           email,
           code: newCode.code,
           expiresAt: newCode.expiresAt,
+          department: newCode.department,
         });
       } catch (err) {
         errors.push({ email, error: err.message });
