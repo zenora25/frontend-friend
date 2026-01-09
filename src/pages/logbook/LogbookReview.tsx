@@ -14,7 +14,10 @@ const LogbookReview = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [logbook, setLogbook] = useState<any>(null);
-    const [review, setReview] = useState({
+    const [review, setReview] = useState<{
+        status: "APPROVED" | "REVISION";
+        comment: string;
+    }>({
         status: "APPROVED",
         comment: "",
     });
@@ -119,7 +122,7 @@ const LogbookReview = () => {
                     <CardContent className="space-y-6">
                         <div className="space-y-3">
                             <Label>Decision</Label>
-                            <RadioGroup value={review.status} onValueChange={(value) => setReview({...review, status: value})}>
+                            <RadioGroup value={review.status} onValueChange={(value: "APPROVED" | "REVISION") => setReview({...review, status: value})}>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="APPROVED" id="approved" />
                                     <Label htmlFor="approved" className="flex items-center gap-2">
