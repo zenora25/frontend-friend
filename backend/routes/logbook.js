@@ -14,7 +14,7 @@ import {
 } from "../controllers/logbookcontroller.js";
 import protect from "../middleware/authMiddleware.js";
 import { uploadMultiple } from "../utils/upload.js"; // Import upload middleware
-import { uploadMultiple } from "../utils/upload.js"; // Import upload middleware
+
 import {
   requireStudent,
   requireSupervisor,
