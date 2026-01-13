@@ -10,7 +10,7 @@ const Assignment = sequelize.define(
             autoIncrement: true,
         },
         studentId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false,
             references: {
                 model: "students",

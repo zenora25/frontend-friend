@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { syncModels, sequelize } from './models/index.js';
+import { syncModels, alterSyncModels, sequelize } from './models/index.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -128,9 +128,11 @@ const initializeDatabase = async () => {
       try {
         console.log('🔄 Synchronizing database models...');
 
-        // Use alter: false to avoid datetime issues
-        await syncModels();
+        // Use alter: true to update schema for UUID changes
+        await alterSyncModels();
+        // await syncModels();
         console.log('✅ Database models synchronized');
+
 
       } catch (syncError) {
         console.warn('⚠️  Database synchronization had issues:');
