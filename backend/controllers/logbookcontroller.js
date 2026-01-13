@@ -45,6 +45,8 @@ export const createLogbook = async (req, res) => {
         } = req.body;
 
         const studentId = req.user.id;
+        console.log("Creating logbook for student:", studentId, "Week:", weekNumber); // Debug log
+        console.log("Request body:", req.body); // Debug log
 
         // Validate required fields
         if (!weekNumber || !startDate || !endDate || !title || !weekSummary) {
@@ -70,8 +72,10 @@ export const createLogbook = async (req, res) => {
         // Handle file upload
         let imageUrls = [];
         try {
+            console.log("Handling file upload..."); // Debug log
             const files = await handleFileUpload(req, res);
             imageUrls = files.map(file => getFileUrl(file.filename));
+            console.log("Uploaded images:", imageUrls); // Debug log
         } catch (uploadError) {
             console.error("File upload error:", uploadError);
             // Continue without images if upload fails
@@ -113,6 +117,7 @@ export const createLogbook = async (req, res) => {
         });
     } catch (err) {
         console.error("Create logbook error:", err);
+        console.error("Stack trace:", err.stack); // Debug log
         res.status(500).json({
             error: "Failed to create logbook entry",
             details: err.message,
@@ -124,6 +129,7 @@ export const createLogbook = async (req, res) => {
 export const getMyLogbooks = async (req, res) => {
     try {
         const studentId = req.user.id;
+        console.log("Fetching logbooks for student:", studentId); // Debug log
 
         const logbooks = await Logbook.findAll({
             where: { studentId },
@@ -133,6 +139,7 @@ export const getMyLogbooks = async (req, res) => {
         res.json(logbooks);
     } catch (err) {
         console.error("Get my logbooks error:", err);
+        console.error("Stack trace:", err.stack); // Debug log
         res.status(500).json({
             error: "Failed to fetch logbooks",
             details: err.message,
@@ -249,7 +256,7 @@ export const deleteLogbook = async (req, res) => {
             for (const image of logbook.images) {
                 const filename = path.basename(image);
                 const filePath = path.join('uploads/logbooks', filename);
-                
+
                 if (fs.existsSync(filePath)) {
                     fs.unlinkSync(filePath);
                 }
@@ -294,7 +301,7 @@ export const deleteLogbookImage = async (req, res) => {
         // Delete the physical file
         const filename = path.basename(imageUrl);
         const filePath = path.join('uploads/logbooks', filename);
-        
+
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
         }
@@ -451,11 +458,11 @@ export const reviewLogbook = async (req, res) => {
         }
 
         // Determine overall status
-        if (logbook.institutionSupervisorStatus === "APPROVED" && 
+        if (logbook.institutionSupervisorStatus === "APPROVED" &&
             logbook.industrySupervisorStatus === "APPROVED") {
             logbook.status = "APPROVED";
-        } else if (logbook.institutionSupervisorStatus === "REVISION" || 
-                   logbook.industrySupervisorStatus === "REVISION") {
+        } else if (logbook.institutionSupervisorStatus === "REVISION" ||
+            logbook.industrySupervisorStatus === "REVISION") {
             logbook.status = "REVISION";
         } else {
             logbook.status = "PENDING";
@@ -590,8 +597,8 @@ export const getLogbookStats = async (req, res) => {
                 const allLogbooks = students.flatMap((student) => student.Logbooks);
 
                 const totalEntries = allLogbooks.length;
-                const pendingReviews = allLogbooks.filter((logbook) => 
-                    logbook.status === "PENDING" || 
+                const pendingReviews = allLogbooks.filter((logbook) =>
+                    logbook.status === "PENDING" ||
                     (logbook.institutionSupervisorStatus === "PENDING" && logbook.status !== "APPROVED")
                 ).length;
                 const reviewedThisWeek = allLogbooks.filter(
@@ -623,8 +630,8 @@ export const getLogbookStats = async (req, res) => {
                 const allLogbooks = students.flatMap((student) => student.Logbooks);
 
                 const totalEntries = allLogbooks.length;
-                const pendingReviews = allLogbooks.filter((logbook) => 
-                    logbook.status === "PENDING" || 
+                const pendingReviews = allLogbooks.filter((logbook) =>
+                    logbook.status === "PENDING" ||
                     (logbook.industrySupervisorStatus === "PENDING" && logbook.status !== "APPROVED")
                 ).length;
                 const reviewedThisWeek = allLogbooks.filter(

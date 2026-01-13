@@ -14,6 +14,7 @@ import logbookRoutes from './routes/logbook.js';
 import defenseRoutes from './routes/defense.js';
 import verificationRoutes from './routes/VerificationCode.js';
 import assignmentRoutes from './routes/assignment.js';
+import dashboardRoutes from './routes/dashboard.js'; // Import dashboard routes
 
 dotenv.config();
 
@@ -36,11 +37,12 @@ app.use('/api/logbook', logbookRoutes);
 app.use('/api/defense', defenseRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/api/dashboard', dashboardRoutes); // Mount dashboard routes
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     database: 'Connected',
     version: '1.0.0'
@@ -102,40 +104,40 @@ app.use((req, res, next) => {
 // Database connection and synchronization
 const initializeDatabase = async () => {
   let retries = 3;
-  
+
   while (retries > 0) {
     try {
       console.log(`🔌 Attempting to connect to database (${retries} retries left)...`);
-      
+
       // Test database connection
       await sequelize.authenticate();
       console.log('✅ MySQL Connected Successfully');
-      
+
       // Try to sync models with safe approach
       try {
         console.log('🔄 Synchronizing database models...');
-        
+
         // Use alter: false to avoid datetime issues
         await syncModels();
         console.log('✅ Database models synchronized');
-        
+
       } catch (syncError) {
         console.warn('⚠️  Database synchronization had issues:');
         console.warn('   Error:', syncError.message);
-        
+
         if (syncError.original && syncError.original.sqlMessage) {
           console.warn('   SQL Error:', syncError.original.sqlMessage);
         }
-        
+
         console.log('ℹ️  Server will start anyway. Some database operations may be limited.');
       }
-      
+
       return true; // Success
-      
+
     } catch (error) {
       console.error(`❌ Database connection attempt failed: ${error.message}`);
       retries -= 1;
-      
+
       if (retries > 0) {
         console.log(`⏳ Retrying in 5 seconds...`);
         await new Promise(resolve => setTimeout(resolve, 5000));
@@ -153,10 +155,10 @@ const initializeDatabase = async () => {
 const startServer = async () => {
   try {
     console.log('🚀 Starting SIWES Management System Server...\n');
-    
+
     // Initialize database
     await initializeDatabase();
-    
+
     // Start listening
     app.listen(PORT, () => {
       console.log('\n' + '='.repeat(60));
@@ -169,7 +171,7 @@ const startServer = async () => {
       console.log(`🔐 JWT Secret: ${process.env.JWT_SECRET ? '✓ Set' : '✗ Not set'}`);
       console.log(`⚙️  Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('='.repeat(60));
-      
+
       console.log('\n📋 Available API Endpoints:');
       console.log('   ├── POST   /api/auth/student/login');
       console.log('   ├── POST   /api/auth/role/login');
@@ -183,11 +185,11 @@ const startServer = async () => {
       console.log('   ├── GET    /api/industry-supervisors/dashboard');
       console.log('   ├── GET    /api/hods/dashboard');
       console.log('   └── GET    /api/coordinators/dashboard');
-      
+
       console.log('\n⚡ Server is ready to handle requests!');
       console.log('📝 Logs will appear below:\n');
     });
-    
+
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
