@@ -141,8 +141,8 @@ const StudentDashboard = () => {
     return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading dashboard...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading dashboard...</p>
           </div>
         </div>
     );
@@ -156,53 +156,53 @@ const StudentDashboard = () => {
       value: dashboardData.stats.weeksCompleted,
       subtitle: `of ${dashboardData.stats.totalWeeks}`,
       icon: TrendingUp,
-      gradient: "from-primary to-secondary",
-      bgGradient: "from-primary/10 to-secondary/10",
+      gradient: "from-gray-700 to-gray-600",
+      bgGradient: "from-gray-100 to-gray-50",
     },
     {
       title: "Logbooks Submitted",
       value: dashboardData.stats.logbooksSubmitted,
       icon: BookText,
-      gradient: "from-chart-2 to-chart-3",
-      bgGradient: "from-chart-2/10 to-chart-3/10",
+      gradient: "from-gray-700 to-gray-600",
+      bgGradient: "from-gray-100 to-gray-50",
     },
     {
       title: "Approved Entries",
       value: dashboardData.stats.logbooksApproved,
       icon: CheckCircle2,
-      gradient: "from-chart-5 to-chart-4",
-      bgGradient: "from-chart-5/10 to-chart-4/10",
+      gradient: "from-gray-700 to-gray-600",
+      bgGradient: "from-gray-100 to-gray-50",
     },
     {
       title: "Pending Review",
       value: dashboardData.stats.logbooksPending,
       icon: Clock,
-      gradient: "from-destructive to-destructive",
-      bgGradient: "from-destructive/10 to-destructive/5",
+      gradient: "from-gray-700 to-gray-600",
+      bgGradient: "from-gray-100 to-gray-50",
     },
   ];
 
   return (
       <div className="space-y-8">
         {/* Welcome section */}
-        <div className="relative overflow-hidden p-6 -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 bg-gradient-to-r from-primary via-secondary to-primary">
+        <div className="relative overflow-hidden p-6 -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
           <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 lg:px-8">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-primary-foreground/20 backdrop-blur flex items-center justify-center">
-                <Sparkles className="w-7 h-7 text-primary-foreground" />
+              <div className="w-14 h-14 bg-white/10 backdrop-blur flex items-center justify-center">
+                <Sparkles className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-primary-foreground">
+                <h1 className="text-2xl font-bold text-white">
                   Welcome back, {dashboardData.student.name.split(" ")[0]}!
                 </h1>
-                <p className="text-primary-foreground/70">
+                <p className="text-white/70">
                   Track your SIWES progress and manage your logbook submissions.
                 </p>
               </div>
             </div>
-            <Button asChild className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 shadow-lg">
-              <Link to="/logbook/new">
+            <Button asChild className="bg-white text-gray-800 hover:bg-white/90 shadow">
+              <Link to="/dashboard/logbook/submit">
                 <BookText className="w-4 h-4 mr-2" />
                 Submit Logbook Entry
               </Link>
@@ -215,22 +215,22 @@ const StudentDashboard = () => {
           {statCards.map((stat, index) => (
               <Card
                   key={index}
-                  className="group overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                  className="group overflow-hidden border border-gray-200 shadow-sm hover:shadow transition-all duration-300 hover:-translate-y-1"
               >
                 <div className={`h-1 bg-gradient-to-r ${stat.gradient}`} />
-                <CardContent className="p-6">
+                <CardContent className="p-6 bg-white">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                      <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-foreground">{stat.value}</span>
+                        <span className="text-4xl font-bold text-gray-900">{stat.value}</span>
                         {stat.subtitle && (
-                            <span className="text-lg text-muted-foreground">{stat.subtitle}</span>
+                            <span className="text-lg text-gray-600">{stat.subtitle}</span>
                         )}
                       </div>
                     </div>
-                    <div className={`w-12 h-12 bg-gradient-to-br ${stat.bgGradient} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                      <stat.icon className={`w-6 h-6 bg-gradient-to-r ${stat.gradient} bg-clip-text`} style={{ color: 'hsl(var(--primary))' }} />
+                    <div className={`w-12 h-12 ${stat.bgGradient} flex items-center justify-center group-hover:scale-110 transition-transform border border-gray-200`}>
+                      <stat.icon className={`w-6 h-6 text-gray-700`} />
                     </div>
                   </div>
                 </CardContent>
@@ -239,26 +239,26 @@ const StudentDashboard = () => {
         </div>
 
         {/* Progress section */}
-        <Card className="overflow-hidden border-0 shadow-lg">
-          <div className="h-1 bg-gradient-to-r from-primary via-chart-2 to-chart-5" />
-          <CardHeader>
+        <Card className="overflow-hidden border border-gray-200 shadow">
+          <div className="h-1 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-500" />
+          <CardHeader className="bg-gray-50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center">
-                <Target className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 bg-gray-100 border border-gray-200 flex items-center justify-center">
+                <Target className="w-5 h-5 text-gray-700" />
               </div>
-              <CardTitle className="text-xl">SIWES Progress</CardTitle>
+              <CardTitle className="text-xl text-gray-900">SIWES Progress</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="bg-white">
             <div className="space-y-6">
               <div>
                 <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-muted-foreground">Overall Completion</span>
-                  <span className="text-2xl font-bold text-primary">{Math.round(progressPercentage)}%</span>
+                  <span className="text-gray-600">Overall Completion</span>
+                  <span className="text-2xl font-bold text-gray-900">{Math.round(progressPercentage)}%</span>
                 </div>
-                <div className="relative h-4 bg-muted/30 overflow-hidden">
+                <div className="relative h-4 bg-gray-100 overflow-hidden">
                   <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-chart-2 to-chart-5 transition-all duration-500"
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-500 transition-all duration-500"
                       style={{ width: `${progressPercentage}%` }}
                   />
                 </div>
@@ -273,10 +273,10 @@ const StudentDashboard = () => {
                 ].map((item, index) => (
                     <div
                         key={index}
-                        className="p-4 bg-gradient-to-br from-accent/50 to-accent/20 border border-border/50 hover:border-primary/30 transition-colors"
+                        className="p-4 bg-gray-50 border border-gray-200 hover:border-gray-300 transition-colors"
                     >
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{item.label}</p>
-                      <p className="font-semibold text-foreground text-sm truncate">{item.value}</p>
+                      <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">{item.label}</p>
+                      <p className="font-semibold text-gray-900 text-sm truncate">{item.value}</p>
                     </div>
                 ))}
               </div>
@@ -286,50 +286,50 @@ const StudentDashboard = () => {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent logbook entries */}
-          <Card className="overflow-hidden border-0 shadow-lg">
-            <div className="h-1 bg-gradient-to-r from-primary to-chart-2" />
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="overflow-hidden border border-gray-200 shadow">
+            <div className="h-1 bg-gradient-to-r from-gray-700 to-gray-600" />
+            <CardHeader className="bg-gray-50 flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-chart-2/10 flex items-center justify-center">
-                  <BookText className="w-5 h-5 text-chart-2" />
+                <div className="w-10 h-10 bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <BookText className="w-5 h-5 text-gray-700" />
                 </div>
-                <CardTitle className="text-lg">Recent Logbook Entries</CardTitle>
+                <CardTitle className="text-lg text-gray-900">Recent Logbook Entries</CardTitle>
               </div>
-              <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary">
-                <Link to="/logbook">
+              <Button variant="ghost" size="sm" asChild className="text-gray-700 hover:text-gray-900 hover:bg-gray-100">
+                <Link to="/dashboard/logbook">
                   View all
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Link>
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-white">
               <div className="space-y-3">
                 {dashboardData.recentActivities.map((entry, index) => (
                     <div
                         key={entry.id}
-                        className="group flex items-center justify-between p-4 bg-gradient-to-r from-card to-accent/20 border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all"
+                        className="group flex items-center justify-between p-4 bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
                         style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center font-semibold text-primary">
+                        <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-50 border border-gray-200 flex items-center justify-center font-semibold text-gray-900">
                           W{entry.week}
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">Week {entry.week} Entry</p>
-                          <p className="text-sm text-muted-foreground">{entry.date}</p>
+                          <p className="font-medium text-gray-900">Week {entry.week} Entry</p>
+                          <p className="text-sm text-gray-600">{entry.date}</p>
                         </div>
                       </div>
                       <Badge
                           className={`${
                               entry.status === "approved"
-                                  ? "bg-chart-5/20 text-chart-5 border-chart-5/30"
-                                  : "bg-muted/30 text-muted-foreground border-muted/50"
+                                  ? "bg-green-100 text-green-800 border-green-200"
+                                  : "bg-gray-100 text-gray-800 border-gray-200"
                           }`}
                       >
                         {entry.status === "approved" ? (
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" />
                         ) : (
-                            <Clock className="w-3 h-3 mr-1" />
+                            <Clock className="w-3 h-3 mr-1 text-gray-600" />
                         )}
                         {entry.status}
                       </Badge>
@@ -340,55 +340,55 @@ const StudentDashboard = () => {
           </Card>
 
           {/* Upcoming defense */}
-          <Card className="overflow-hidden border-0 shadow-lg">
-            <div className="h-1 bg-gradient-to-r from-chart-5 to-chart-4" />
-            <CardHeader>
+          <Card className="overflow-hidden border border-gray-200 shadow">
+            <div className="h-1 bg-gradient-to-r from-gray-700 to-gray-600" />
+            <CardHeader className="bg-gray-50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-chart-5/10 flex items-center justify-center">
-                  <Award className="w-5 h-5 text-chart-5" />
+                <div className="w-10 h-10 bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <Award className="w-5 h-5 text-gray-700" />
                 </div>
-                <CardTitle className="text-lg">Upcoming Defense</CardTitle>
+                <CardTitle className="text-lg text-gray-900">Upcoming Defense</CardTitle>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-white">
               {dashboardData.upcomingDefense ? (
                   <div className="space-y-4">
-                    <div className="relative p-6 bg-gradient-to-br from-chart-5/10 to-chart-5/5 border border-chart-5/20 overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-chart-5/10 rounded-full blur-2xl" />
+                    <div className="relative p-6 bg-gradient-to-br from-gray-50 to-white border border-gray-200 overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gray-100 rounded-full blur-2xl" />
                       <div className="relative flex items-start gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-chart-5 to-chart-4 flex items-center justify-center flex-shrink-0 shadow-lg">
-                          <Calendar className="w-7 h-7 text-primary-foreground" />
+                        <div className="w-14 h-14 bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center flex-shrink-0 shadow">
+                          <Calendar className="w-7 h-7 text-white" />
                         </div>
                         <div className="space-y-3">
-                          <h3 className="font-semibold text-foreground text-lg">SIWES Defense Presentation</h3>
+                          <h3 className="font-semibold text-gray-900 text-lg">SIWES Defense Presentation</h3>
                           <div className="space-y-2 text-sm">
-                            <p className="flex items-center gap-3 text-muted-foreground">
-                              <Calendar className="w-4 h-4 text-chart-5" />
-                              <span className="font-medium text-foreground">{dashboardData.upcomingDefense.date}</span>
+                            <p className="flex items-center gap-3 text-gray-600">
+                              <Calendar className="w-4 h-4 text-gray-700" />
+                              <span className="font-medium text-gray-900">{dashboardData.upcomingDefense.date}</span>
                             </p>
-                            <p className="flex items-center gap-3 text-muted-foreground">
-                              <Clock className="w-4 h-4 text-chart-5" />
-                              <span className="font-medium text-foreground">{dashboardData.upcomingDefense.time}</span>
+                            <p className="flex items-center gap-3 text-gray-600">
+                              <Clock className="w-4 h-4 text-gray-700" />
+                              <span className="font-medium text-gray-900">{dashboardData.upcomingDefense.time}</span>
                             </p>
-                            <p className="flex items-center gap-3 text-muted-foreground">
-                              <AlertCircle className="w-4 h-4 text-chart-5" />
-                              <span className="font-medium text-foreground">{dashboardData.upcomingDefense.venue}</span>
+                            <p className="flex items-center gap-3 text-gray-600">
+                              <AlertCircle className="w-4 h-4 text-gray-700" />
+                              <span className="font-medium text-gray-900">{dashboardData.upcomingDefense.venue}</span>
                             </p>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <Button className="w-full h-12 bg-gradient-to-r from-chart-5 to-chart-4 hover:opacity-90" asChild>
-                      <Link to="/defense">
+                    <Button className="w-full h-12 bg-gradient-to-r from-gray-800 to-gray-900 text-white hover:opacity-90" asChild>
+                      <Link to="/dashboard/defense">
                         View Defense Details
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Link>
                     </Button>
                   </div>
               ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg">No defense scheduled yet</p>
+                  <div className="text-center py-12 text-gray-600">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <p className="text-lg text-gray-700">No defense scheduled yet</p>
                   </div>
               )}
             </CardContent>

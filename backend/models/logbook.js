@@ -13,7 +13,7 @@ const Logbook = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: "students", // Use string table name
+                model: "students",
                 key: "id",
             },
         },
@@ -46,6 +46,57 @@ const Logbook = sequelize.define(
             defaultValue: "PENDING",
         },
         supervisorComment: {
+            type: DataTypes.TEXT,
+        },
+        // Industry supervisor review fields
+        industryStatus: {
+            type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION"),
+            defaultValue: "PENDING",
+        },
+        industryComment: {
+            type: DataTypes.TEXT,
+        },
+        industryReviewedAt: {
+            type: DataTypes.DATE,
+        },
+        // Institution supervisor review fields
+        institutionStatus: {
+            type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION"),
+            defaultValue: "PENDING",
+        },
+        institutionComment: {
+            type: DataTypes.TEXT,
+        },
+        institutionReviewedAt: {
+            type: DataTypes.DATE,
+        },
+        // Image fields
+        images: {
+            type: DataTypes.JSON,
+            defaultValue: [],
+        },
+        mondayActivities: {
+            type: DataTypes.TEXT,
+        },
+        tuesdayActivities: {
+            type: DataTypes.TEXT,
+        },
+        wednesdayActivities: {
+            type: DataTypes.TEXT,
+        },
+        thursdayActivities: {
+            type: DataTypes.TEXT,
+        },
+        fridayActivities: {
+            type: DataTypes.TEXT,
+        },
+        challengesFaced: {
+            type: DataTypes.TEXT,
+        },
+        lessonsLearned: {
+            type: DataTypes.TEXT,
+        },
+        skillsAcquired: {
             type: DataTypes.TEXT,
         },
     },

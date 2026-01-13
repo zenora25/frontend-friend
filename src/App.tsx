@@ -83,10 +83,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import HODStudentDetails from "@/pages/dashboard/HODStudentDetails.tsx";
-import HODAssignStudent from "@/pages/dashboard/HODAssignStudent.tsx";
 
-// Lazy load main pages
+// Lazy load all pages
 const Login = lazy(() => import("@/pages/auth/Login"));
 const Register = lazy(() => import("@/pages/auth/Register"));
 const StudentRegister = lazy(() => import("@/pages/auth/StudentRegister"));
@@ -96,6 +94,11 @@ const IndustrySupervisorDashboard = lazy(() => import("@/pages/dashboard/Industr
 const CoordinatorDashboard = lazy(() => import("@/pages/dashboard/CoordinatorDashboard"));
 const HODDashboard = lazy(() => import("@/pages/dashboard/HODDashboard"));
 
+// Logbook components
+const WeeklyLogbook = lazy(() => import("@/pages/logbook/WeeklyLogbook"));
+const SubmitLogbook = lazy(() => import("@/pages/logbook/SubmitLogbook"));
+const LogbookDetails = lazy(() => import("@/pages/logbook/LogbookDetails"));
+const LogbookReview = lazy(() => import("@/pages/logbook/LogbookReview"));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -129,12 +132,10 @@ const roleConfig: Record<RoleKey, {
             { label: "Dashboard", href: "/dashboard/overview", icon: LayoutDashboard, description: "Overview and progress" },
             { label: "My Logbook", href: "/dashboard/logbook", icon: BookText, description: "Weekly entries" },
             { label: "Submit Entry", href: "/dashboard/logbook/submit", icon: FileEdit, description: "New logbook entry" },
-            { label: "My Defense", href: "/dashboard/defense", icon: CalendarDays, description: "Defense schedule" },
             { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Personal information" },
-            { label: "Letters", href: "/dashboard/letters", icon: FileText, description: "Acceptance/completion letters" },
         ],
         dashboardPath: "/dashboard/overview",
-        color: "from-blue-500 to-cyan-500",
+        color: "from-gray-700 to-gray-900",
     },
     institutionSupervisor: {
         label: "Institution Supervisor",
@@ -143,12 +144,10 @@ const roleConfig: Record<RoleKey, {
             { label: "Dashboard", href: "/dashboard/supervisor-dashboard", icon: LayoutDashboard, description: "Supervisor overview" },
             { label: "Assigned Students", href: "/dashboard/students", icon: Users, description: "Manage your students" },
             { label: "Logbook Reviews", href: "/dashboard/logbook-review", icon: ClipboardCheck, description: "Review submissions" },
-            { label: "Defense Schedule", href: "/dashboard/defense", icon: Calendar, description: "Defense management" },
-            { label: "Performance", href: "/dashboard/performance", icon: TrendingUp, description: "Review statistics" },
-            { label: "Profile", href: "/dashboard/profile", icon: Settings, description: "Account settings" },
+            { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Account settings" },
         ],
         dashboardPath: "/dashboard/supervisor-dashboard",
-        color: "from-green-500 to-emerald-500",
+        color: "from-gray-700 to-gray-900",
     },
     industrySupervisor: {
         label: "Industry Supervisor",
@@ -157,11 +156,10 @@ const roleConfig: Record<RoleKey, {
             { label: "Dashboard", href: "/dashboard/industry-dashboard", icon: LayoutDashboard, description: "Industry overview" },
             { label: "Assigned Interns", href: "/dashboard/students", icon: Users, description: "Your assigned interns" },
             { label: "Weekly Reviews", href: "/dashboard/logbook-review", icon: BookText, description: "Review intern logbooks" },
-            { label: "Company Profile", href: "/dashboard/profile", icon: BriefcaseBusiness, description: "Company information" },
-            { label: "Evaluation", href: "/dashboard/evaluation", icon: FileCheck, description: "Student evaluation" },
+            { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Account information" },
         ],
         dashboardPath: "/dashboard/industry-dashboard",
-        color: "from-orange-500 to-amber-500",
+        color: "from-gray-700 to-gray-900",
     },
     siwesCoordinator: {
         label: "SIWES Coordinator",
@@ -170,13 +168,10 @@ const roleConfig: Record<RoleKey, {
             { label: "Dashboard", href: "/dashboard/coordinator-dashboard", icon: LayoutDashboard, description: "System overview" },
             { label: "Verification Codes", href: "/dashboard/verification-codes", icon: Key, description: "Manage student codes" },
             { label: "All Students", href: "/dashboard/students", icon: GraduationCap, description: "All registered students" },
-            { label: "Assignments", href: "/dashboard/assignments", icon: ClipboardList, description: "Supervisor assignments" },
-            { label: "Defense Management", href: "/dashboard/defense-management", icon: Calendar, description: "Schedule defenses" },
-            { label: "Reports", href: "/dashboard/reports", icon: BarChart3, description: "Generate reports" },
-            { label: "System Settings", href: "/dashboard/settings", icon: Settings, description: "System configuration" },
+            { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Account settings" },
         ],
         dashboardPath: "/dashboard/coordinator-dashboard",
-        color: "from-purple-500 to-pink-500",
+        color: "from-gray-700 to-gray-900",
     },
     hod: {
         label: "Head of Department",
@@ -184,22 +179,18 @@ const roleConfig: Record<RoleKey, {
         navItems: [
             { label: "Dashboard", href: "/dashboard/hod-dashboard", icon: LayoutDashboard, description: "Department overview" },
             { label: "Department Students", href: "/dashboard/students", icon: Users2, description: "All department students" },
-            { label: "Assign Students", href: "/dashboard/hod/assign-students", icon: UserPlus, description: "Assign to supervisors" },
-            { label: "Supervisors", href: "/dashboard/supervisors", icon: UserCheck, description: "Supervisor performance" },
-            { label: "Defenses", href: "/dashboard/defenses", icon: CalendarDays, description: "Department defenses" },
-            { label: "Logbooks", href: "/dashboard/logbooks", icon: BookMarked, description: "Logbook submissions" },
-            { label: "Reports", href: "/dashboard/reports", icon: FileBarChart, description: "Department reports" },
-            { label: "Profile", href: "/dashboard/profile", icon: UserCog, description: "Department settings" },
+            { label: "Assign Students", href: "/dashboard/assign-students", icon: UserPlus, description: "Assign to supervisors" },
+            { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Account settings" },
         ],
         dashboardPath: "/dashboard/hod-dashboard",
-        color: "from-red-500 to-rose-500",
+        color: "from-gray-700 to-gray-900",
     },
 };
 
 // Loading component
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
     </div>
 );
 
@@ -255,19 +246,19 @@ const AuthLayout = () => {
     return (
         <div className="min-h-screen flex">
             {/* Left side - Branding */}
-            <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
+            <div className="hidden lg:flex lg:w-1/2 bg-gray-900 p-12 flex-col justify-between">
                 <div>
                     <div className="flex items-center gap-3 mb-12">
-                        <div className="w-12 h-12 bg-primary-foreground/20 flex items-center justify-center">
-                            <BookOpen className="w-7 h-7 text-primary-foreground" />
+                        <div className="w-12 h-12 bg-white/10 flex items-center justify-center">
+                            <BookOpen className="w-7 h-7 text-white" />
                         </div>
-                        <span className="text-2xl font-bold text-primary-foreground">InternTrack</span>
+                        <span className="text-2xl font-bold text-white">InternTrack</span>
                     </div>
 
-                    <h1 className="text-4xl font-bold text-primary-foreground mb-6">
+                    <h1 className="text-4xl font-bold text-white mb-6">
                         Streamline Your SIWES Experience
                     </h1>
-                    <p className="text-lg text-primary-foreground/80 mb-12">
+                    <p className="text-lg text-gray-300 mb-12">
                         A comprehensive digital platform for managing Student Industrial Work Experience Scheme documentation, monitoring, and evaluation.
                     </p>
 
@@ -290,13 +281,13 @@ const AuthLayout = () => {
                     </div>
                 </div>
 
-                <p className="text-sm text-primary-foreground/60">
+                <p className="text-sm text-gray-400">
                     © 2024 InternTrack. Baze University SIWES Management System.
                 </p>
             </div>
 
             {/* Right side - Auth forms */}
-            <div className="flex-1 flex items-center justify-center p-8 bg-background">
+            <div className="flex-1 flex items-center justify-center p-8 bg-white">
                 <div className="w-full max-w-md">
                     <Suspense fallback={<LoadingSpinner />}>
                         <Outlet />
@@ -309,12 +300,12 @@ const AuthLayout = () => {
 
 const FeatureItem = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
     <div className="flex items-start gap-4">
-        <div className="w-10 h-10 bg-primary-foreground/10 flex items-center justify-center flex-shrink-0 text-primary-foreground">
+        <div className="w-10 h-10 bg-white/10 flex items-center justify-center flex-shrink-0 text-white">
             {icon}
         </div>
         <div>
-            <h3 className="font-semibold text-primary-foreground">{title}</h3>
-            <p className="text-sm text-primary-foreground/70">{description}</p>
+            <h3 className="font-semibold text-white">{title}</h3>
+            <p className="text-sm text-gray-300">{description}</p>
         </div>
     </div>
 );
@@ -376,36 +367,36 @@ const DashboardLayout = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-gray-50">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-                <div className="flex flex-col flex-1 min-h-0 border-r border-border bg-card">
+                <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-white">
                     {/* Logo */}
-                    <div className="flex h-16 shrink-0 items-center border-b border-border px-6">
+                    <div className="flex h-16 shrink-0 items-center border-b border-gray-200 px-6">
                         <Link to={config.dashboardPath} className="flex items-center gap-3 group">
-                            <div className={`w-11 h-11 bg-gradient-to-br ${config.color} flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg`}>
+                            <div className={`w-11 h-11 bg-gradient-to-br ${config.color} flex items-center justify-center group-hover:scale-105 transition-transform shadow`}>
                                 <BookOpen className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <span className="text-xl font-bold text-foreground">InternTrack</span>
-                                <p className="text-xs text-muted-foreground">{config.label}</p>
+                                <span className="text-xl font-bold text-gray-900">InternTrack</span>
+                                <p className="text-xs text-gray-500">{config.label}</p>
                             </div>
                         </Link>
                     </div>
 
                     {/* User Profile */}
-                    <div className="border-b border-border p-4">
+                    <div className="border-b border-gray-200 p-4">
                         <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                            <Avatar className="h-12 w-12 ring-2 ring-gray-200">
                                 <AvatarFallback className={`bg-gradient-to-br ${config.color} text-white font-semibold`}>
                                     {getInitials(user?.fullName)}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium text-foreground truncate">{user.fullName}</p>
-                                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                                <p className="font-medium text-gray-900 truncate">{user.fullName}</p>
+                                <p className="text-sm text-gray-500 truncate">{user.email}</p>
                                 {user.department && (
-                                    <p className="text-xs text-muted-foreground truncate">{user.department}</p>
+                                    <p className="text-xs text-gray-500 truncate">{user.department}</p>
                                 )}
                             </div>
                         </div>
@@ -423,8 +414,8 @@ const DashboardLayout = () => {
                                         className={cn(
                                             "w-full text-left flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-all duration-200 rounded-lg group",
                                             isActive
-                                                ? `bg-gradient-to-r ${config.color} text-white shadow-md`
-                                                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                                ? `bg-gradient-to-r ${config.color} text-white shadow`
+                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                         )}
                                     >
                                         <item.icon className={cn(
@@ -449,26 +440,25 @@ const DashboardLayout = () => {
                     </nav>
 
                     {/* Quick Actions */}
-                    <div className="border-t border-border p-4">
-                        <div className="text-xs text-muted-foreground mb-2">Quick Actions</div>
+                    <div className="border-t border-gray-200 p-4">
                         <div className="space-y-2">
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full justify-start"
+                                className="w-full justify-start border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                                 onClick={() => handleNavigation("/dashboard/profile")}
                             >
-                                <Settings className="w-4 h-4 mr-2" />
-                                Settings
+                                <UserCircle className="w-4 h-4 mr-2" />
+                                My Profile
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full justify-start"
-                                onClick={() => handleNavigation("/dashboard/help")}
+                                className="w-full justify-start border-gray-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={handleLogout}
                             >
-                                <FileText className="w-4 h-4 mr-2" />
-                                Help & Support
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Log Out
                             </Button>
                         </div>
                     </div>
@@ -478,92 +468,27 @@ const DashboardLayout = () => {
             {/* Main Content */}
             <div className="lg:pl-72">
                 {/* Top Navigation Bar */}
-                <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-8">
+                <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 lg:px-8">
                     <div className="flex flex-1 items-center gap-4">
                         {/* Mobile Menu Button */}
-                        <div className="lg:hidden">
-                            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                                <SheetContent side="left" className="p-0 w-72">
-                                    <div className="flex flex-col h-full">
-                                        <div className="p-6 border-b border-border">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-11 h-11 bg-gradient-to-br ${config.color} flex items-center justify-center`}>
-                                                    <BookOpen className="w-6 h-6 text-white" />
-                                                </div>
-                                                <span className="text-xl font-bold text-foreground">InternTrack</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-4 border-b border-border">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-                                                    <AvatarFallback className={`bg-gradient-to-br ${config.color} text-white font-semibold`}>
-                                                        {getInitials(user?.fullName)}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-foreground truncate">{user.fullName}</p>
-                                                    <p className="text-xs text-muted-foreground truncate">{config.label}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                                            {config.navItems.map((item) => {
-                                                const isActive = location.pathname.startsWith(item.href.split('?')[0]);
-                                                return (
-                                                    <button
-                                                        key={item.href}
-                                                        onClick={() => handleNavigation(item.href)}
-                                                        className={cn(
-                                                            "w-full text-left flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-all duration-200 rounded-lg",
-                                                            isActive
-                                                                ? `bg-gradient-to-r ${config.color} text-white shadow-md`
-                                                                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                                                        )}
-                                                    >
-                                                        <item.icon className={cn(
-                                                            "w-5 h-5",
-                                                            isActive ? "text-white" : "text-current"
-                                                        )} />
-                                                        <div className="flex-1 text-left">
-                                                            <div>{item.label}</div>
-                                                            {item.description && (
-                                                                <div className="text-xs opacity-70 mt-0.5">{item.description}</div>
-                                                            )}
-                                                        </div>
-                                                        {isActive && (
-                                                            <ChevronRight className="w-4 h-4" />
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
-                                        </nav>
-
-                                        <div className="p-4 border-t border-border">
-                                            <Button
-                                                variant="outline"
-                                                className="w-full"
-                                                onClick={handleLogout}
-                                            >
-                                                <LogOut className="w-4 h-4 mr-2" />
-                                                Log Out
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </SheetContent>
-                            </Sheet>
-                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="lg:hidden text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                            onClick={() => setMobileMenuOpen(true)}
+                        >
+                            <Menu className="w-5 h-5" />
+                        </Button>
 
                         <div className="flex items-center gap-3">
                             <div className={`w-9 h-9 bg-gradient-to-br ${config.color} flex items-center justify-center rounded-lg`}>
                                 <config.icon className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-lg font-semibold text-foreground">
+                                <h1 className="text-lg font-semibold text-gray-900">
                                     {getCurrentPageTitle()}
                                 </h1>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-gray-500">
                                     {config.label} Dashboard
                                 </p>
                             </div>
@@ -571,44 +496,10 @@ const DashboardLayout = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {/* Notifications */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative">
-                                    <Bell className="w-5 h-5" />
-                                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-80">
-                                <div className="p-4 border-b">
-                                    <h3 className="font-semibold">Notifications</h3>
-                                    <p className="text-sm text-muted-foreground">You have 3 new notifications</p>
-                                </div>
-                                <div className="max-h-[300px] overflow-y-auto">
-                                    {[1, 2, 3].map((i) => (
-                                        <DropdownMenuItem key={i} className="flex items-start gap-3 p-3 cursor-pointer">
-                                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                                <Bell className="w-4 h-4 text-primary" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-medium">New logbook submitted</p>
-                                                <p className="text-xs text-muted-foreground">2 hours ago</p>
-                                            </div>
-                                        </DropdownMenuItem>
-                                    ))}
-                                </div>
-                                <div className="p-2 border-t">
-                                    <Button variant="ghost" className="w-full justify-center" size="sm">
-                                        View all notifications
-                                    </Button>
-                                </div>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
                         {/* User Menu */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="flex items-center gap-3 pl-1 pr-3">
+                                <Button variant="ghost" className="flex items-center gap-3 pl-1 pr-3 text-gray-700 hover:text-gray-900 hover:bg-gray-100">
                                     <Avatar className="h-8 w-8">
                                         <AvatarFallback className={`bg-gradient-to-br ${config.color} text-white text-sm font-semibold`}>
                                             {getInitials(user?.fullName)}
@@ -616,17 +507,17 @@ const DashboardLayout = () => {
                                     </Avatar>
                                     <div className="hidden md:block text-left">
                                         <p className="text-sm font-medium">{user.fullName}</p>
-                                        <p className="text-xs text-muted-foreground capitalize">
+                                        <p className="text-xs text-gray-500 capitalize">
                                             {user.role?.replace(/([A-Z])/g, ' $1').trim()}
                                         </p>
                                     </div>
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                    <ChevronDown className="w-4 h-4 text-gray-500" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuContent align="end" className="w-56 border border-gray-200">
                                 <div className="p-4">
-                                    <p className="text-sm font-medium">{user.fullName}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                    <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
                                     <div className="mt-2">
                                         <Badge variant="secondary" className={`bg-gradient-to-r ${config.color} text-white`}>
                                             {config.label}
@@ -634,16 +525,12 @@ const DashboardLayout = () => {
                                     </div>
                                 </div>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleNavigation("/dashboard/profile")}>
+                                <DropdownMenuItem onClick={() => handleNavigation("/dashboard/profile")} className="text-gray-700 hover:text-gray-900 hover:bg-gray-100">
                                     <UserCircle className="w-4 h-4 mr-2" />
                                     My Profile
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleNavigation("/dashboard/settings")}>
-                                    <Settings className="w-4 h-4 mr-2" />
-                                    Settings
-                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                                <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                     <LogOut className="w-4 h-4 mr-2" />
                                     Log out
                                 </DropdownMenuItem>
@@ -652,18 +539,82 @@ const DashboardLayout = () => {
                     </div>
                 </header>
 
+                {/* Mobile Menu */}
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                    <SheetContent side="left" className="p-0 w-72">
+                        <div className="flex flex-col h-full">
+                            <div className="p-6 border-b border-gray-200">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-11 h-11 bg-gradient-to-br ${config.color} flex items-center justify-center`}>
+                                        <BookOpen className="w-6 h-6 text-white" />
+                                    </div>
+                                    <span className="text-xl font-bold text-gray-900">InternTrack</span>
+                                </div>
+                            </div>
+
+                            <div className="p-4 border-b border-gray-200">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-10 w-10 ring-2 ring-gray-200">
+                                        <AvatarFallback className={`bg-gradient-to-br ${config.color} text-white font-semibold`}>
+                                            {getInitials(user?.fullName)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900 truncate">{user.fullName}</p>
+                                        <p className="text-xs text-gray-500 truncate">{config.label}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                                {config.navItems.map((item) => {
+                                    const isActive = location.pathname.startsWith(item.href.split('?')[0]);
+                                    return (
+                                        <button
+                                            key={item.href}
+                                            onClick={() => handleNavigation(item.href)}
+                                            className={cn(
+                                                "w-full text-left flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-all duration-200 rounded-lg",
+                                                isActive
+                                                    ? `bg-gradient-to-r ${config.color} text-white shadow`
+                                                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                            )}
+                                        >
+                                            <item.icon className={cn(
+                                                "w-5 h-5",
+                                                isActive ? "text-white" : "text-current"
+                                            )} />
+                                            <div className="flex-1 text-left">
+                                                <div>{item.label}</div>
+                                                {item.description && (
+                                                    <div className="text-xs text-gray-400 mt-0.5">{item.description}</div>
+                                                )}
+                                            </div>
+                                            {isActive && (
+                                                <ChevronRight className="w-4 h-4 text-white" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </nav>
+
+                            <div className="p-4 border-t border-gray-200">
+                                <Button
+                                    variant="outline"
+                                    className="w-full border-gray-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    onClick={handleLogout}
+                                >
+                                    <LogOut className="w-4 h-4 mr-2" />
+                                    Log Out
+                                </Button>
+                            </div>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
                 {/* Main Content Area */}
                 <main className="flex-1">
                     <div className="p-4 lg:p-8">
-                        {/* Breadcrumb */}
-                        <div className="flex items-center text-sm text-muted-foreground mb-6">
-                            <Link to={config.dashboardPath} className="hover:text-foreground transition-colors">
-                                Dashboard
-                            </Link>
-                            <ChevronRight className="w-4 h-4 mx-2" />
-                            <span className="text-foreground font-medium">{getCurrentPageTitle()}</span>
-                        </div>
-
                         {/* Page Content */}
                         <div className="animate-in fade-in duration-300">
                             <Suspense fallback={<LoadingSpinner />}>
@@ -674,17 +625,10 @@ const DashboardLayout = () => {
                 </main>
 
                 {/* Footer */}
-                <footer className="border-t border-border py-4 px-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between text-sm text-muted-foreground">
-                        <div className="mb-2 md:mb-0">
-                            <p>© 2024 InternTrack. Baze University SIWES Management System.</p>
-                            <p className="text-xs mt-1">Version 2.0.0</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-                            <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-                            <Link to="/help" className="hover:text-foreground transition-colors">Help Center</Link>
-                        </div>
+                <footer className="border-t border-gray-200 py-4 px-6 bg-white">
+                    <div className="text-center text-sm text-gray-500">
+                        <p>© 2024 InternTrack. Baze University SIWES Management System.</p>
+                        <p className="text-xs mt-1 text-gray-400">Version 2.0.0</p>
                     </div>
                 </footer>
             </div>
@@ -730,16 +674,12 @@ function App() {
                                         }
                                     />
 
-                                    {/* Simple placeholder pages for student */}
+                                    {/* Student Logbook Routes */}
                                     <Route
                                         path="logbook"
                                         element={
                                             <ProtectedRoute requiredRole="student">
-                                                <div className="text-center py-12">
-                                                    <BookText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">My Logbook</h2>
-                                                    <p className="text-muted-foreground">Logbook management coming soon</p>
-                                                </div>
+                                                <WeeklyLogbook />
                                             </ProtectedRoute>
                                         }
                                     />
@@ -748,49 +688,64 @@ function App() {
                                         path="logbook/submit"
                                         element={
                                             <ProtectedRoute requiredRole="student">
-                                                <div className="text-center py-12">
-                                                    <FileEdit className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Submit Logbook Entry</h2>
-                                                    <p className="text-muted-foreground">Logbook submission form coming soon</p>
-                                                </div>
+                                                <SubmitLogbook />
                                             </ProtectedRoute>
                                         }
                                     />
 
                                     <Route
-                                        path="defense"
+                                        path="logbook/:id"
                                         element={
                                             <ProtectedRoute requiredRole="student">
-                                                <div className="text-center py-12">
-                                                    <CalendarDays className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">My Defense</h2>
-                                                    <p className="text-muted-foreground">Defense management coming soon</p>
-                                                </div>
+                                                <LogbookDetails />
                                             </ProtectedRoute>
                                         }
                                     />
 
+                                    {/* Logbook Review Routes */}
+                                    <Route
+                                        path="logbook-review"
+                                        element={
+                                            <ProtectedRoute requiredRole={["institutionSupervisor", "industrySupervisor"]}>
+                                                <LogbookReview />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+
+                                    <Route
+                                        path="logbook/:id/review"
+                                        element={
+                                            <ProtectedRoute requiredRole={["institutionSupervisor", "industrySupervisor"]}>
+                                                <LogbookReview />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+
+                                    {/* Student Profile */}
                                     <Route
                                         path="profile"
                                         element={
-                                            <ProtectedRoute requiredRole="student">
+                                            <ProtectedRoute>
                                                 <div className="text-center py-12">
-                                                    <UserCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">My Profile</h2>
-                                                    <p className="text-muted-foreground">Profile management coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="letters"
-                                        element={
-                                            <ProtectedRoute requiredRole="student">
-                                                <div className="text-center py-12">
-                                                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Letters</h2>
-                                                    <p className="text-muted-foreground">Letter management coming soon</p>
+                                                    <UserCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                                                    <h2 className="text-2xl font-bold mb-2 text-gray-900">My Profile</h2>
+                                                    <p className="text-gray-600 mb-4">Profile management coming soon</p>
+                                                    <div className="max-w-md mx-auto text-left bg-white p-6 rounded-lg border border-gray-200">
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <p className="text-sm text-gray-500">Name</p>
+                                                                <p className="font-medium">Loading...</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm text-gray-500">Email</p>
+                                                                <p className="font-medium">Loading...</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm text-gray-500">Role</p>
+                                                                <p className="font-medium">Loading...</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </ProtectedRoute>
                                         }
@@ -806,41 +761,20 @@ function App() {
                                         }
                                     />
 
-                                    {/* Simple placeholder for supervisor pages */}
+                                    {/* Supervisor Students */}
                                     <Route
                                         path="students"
                                         element={
                                             <ProtectedRoute requiredRole={["institutionSupervisor", "industrySupervisor", "hod", "siwesCoordinator"]}>
-                                                <div className="text-center py-12">
-                                                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Student Management</h2>
-                                                    <p className="text-muted-foreground">Student management interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="logbook-review"
-                                        element={
-                                            <ProtectedRoute requiredRole={["institutionSupervisor", "industrySupervisor"]}>
-                                                <div className="text-center py-12">
-                                                    <ClipboardCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Logbook Review</h2>
-                                                    <p className="text-muted-foreground">Logbook review interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="performance"
-                                        element={
-                                            <ProtectedRoute requiredRole="institutionSupervisor">
-                                                <div className="text-center py-12">
-                                                    <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Performance</h2>
-                                                    <p className="text-muted-foreground">Performance analytics coming soon</p>
+                                                <div className="p-6">
+                                                    <h2 className="text-2xl font-bold mb-4">Student Management</h2>
+                                                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                                                        <div className="text-center py-8">
+                                                            <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                                                            <h3 className="text-lg font-medium mb-2">Student List</h3>
+                                                            <p className="text-gray-600">Student management interface coming soon</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </ProtectedRoute>
                                         }
@@ -856,19 +790,6 @@ function App() {
                                         }
                                     />
 
-                                    <Route
-                                        path="evaluation"
-                                        element={
-                                            <ProtectedRoute requiredRole="industrySupervisor">
-                                                <div className="text-center py-12">
-                                                    <FileCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Student Evaluation</h2>
-                                                    <p className="text-muted-foreground">Student evaluation form coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
                                     {/* HOD Dashboard */}
                                     <Route
                                         path="hod-dashboard"
@@ -879,72 +800,20 @@ function App() {
                                         }
                                     />
 
+                                    {/* HOD Assign Students */}
                                     <Route
-                                        path="hod/students/:id"
+                                        path="assign-students"
                                         element={
                                             <ProtectedRoute requiredRole="hod">
-                                                <HODStudentDetails />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="hod/assign-students"
-                                        element={
-                                            <ProtectedRoute requiredRole="hod">
-                                                <HODAssignStudent />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    {/* Simple placeholder for HOD pages */}
-                                    <Route
-                                        path="supervisors"
-                                        element={
-                                            <ProtectedRoute requiredRole="hod">
-                                                <div className="text-center py-12">
-                                                    <UserCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Supervisor Management</h2>
-                                                    <p className="text-muted-foreground">Supervisor management interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="defenses"
-                                        element={
-                                            <ProtectedRoute requiredRole="hod">
-                                                <div className="text-center py-12">
-                                                    <CalendarDays className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Department Defenses</h2>
-                                                    <p className="text-muted-foreground">Defense management interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="logbooks"
-                                        element={
-                                            <ProtectedRoute requiredRole="hod">
-                                                <div className="text-center py-12">
-                                                    <BookMarked className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Department Logbooks</h2>
-                                                    <p className="text-muted-foreground">Logbook management interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="reports"
-                                        element={
-                                            <ProtectedRoute requiredRole="hod">
-                                                <div className="text-center py-12">
-                                                    <FileBarChart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Department Reports</h2>
-                                                    <p className="text-muted-foreground">Reporting interface coming soon</p>
+                                                <div className="p-6">
+                                                    <h2 className="text-2xl font-bold mb-4">Assign Students to Supervisors</h2>
+                                                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                                                        <div className="text-center py-8">
+                                                            <UserPlus className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                                                            <h3 className="text-lg font-medium mb-2">Student Assignment</h3>
+                                                            <p className="text-gray-600">Student assignment interface coming soon</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </ProtectedRoute>
                                         }
@@ -960,68 +829,20 @@ function App() {
                                         }
                                     />
 
-                                    {/* Simple placeholder for coordinator pages */}
+                                    {/* Coordinator Verification Codes */}
                                     <Route
                                         path="verification-codes"
                                         element={
                                             <ProtectedRoute requiredRole="siwesCoordinator">
-                                                <div className="text-center py-12">
-                                                    <Key className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Verification Codes</h2>
-                                                    <p className="text-muted-foreground">Verification code management interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="assignments"
-                                        element={
-                                            <ProtectedRoute requiredRole={["hod", "siwesCoordinator"]}>
-                                                <div className="text-center py-12">
-                                                    <ClipboardList className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Assignments</h2>
-                                                    <p className="text-muted-foreground">Assignment management interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="defense-management"
-                                        element={
-                                            <ProtectedRoute requiredRole="siwesCoordinator">
-                                                <div className="text-center py-12">
-                                                    <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Defense Management</h2>
-                                                    <p className="text-muted-foreground">Defense management interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    <Route
-                                        path="settings"
-                                        element={
-                                            <ProtectedRoute requiredRole="siwesCoordinator">
-                                                <div className="text-center py-12">
-                                                    <Settings className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">System Settings</h2>
-                                                    <p className="text-muted-foreground">System settings interface coming soon</p>
-                                                </div>
-                                            </ProtectedRoute>
-                                        }
-                                    />
-
-                                    {/* Common routes for all */}
-                                    <Route
-                                        path="help"
-                                        element={
-                                            <ProtectedRoute requiredRole={["student", "institutionSupervisor", "industrySupervisor", "hod", "siwesCoordinator"]}>
-                                                <div className="text-center py-12">
-                                                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                                    <h2 className="text-2xl font-bold mb-2">Help & Support</h2>
-                                                    <p className="text-muted-foreground">Help center coming soon</p>
+                                                <div className="p-6">
+                                                    <h2 className="text-2xl font-bold mb-4">Verification Codes</h2>
+                                                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                                                        <div className="text-center py-8">
+                                                            <Key className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                                                            <h3 className="text-lg font-medium mb-2">Verification Code Management</h3>
+                                                            <p className="text-gray-600">Verification code interface coming soon</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </ProtectedRoute>
                                         }

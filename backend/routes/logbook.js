@@ -4,13 +4,14 @@ import {
   getMyLogbooks,
   getLogbookById,
   updateLogbook,
-  deleteLogbook,
   getSupervisorLogbooks,
   reviewLogbook,
   getAllLogbooks,
   getStudentLogbook,
   getLogbookStats,
-} from "../controllers/logbookController.js";
+  deleteLogbookImage,
+  deleteLogbook  // Make sure this is included
+} from "../controllers/logbookcontroller.js";
 import protect from "../middleware/authMiddleware.js";
 import {
   requireStudent,
@@ -28,6 +29,7 @@ router.get("/stats", protect, requireStudent, getLogbookStats);
 router.get("/:id", protect, requireStudent, getLogbookById);
 router.put("/:id", protect, requireStudent, updateLogbook);
 router.delete("/:id", protect, requireStudent, deleteLogbook);
+router.delete("/:id/image", protect, requireStudent, deleteLogbookImage);
 
 // Supervisor routes
 router.get("/supervisor/assigned", protect, requireSupervisor, getSupervisorLogbooks);

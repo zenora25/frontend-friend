@@ -137,11 +137,11 @@ const WeeklyLogbook = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "approved":
-        return <CheckCircle2 className="w-4 h-4" />;
+        return <CheckCircle2 className="w-4 h-4 text-green-600" />;
       case "pending":
-        return <Clock className="w-4 h-4" />;
+        return <Clock className="w-4 h-4 text-gray-600" />;
       case "revision":
-        return <XCircle className="w-4 h-4" />;
+        return <XCircle className="w-4 h-4 text-red-600" />;
       default:
         return null;
     }
@@ -150,13 +150,13 @@ const WeeklyLogbook = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "approved":
-        return "bg-chart-5/20 text-chart-5";
+        return "bg-green-100 text-green-800 border-green-200";
       case "pending":
-        return "bg-chart-1/20 text-chart-1";
+        return "bg-gray-100 text-gray-800 border-gray-200";
       case "revision":
-        return "bg-destructive/20 text-destructive";
+        return "bg-red-100 text-red-800 border-red-200";
       default:
-        return "bg-muted text-muted-foreground";
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
@@ -178,7 +178,7 @@ const WeeklyLogbook = () => {
   if (isLoading) {
     return (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
         </div>
     );
   }
@@ -188,13 +188,13 @@ const WeeklyLogbook = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">My Logbook</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-bold text-gray-900">My Logbook</h1>
+            <p className="text-gray-600">
               Track and manage your weekly SIWES logbook entries.
             </p>
           </div>
-          <Button asChild>
-            <Link to="/logbook/new">
+          <Button asChild className="bg-gradient-to-r from-gray-800 to-gray-900 text-white hover:opacity-90">
+            <Link to="/dashboard/logbook/submit">
               <Plus className="w-4 h-4 mr-2" />
               New Entry
             </Link>
@@ -203,54 +203,54 @@ const WeeklyLogbook = () => {
 
         {/* Summary cards */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+          <Card className="border border-gray-200 bg-white">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 flex items-center justify-center">
-                  <BookText className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <BookText className="w-5 h-5 text-gray-700" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.totalEntries}</p>
-                  <p className="text-xs text-muted-foreground">Total Entries</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalEntries}</p>
+                  <p className="text-xs text-gray-600">Total Entries</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border border-gray-200 bg-white">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-chart-5/20 flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5 text-chart-5" />
+                <div className="w-10 h-10 bg-green-100 border border-green-200 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.approved}</p>
-                  <p className="text-xs text-muted-foreground">Approved</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+                  <p className="text-xs text-gray-600">Approved</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border border-gray-200 bg-white">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-chart-1/20 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-chart-1" />
+                <div className="w-10 h-10 bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-gray-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.pending}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                  <p className="text-xs text-gray-600">Pending</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border border-gray-200 bg-white">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-destructive/10 flex items-center justify-center">
-                  <XCircle className="w-5 h-5 text-destructive" />
+                <div className="w-10 h-10 bg-red-100 border border-red-200 flex items-center justify-center">
+                  <XCircle className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.revision}</p>
-                  <p className="text-xs text-muted-foreground">Needs Revision</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.revision}</p>
+                  <p className="text-xs text-gray-600">Needs Revision</p>
                 </div>
               </div>
             </CardContent>
@@ -260,17 +260,17 @@ const WeeklyLogbook = () => {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
                 placeholder="Search entries..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 border-gray-300 focus:border-gray-400"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <Filter className="w-4 h-4 mr-2" />
+            <SelectTrigger className="w-full sm:w-48 border-gray-300 focus:border-gray-400">
+              <Filter className="w-4 h-4 mr-2 text-gray-400" />
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -285,12 +285,12 @@ const WeeklyLogbook = () => {
         {/* Logbook entries */}
         <div className="space-y-4">
           {filteredLogbooks.map((logbook) => (
-              <Card key={logbook.id} className="hover:shadow-md transition-shadow">
+              <Card key={logbook.id} className="border border-gray-200 hover:shadow transition-shadow bg-white">
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-4">
                     {/* Week indicator */}
                     <div className="flex-shrink-0">
-                      <div className="w-16 h-16 bg-primary flex flex-col items-center justify-center text-primary-foreground">
+                      <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 flex flex-col items-center justify-center text-white">
                         <span className="text-xs uppercase">Week</span>
                         <span className="text-2xl font-bold">{logbook.week}</span>
                       </div>
@@ -299,16 +299,16 @@ const WeeklyLogbook = () => {
                     {/* Content */}
                     <div className="flex-1 min-w-0 space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <h3 className="text-lg font-semibold text-foreground">{logbook.title}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{logbook.title}</h3>
                         <Badge variant="secondary" className={getStatusColor(logbook.status)}>
                           {getStatusIcon(logbook.status)}
                           <span className="ml-1 capitalize">{logbook.status}</span>
                         </Badge>
                       </div>
 
-                      <p className="text-sm text-muted-foreground line-clamp-2">{logbook.summary}</p>
+                      <p className="text-sm text-gray-600 line-clamp-2">{logbook.summary}</p>
 
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {logbook.startDate} - {logbook.endDate}
@@ -317,19 +317,19 @@ const WeeklyLogbook = () => {
                       </div>
 
                       {logbook.supervisorComment && (
-                          <div className="flex items-start gap-2 p-3 bg-accent">
-                            <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                          <div className="flex items-start gap-2 p-3 bg-gray-50 border border-gray-200">
+                            <MessageSquare className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-xs font-medium text-foreground">Supervisor Comment</p>
-                              <p className="text-sm text-muted-foreground">{logbook.supervisorComment}</p>
+                              <p className="text-xs font-medium text-gray-900">Supervisor Comment</p>
+                              <p className="text-sm text-gray-600">{logbook.supervisorComment}</p>
                             </div>
                           </div>
                       )}
                     </div>
 
                     {/* Action */}
-                    <Button variant="ghost" size="icon" className="flex-shrink-0" asChild>
-                      <Link to={`/logbook/${logbook.id}`}>
+                    <Button variant="ghost" size="icon" className="flex-shrink-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100" asChild>
+                      <Link to={`/dashboard/logbook/${logbook.id}`}>
                         <ChevronRight className="w-5 h-5" />
                       </Link>
                     </Button>
@@ -341,9 +341,9 @@ const WeeklyLogbook = () => {
 
         {filteredLogbooks.length === 0 && (
             <div className="text-center py-12">
-              <BookText className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-medium text-foreground">No entries found</h3>
-              <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
+              <BookText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-medium text-gray-900">No entries found</h3>
+              <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
             </div>
         )}
       </div>

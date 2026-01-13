@@ -1,10 +1,15 @@
 import HOD from "../models/hod.js";
 import Student from "../models/student.js";
 import InstitutionSupervisor from "../models/institutionSupervisor.js";
-import Logbook from "../models/logbook.js";
+import Logbook from "../models/Logbook.js";
 import Defense from "../models/Defense.js";
 import Assignment from "../models/Assignment.js";
+import IndustrySupervisor from "../models/industrySupervisor.js"; // Add this
 import { Op } from "sequelize";
+
+// Add this at the top after imports
+import sequelize from "../config/db.js";
+const { Sequelize } = sequelize;
 
 // Create HOD (Admin/Coordinator)
 export const createHod = async (req, res) => {

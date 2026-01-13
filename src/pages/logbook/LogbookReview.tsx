@@ -58,7 +58,7 @@ const LogbookReview = () => {
                 title: "Review submitted",
                 description: "Logbook has been reviewed successfully",
             });
-            navigate("/supervisor-dashboard");
+            navigate("/dashboard/supervisor-dashboard");
         } catch (error: any) {
             toast({
                 title: "Submission failed",
@@ -71,69 +71,76 @@ const LogbookReview = () => {
     };
 
     if (!logbook) {
-        return <div>Loading...</div>;
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading logbook...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold">Review Logbook</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-2xl font-bold text-gray-900">Review Logbook</h1>
+                    <p className="text-gray-600">
                         Week {logbook.weekNumber} by {logbook.Student?.fullName}
                     </p>
                 </div>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>{logbook.title}</CardTitle>
+                <Card className="lg:col-span-2 border border-gray-200 bg-white">
+                    <CardHeader className="bg-gray-50 border-b border-gray-200">
+                        <CardTitle className="text-gray-900">{logbook.title}</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 pt-6">
                         <div>
-                            <h3 className="font-semibold mb-2">Weekly Summary</h3>
-                            <p className="whitespace-pre-line">{logbook.weekSummary}</p>
+                            <h3 className="font-semibold mb-2 text-gray-900">Weekly Summary</h3>
+                            <p className="whitespace-pre-line text-gray-700">{logbook.weekSummary}</p>
                         </div>
 
                         {logbook.challengesFaced && (
                             <div>
-                                <h3 className="font-semibold mb-2">Challenges Faced</h3>
-                                <p className="whitespace-pre-line">{logbook.challengesFaced}</p>
+                                <h3 className="font-semibold mb-2 text-gray-900">Challenges Faced</h3>
+                                <p className="whitespace-pre-line text-gray-700">{logbook.challengesFaced}</p>
                             </div>
                         )}
 
                         {logbook.lessonsLearned && (
                             <div>
-                                <h3 className="font-semibold mb-2">Lessons Learned</h3>
-                                <p className="whitespace-pre-line">{logbook.lessonsLearned}</p>
+                                <h3 className="font-semibold mb-2 text-gray-900">Lessons Learned</h3>
+                                <p className="whitespace-pre-line text-gray-700">{logbook.lessonsLearned}</p>
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Review & Feedback</CardTitle>
+                <Card className="border border-gray-200 bg-white">
+                    <CardHeader className="bg-gray-50 border-b border-gray-200">
+                        <CardTitle className="text-gray-900">Review & Feedback</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 pt-6">
                         <div className="space-y-3">
-                            <Label>Decision</Label>
+                            <Label className="text-gray-900">Decision</Label>
                             <RadioGroup value={review.status} onValueChange={(value: "APPROVED" | "REVISION") => setReview({...review, status: value})}>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="APPROVED" id="approved" />
-                                    <Label htmlFor="approved" className="flex items-center gap-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
+                                    <Label htmlFor="approved" className="flex items-center gap-2 text-gray-700">
+                                        <CheckCircle className="w-4 h-4 text-green-600" />
                                         Approve
                                     </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="REVISION" id="revision" />
-                                    <Label htmlFor="revision" className="flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 text-amber-500" />
+                                    <Label htmlFor="revision" className="flex items-center gap-2 text-gray-700">
+                                        <AlertCircle className="w-4 h-4 text-amber-600" />
                                         Needs Revision
                                     </Label>
                                 </div>
@@ -141,8 +148,8 @@ const LogbookReview = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <Label htmlFor="comment" className="flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4" />
+                            <Label htmlFor="comment" className="flex items-center gap-2 text-gray-900">
+                                <MessageSquare className="w-4 h-4 text-gray-600" />
                                 Feedback
                             </Label>
                             <Textarea
@@ -151,11 +158,12 @@ const LogbookReview = () => {
                                 value={review.comment}
                                 onChange={(e) => setReview({...review, comment: e.target.value})}
                                 rows={6}
+                                className="border-gray-300 focus:border-gray-400"
                             />
                         </div>
 
                         <Button
-                            className="w-full"
+                            className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white hover:opacity-90"
                             onClick={handleSubmit}
                             disabled={isSubmitting}
                         >

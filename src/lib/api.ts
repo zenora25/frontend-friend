@@ -1,4 +1,3 @@
-// api.ts - InternTrack API Client
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -12,30 +11,30 @@ const api = axios.create({
 
 // Request interceptor to add token
 api.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response?.status === 401) {
-        // Token expired or invalid
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
-      return Promise.reject(error);
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
+    return Promise.reject(error);
+  }
 );
 
 // Helper function to map frontend role to backend role
@@ -67,7 +66,7 @@ export const authAPI = {
   }) => api.post('/auth/student/signup', data),
 
   studentLogin: (data: { email: string; password: string }) =>
-      api.post('/auth/student/login', data),
+    api.post('/auth/student/login', data),
 
   roleLogin: (data: { email: string; password: string; role: string }) => {
     const backendRole = mapRoleToBackend(data.role);
@@ -97,6 +96,59 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
 
   checkAuth: () => api.get('/auth/check'),
+};
+
+// =========================
+// INSTITUTION SUPERVISOR API (COMPREHENSIVE)
+// =========================
+export const institutionSupervisorAPI = {
+  // Dashboard
+  getDashboard: () => api.get('/institution-supervisors/dashboard/overview'),
+
+  // Students
+  getAssignedStudents: (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }) => api.get('/institution-supervisors/dashboard/students', { params }),
+
+  // Statistics
+  getStats: () => api.get('/institution-supervisors/dashboard/stats'),
+
+  // Pending Logbooks
+  getPendingLogbooks: (params?: {
+    page?: number;
+    limit?: number;
+  }) => api.get('/institution-supervisors/dashboard/pending-logbooks', { params }),
+
+  // Profile Management
+  updateProfile: (data: {
+    fullName?: string;
+    department?: string;
+    phone?: string;
+    profileImage?: string;
+  }) => api.put('/institution-supervisors/profile/update', data),
+
+  changePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+  }) => api.put('/institution-supervisors/profile/change-password', data),
+
+  // Logbook Review
+  reviewLogbook: (logbookId: string, data: {
+    status: 'APPROVED' | 'REVISION';
+    comment?: string;
+  }) => api.put(`/logbook/review/${logbookId}`, data),
+
+  // Student Details
+  getStudentDetails: (studentId: string) => api.get(`/students/${studentId}`),
+
+  // Logbook Management
+  getStudentLogbooks: (studentId: string) => api.get(`/logbook/student/${studentId}`),
+
+  // Analytics
+  getPerformanceAnalytics: () => api.get('/dashboard/supervisor'),
 };
 
 // =========================
@@ -152,7 +204,7 @@ export const hodAPI = {
   getStudentDetails: (studentId: string) => api.get(`/students/${studentId}`),
 
   updateStudentProgress: (studentId: string, progress: number) =>
-      api.put(`/students/${studentId}/progress`, { progress }),
+    api.put(`/students/${studentId}/progress`, { progress }),
 
   // Supervisor Management
   getDepartmentSupervisors: () => api.get('/institution-supervisors?department=specific'),
@@ -162,7 +214,7 @@ export const hodAPI = {
 
   // Reports
   generateDepartmentReport: (department: string) =>
-      api.get(`/reports/department/${department}`),
+    api.get(`/reports/department/${department}`),
 };
 
 // =========================
@@ -242,43 +294,13 @@ export const studentAPI = {
   getDashboardStats: () => api.get('/dashboard/student'),
 
   updateProgress: (id: string, progress: number) =>
-      api.put(`/students/${id}/progress`, { progress }),
+    api.put(`/students/${id}/progress`, { progress }),
 
   getStudentLogbooks: (studentId: string) =>
-      api.get(`/logbook/student/${studentId}`),
+    api.get(`/logbook/student/${studentId}`),
 
   getStudentDefense: (studentId: string) =>
-      api.get(`/defense/student/${studentId}`),
-};
-
-// =========================
-// INSTITUTION SUPERVISOR API
-// =========================
-export const institutionSupervisorAPI = {
-  getAll: (params?: {
-    page?: number;
-    limit?: number;
-    department?: string;
-    search?: string;
-  }) => api.get('/institution-supervisors', { params }),
-
-  getById: (id: string) => api.get(`/institution-supervisors/${id}`),
-
-  update: (id: string, data: {
-    fullName?: string;
-    department?: string;
-    phone?: string;
-    profileImage?: string;
-  }) => api.put(`/institution-supervisors/${id}`, data),
-
-  getAssignedStudents: () => api.get('/assignments/my-students'),
-
-  getDashboardStats: () => api.get('/dashboard/supervisor'),
-
-  getSupervisorStats: () => api.get('/logbook/supervisor/stats'),
-
-  getSupervisorPerformance: (supervisorId: string) =>
-      api.get(`/institution-supervisors/${supervisorId}/performance`),
+    api.get(`/defense/student/${studentId}`),
 };
 
 // =========================
@@ -286,7 +308,7 @@ export const institutionSupervisorAPI = {
 // =========================
 export const verificationAPI = {
   generateCode: (data: { email: string; department: string }) =>
-      api.post('/verification/generate', data),
+    api.post('/verification/generate', data),
 
   getCodes: (params?: {
     page?: number;
@@ -297,7 +319,7 @@ export const verificationAPI = {
   }) => api.get('/verification', { params }),
 
   getUnusedCodes: (department: string) =>
-      api.get(`/verification/unused/${department}`),
+    api.get(`/verification/unused/${department}`),
 
   deleteCode: (id: string) => api.delete(`/verification/${id}`),
 
@@ -310,7 +332,7 @@ export const verificationAPI = {
   },
 
   bulkGenerateCodes: (data: { emails: string[]; department: string }) =>
-      api.post('/verification/bulk-generate', data),
+    api.post('/verification/bulk-generate', data),
 };
 
 // =========================
@@ -379,7 +401,7 @@ export const logbookAPI = {
   getLogbookStats: () => api.get('/logbook/stats'),
 
   getSupervisorLogbooks: (params?: { status?: string }) =>
-      api.get('/logbook/supervisor/assigned', { params }),
+    api.get('/logbook/supervisor/assigned', { params }),
 
   reviewLogbook: (logbookId: string, data: {
     status: 'APPROVED' | 'REVISION';
@@ -398,7 +420,7 @@ export const logbookAPI = {
   }) => api.get('/logbook', { params }),
 
   getStudentLogbook: (studentId: string) =>
-      api.get(`/logbook/student/${studentId}`),
+    api.get(`/logbook/student/${studentId}`),
 
   getDepartmentLogbooks: (params?: {
     page?: number;
@@ -419,10 +441,10 @@ export const reportAPI = {
   generateSupervisorReport: (supervisorId: string) => api.get(`/reports/supervisor/${supervisorId}`),
 
   generateDefenseReport: (params?: { startDate?: string; endDate?: string; department?: string }) =>
-      api.get('/reports/defense', { params }),
+    api.get('/reports/defense', { params }),
 
   generateLogbookReport: (params?: { startDate?: string; endDate?: string; department?: string }) =>
-      api.get('/reports/logbook', { params }),
+    api.get('/reports/logbook', { params }),
 };
 
 // =========================
@@ -430,7 +452,7 @@ export const reportAPI = {
 // =========================
 export const notificationAPI = {
   getNotifications: (params?: { page?: number; limit?: number; unreadOnly?: boolean }) =>
-      api.get('/notifications', { params }),
+    api.get('/notifications', { params }),
 
   markAsRead: (notificationId: string) => api.put(`/notifications/${notificationId}/read`),
 

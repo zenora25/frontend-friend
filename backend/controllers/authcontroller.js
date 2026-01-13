@@ -1,32 +1,22 @@
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
+import Student from '../models/student.js';
+import InstitutionSupervisor from '../models/institutionSupervisor.js';
+import IndustrySupervisor from '../models/industrySupervisor.js';
+import HOD from '../models/hod.js';
+import SIWESCoordinator from '../models/siwesCoordinator.js';
+import VerificationCode from '../models/VerificationCode.js';
 
-import Student from "../models/student.js";
-import InstitutionSupervisor from "../models/institutionSupervisor.js";
-import IndustrySupervisor from "../models/industrySupervisor.js";
-import HOD from "../models/hod.js";
-import SIWESCoordinator from "../models/siwesCoordinator.js";
-import VerificationCode from "../models/VerificationCode.js";
-
-// -----------------------------------
-// 🔐 Generate JWT Token
-// -----------------------------------
-const generateToken = (user, role) => {
+// Generate JWT token
+const generateToken = (id, role, email, fullName, department) => {
   return jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+    { id, role, email, fullName, department },
+    process.env.JWT_SECRET,
+    { expiresIn: '30d' }
   );
 };
 
-// -----------------------------------
-// 🧑‍🎓 Student Signup
-// -----------------------------------
-const studentSignup = async (req, res) => {
+// Student registration with verification code
+export const studentSignup = async (req, res) => {
   try {
     const {
       fullName,
@@ -39,489 +29,428 @@ const studentSignup = async (req, res) => {
       companyAddress
     } = req.body;
 
+    // Validate required fields
     if (!fullName || !email || !verificationCode || !password || !matricNumber || !department || !companyName || !companyAddress) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
-
-    // Find and validate verification code
-    const codeRecord = await VerificationCode.findOne({
-      where: {
-        email,
-        code: verificationCode.toUpperCase(),
-        isUsed: false
-      },
-    });
-
-    if (!codeRecord) {
-      return res.status(400).json({ error: "Invalid or expired verification code" });
-    }
-
-    // Check if code has expired
-    const now = new Date();
-    if (now > new Date(codeRecord.expiresAt)) {
-      await VerificationCode.destroy({ where: { id: codeRecord.id } });
-      return res.status(400).json({ error: "Verification code has expired" });
+      return res.status(400).json({
+        error: 'All fields are required'
+      });
     }
 
     // Check if student already exists
     const existingStudent = await Student.findOne({ where: { email } });
     if (existingStudent) {
-      return res.status(400).json({ error: "Student already registered" });
+      return res.status(400).json({
+        error: 'Student with this email already exists'
+      });
     }
 
+    // Check if matric number already exists
     const existingMatric = await Student.findOne({ where: { matricNumber } });
     if (existingMatric) {
-      return res.status(400).json({ error: "Matric number already registered" });
+      return res.status(400).json({
+        error: 'Student with this matric number already exists'
+      });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Verify the verification code
+    const codeRecord = await VerificationCode.findOne({
+      where: {
+        code: verificationCode.toUpperCase(),
+        email: email.toLowerCase()
+      }
+    });
+
+    if (!codeRecord) {
+      return res.status(400).json({
+        error: 'Invalid verification code or email'
+      });
+    }
+
+    if (codeRecord.isUsed) {
+      return res.status(400).json({
+        error: 'Verification code has already been used'
+      });
+    }
+
+    if (codeRecord.expiresAt < new Date()) {
+      return res.status(400).json({
+        error: 'Verification code has expired'
+      });
+    }
+
+    if (codeRecord.department !== department) {
+      return res.status(400).json({
+        error: 'Verification code is not valid for this department'
+      });
+    }
 
     // Create student
     const student = await Student.create({
       fullName,
-      email,
+      email: email.toLowerCase(),
+      password,
       matricNumber,
       department,
       companyName,
       companyAddress,
-      password: hashedPassword,
       isVerified: true,
-      verificationCodeUsed: true,
+      verificationCodeUsed: true
     });
 
     // Mark verification code as used
-    await VerificationCode.update(
-        { isUsed: true },
-        { where: { id: codeRecord.id } }
-    );
+    codeRecord.isUsed = true;
+    await codeRecord.save();
 
     // Generate token
-    const token = generateToken(student, "student");
+    const token = generateToken(
+      student.id,
+      'student',
+      student.email,
+      student.fullName,
+      student.department
+    );
+
+    // Remove password from response
+    const studentResponse = student.toJSON();
+    delete studentResponse.password;
 
     res.status(201).json({
-      message: "Student registered successfully",
+      message: 'Student registered successfully',
       token,
-      user: {
-        id: student.id,
-        fullName: student.fullName,
-        email: student.email,
-        matricNumber: student.matricNumber,
-        department: student.department,
-        companyName: student.companyName,
-        companyAddress: student.companyAddress,
-        role: "student",
-      },
+      user: studentResponse
     });
-
   } catch (err) {
-    console.error("Student signup error:", err);
-    res.status(500).json({ error: "Student signup failed", details: err.message });
+    console.error('Student signup error:', err);
+    res.status(500).json({
+      error: 'Failed to register student',
+      details: err.message
+    });
   }
 };
 
-// -----------------------------------
-// 🔐 Login for supervisors, HOD, SIWES, etc.
-// -----------------------------------
-const roleLogin = async (req, res) => {
-  try {
-    const { email, password, role } = req.body;
-
-    if (!email || !password || !role) {
-      return res.status(400).json({ error: "Email, password & role required" });
-    }
-
-    let UserModel;
-
-    switch (role) {
-      case "institutionSupervisor":
-        UserModel = InstitutionSupervisor;
-        break;
-      case "industrySupervisor":
-        UserModel = IndustrySupervisor;
-        break;
-      case "hod":
-        UserModel = HOD;
-        break;
-      case "siwesCoordinator":
-        UserModel = SIWESCoordinator;
-        break;
-      case "student":
-        // Redirect to student login endpoint
-        return res.status(400).json({
-          error: "Please use /api/auth/student/login for student login"
-        });
-      default:
-        return res.status(400).json({ error: "Invalid role" });
-    }
-
-    const user = await UserModel.findOne({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ error: "User not found" });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: "Incorrect password" });
-    }
-
-    const token = generateToken(user, role);
-
-    res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        role,
-        department: user.department,
-      },
-    });
-
-  } catch (err) {
-    console.error("Role login error:", err);
-    res.status(500).json({ error: "Login failed", details: err.message });
-  }
-};
-
-// -----------------------------------
-// 🧑‍🎓 Student Login (Separate Endpoint)
-// -----------------------------------
-const studentLogin = async (req, res) => {
+// Student login
+export const studentLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
+      return res.status(400).json({
+        error: 'Email and password are required'
+      });
     }
 
-    const student = await Student.findOne({ where: { email } });
+    // Find student
+    const student = await Student.findOne({
+      where: { email: email.toLowerCase() }
+    });
+
     if (!student) {
-      return res.status(400).json({ error: "Student not found" });
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
     }
 
+    // Check if student is verified
     if (!student.isVerified) {
-      return res.status(403).json({ error: "Account not verified. Please complete verification." });
+      return res.status(401).json({
+        error: 'Account not verified. Please contact your coordinator'
+      });
     }
 
-    const validPassword = await bcrypt.compare(password, student.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: "Incorrect password" });
+    // Check password
+    const isPasswordValid = await student.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
     }
 
-    const token = generateToken(student, "student");
+    // Generate token
+    const token = generateToken(
+      student.id,
+      'student',
+      student.email,
+      student.fullName,
+      student.department
+    );
+
+    // Remove password from response
+    const studentResponse = student.toJSON();
+    delete studentResponse.password;
 
     res.json({
-      message: "Login successful",
+      message: 'Login successful',
       token,
-      user: {
-        id: student.id,
-        fullName: student.fullName,
-        email: student.email,
-        matricNumber: student.matricNumber,
-        department: student.department,
-        companyName: student.companyName,
-        companyAddress: student.companyAddress,
-        role: "student",
-      },
+      user: studentResponse
     });
-
   } catch (err) {
-    console.error("Student login error:", err);
-    res.status(500).json({ error: "Student login failed", details: err.message });
+    console.error('Student login error:', err);
+    res.status(500).json({
+      error: 'Failed to login',
+      details: err.message
+    });
   }
 };
 
-// -----------------------------------
-// 📩 Verify Student Email (Code Check)
-// -----------------------------------
-const verifyStudentEmail = async (req, res) => {
+// Role-based login (for staff)
+export const roleLogin = async (req, res) => {
   try {
-    const { email, code } = req.body;
+    const { email, password, role } = req.body;
 
-    if (!email || !code) {
-      return res.status(400).json({ error: "Email and code required" });
+    if (!email || !password || !role) {
+      return res.status(400).json({
+        error: 'Email, password, and role are required'
+      });
     }
 
-    const record = await VerificationCode.findOne({
-      where: {
-        email,
-        code: code.toUpperCase(),
-        isUsed: false
-      }
-    });
+    let user;
+    let userRole;
 
-    if (!record) {
-      return res.status(400).json({ error: "Invalid verification code" });
-    }
-
-    // Check if code has expired
-    const now = new Date();
-    if (now > new Date(record.expiresAt)) {
-      await VerificationCode.destroy({ where: { id: record.id } });
-      return res.status(400).json({ error: "Verification code has expired" });
-    }
-
-    // Check if student already registered
-    const existingStudent = await Student.findOne({ where: { email } });
-    if (existingStudent) {
-      return res.status(400).json({ error: "Student already registered" });
-    }
-
-    res.json({
-      message: "Verification successful",
-      email,
-      code: record.code,
-    });
-
-  } catch (err) {
-    console.error("Email verification error:", err);
-    res.status(500).json({ error: "Verification failed", details: err.message });
-  }
-};
-
-// -----------------------------------
-// 🔎 Verify Token
-// -----------------------------------
-const verifyToken = async (req, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: "No user data found" });
-    }
-
-    const { id, role } = req.user;
-
-    let userData;
-
+    // Find user based on role
     switch (role) {
-      case "student":
-        userData = await Student.findByPk(id, {
-          attributes: { exclude: ["password"] }
+      case 'institutionSupervisor':
+        user = await InstitutionSupervisor.findOne({
+          where: { email: email.toLowerCase() }
         });
+        userRole = 'institutionSupervisor';
         break;
-      case "institutionSupervisor":
-        userData = await InstitutionSupervisor.findByPk(id, {
-          attributes: { exclude: ["password"] }
+
+      case 'industrySupervisor':
+        user = await IndustrySupervisor.findOne({
+          where: { email: email.toLowerCase() }
         });
+        userRole = 'industrySupervisor';
         break;
-      case "industrySupervisor":
-        userData = await IndustrySupervisor.findByPk(id, {
-          attributes: { exclude: ["password"] }
+
+      case 'hod':
+        user = await HOD.findOne({
+          where: { email: email.toLowerCase() }
         });
+        userRole = 'hod';
         break;
-      case "hod":
-        userData = await HOD.findByPk(id, {
-          attributes: { exclude: ["password"] }
+
+      case 'siwesCoordinator':
+        user = await SIWESCoordinator.findOne({
+          where: { email: email.toLowerCase() }
         });
+        userRole = 'siwesCoordinator';
         break;
-      case "siwesCoordinator":
-        userData = await SIWESCoordinator.findByPk(id, {
-          attributes: { exclude: ["password"] }
-        });
-        break;
+
       default:
-        return res.status(400).json({ error: "Invalid role" });
+        return res.status(400).json({
+          error: 'Invalid role specified'
+        });
     }
 
-    if (!userData) {
-      return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
     }
+
+    // Check password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
+    }
+
+    // Generate token
+    const token = generateToken(
+      user.id,
+      userRole,
+      user.email,
+      user.fullName,
+      user.department || null
+    );
+
+    // Remove password from response
+    const userResponse = user.toJSON();
+    delete userResponse.password;
 
     res.json({
-      message: "Token is valid",
-      user: { ...userData.toJSON(), role },
+      message: 'Login successful',
+      token,
+      user: userResponse
     });
-
-  } catch (error) {
-    console.error("Token verification error:", error);
-    res.status(500).json({ error: "Token verification failed", details: error.message });
+  } catch (err) {
+    console.error('Role login error:', err);
+    res.status(500).json({
+      error: 'Failed to login',
+      details: err.message
+    });
   }
 };
 
-// -----------------------------------
-// 🧑‍💼 Register any supervisor role
-// -----------------------------------
-const registerRole = async (req, res) => {
+// Register staff (coordinator can register other staff)
+export const registerStaff = async (req, res) => {
   try {
     const { fullName, email, password, role, department } = req.body;
 
     if (!fullName || !email || !password || !role || !department) {
-      return res.status(400).json({ error: "All fields required" });
+      return res.status(400).json({
+        error: 'All fields are required'
+      });
     }
 
-    let UserModel;
-
-    switch (role) {
-      case "institutionSupervisor":
-        UserModel = InstitutionSupervisor;
-        break;
-      case "industrySupervisor":
-        UserModel = IndustrySupervisor;
-        break;
-      case "hod":
-        UserModel = HOD;
-        break;
-      case "siwesCoordinator":
-        UserModel = SIWESCoordinator;
-        break;
-      default:
-        return res.status(400).json({ error: "Invalid role" });
-    }
-
-    const existingUser = await UserModel.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ error: "User already registered" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await UserModel.create({
-      fullName,
-      email,
-      department,
-      password: hashedPassword,
+    // Check if user already exists
+    const existingUser = await getModelByRole(role).findOne({
+      where: { email: email.toLowerCase() }
     });
 
-    const token = generateToken(user, role);
+    if (existingUser) {
+      return res.status(400).json({
+        error: `${role} with this email already exists`
+      });
+    }
+
+    // Create user based on role
+    let user;
+    switch (role) {
+      case 'institutionSupervisor':
+        user = await InstitutionSupervisor.create({
+          fullName,
+          email: email.toLowerCase(),
+          password,
+          department
+        });
+        break;
+
+      case 'hod':
+        user = await HOD.create({
+          fullName,
+          email: email.toLowerCase(),
+          password,
+          department
+        });
+        break;
+
+      default:
+        return res.status(400).json({
+          error: 'Invalid role for registration'
+        });
+    }
+
+    // Generate token
+    const token = generateToken(
+      user.id,
+      role,
+      user.email,
+      user.fullName,
+      user.department
+    );
+
+    // Remove password from response
+    const userResponse = user.toJSON();
+    delete userResponse.password;
 
     res.status(201).json({
       message: `${role} registered successfully`,
       token,
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        role,
-        department: user.department,
-      },
+      user: userResponse
     });
-
   } catch (err) {
-    console.error("Role registration error:", err);
-    res.status(500).json({ error: "Registration failed", details: err.message });
+    console.error('Staff registration error:', err);
+    res.status(500).json({
+      error: 'Failed to register staff',
+      details: err.message
+    });
   }
 };
 
-// -----------------------------------
-// 👤 Get User Profile
-// -----------------------------------
-const getProfile = async (req, res) => {
+// Get user profile
+export const getProfile = async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: "No user data found" });
-    }
-
     const { id, role } = req.user;
 
-    let userData;
-
+    let user;
     switch (role) {
-      case "student":
-        userData = await Student.findByPk(id, {
-          attributes: { exclude: ["password"] }
+      case 'student':
+        user = await Student.findByPk(id, {
+          attributes: { exclude: ['password'] }
         });
         break;
-      case "institutionSupervisor":
-        userData = await InstitutionSupervisor.findByPk(id, {
-          attributes: { exclude: ["password"] }
+
+      case 'institutionSupervisor':
+        user = await InstitutionSupervisor.findByPk(id, {
+          attributes: { exclude: ['password'] }
         });
         break;
-      case "industrySupervisor":
-        userData = await IndustrySupervisor.findByPk(id, {
-          attributes: { exclude: ["password"] }
+
+      case 'industrySupervisor':
+        user = await IndustrySupervisor.findByPk(id, {
+          attributes: { exclude: ['password'] }
         });
         break;
-      case "hod":
-        userData = await HOD.findByPk(id, {
-          attributes: { exclude: ["password"] }
+
+      case 'hod':
+        user = await HOD.findByPk(id, {
+          attributes: { exclude: ['password'] }
         });
         break;
-      case "siwesCoordinator":
-        userData = await SIWESCoordinator.findByPk(id, {
-          attributes: { exclude: ["password"] }
+
+      case 'siwesCoordinator':
+        user = await SIWESCoordinator.findByPk(id, {
+          attributes: { exclude: ['password'] }
         });
         break;
+
       default:
-        return res.status(400).json({ error: "Invalid role" });
+        return res.status(400).json({
+          error: 'Invalid user role'
+        });
     }
 
-    if (!userData) {
-      return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
     }
 
     res.json({
-      message: "Profile retrieved successfully",
-      user: { ...userData.toJSON(), role },
+      user
     });
-
-  } catch (error) {
-    console.error("Get profile error:", error);
-    res.status(500).json({ error: "Failed to get profile", details: error.message });
+  } catch (err) {
+    console.error('Get profile error:', err);
+    res.status(500).json({
+      error: 'Failed to get profile',
+      details: err.message
+    });
   }
 };
 
-// -----------------------------------
-// 🔄 Check Auth Status
-// -----------------------------------
-const checkAuth = async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(" ")[1];
+// Verify token
+export const verifyToken = (req, res) => {
+  res.json({
+    message: 'Token is valid',
+    user: req.user
+  });
+};
 
-    if (!token) {
-      return res.status(401).json({ authenticated: false });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (!decoded) {
-      return res.status(401).json({ authenticated: false });
-    }
-
-    const { id, role } = decoded;
-
-    let userExists = false;
-
-    switch (role) {
-      case "student":
-        userExists = await Student.findByPk(id);
-        break;
-      case "institutionSupervisor":
-        userExists = await InstitutionSupervisor.findByPk(id);
-        break;
-      case "industrySupervisor":
-        userExists = await IndustrySupervisor.findByPk(id);
-        break;
-      case "hod":
-        userExists = await HOD.findByPk(id);
-        break;
-      case "siwesCoordinator":
-        userExists = await SIWESCoordinator.findByPk(id);
-        break;
-    }
-
-    if (!userExists) {
-      return res.status(401).json({ authenticated: false });
-    }
-
-    res.json({ authenticated: true, user: decoded });
-
-  } catch (error) {
-    console.error("Check auth error:", error);
-    res.status(401).json({ authenticated: false });
+// Helper function to get model by role
+const getModelByRole = (role) => {
+  switch (role) {
+    case 'student':
+      return Student;
+    case 'institutionSupervisor':
+      return InstitutionSupervisor;
+    case 'industrySupervisor':
+      return IndustrySupervisor;
+    case 'hod':
+      return HOD;
+    case 'siwesCoordinator':
+      return SIWESCoordinator;
+    default:
+      throw new Error('Invalid role');
   }
 };
 
-// -----------------------------------
-// 📤 Export ALL Controllers Cleanly
-// -----------------------------------
-export {
+export default {
   studentSignup,
   studentLogin,
   roleLogin,
-  verifyStudentEmail,
-  verifyToken,
-  registerRole,
+  registerStaff,
   getProfile,
-  checkAuth,
+  verifyToken
 };

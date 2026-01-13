@@ -13,27 +13,35 @@ const Assignment = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: "students", // Use string table name
+                model: "students",
                 key: "id",
             },
         },
         institutionSupervisorId: {
             type: DataTypes.INTEGER,
             references: {
-                model: "institutionsupervisors", // Use string table name
+                model: "institutionsupervisors",
                 key: "id",
             },
         },
         industrySupervisorId: {
             type: DataTypes.INTEGER,
             references: {
-                model: "industrysupervisors", // Use string table name
+                model: "industrysupervisors",
                 key: "id",
             },
         },
         assignedBy: {
             type: DataTypes.INTEGER,
-            allowNull: false, // HOD or Coordinator ID
+            allowNull: false,
+            references: {
+                model: "hods",
+                key: "id",
+            },
+        },
+        status: {
+            type: DataTypes.ENUM("ACTIVE", "INACTIVE", "COMPLETED"),
+            defaultValue: "ACTIVE",
         },
     },
     {
