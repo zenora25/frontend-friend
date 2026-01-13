@@ -1,4 +1,4 @@
-import Logbook from "../models/Logbook.js";
+import Logbook from "../models/logbook.js";
 import Student from "../models/student.js";
 import InstitutionSupervisor from "../models/institutionSupervisor.js";
 import IndustrySupervisor from "../models/industrySupervisor.js";
@@ -6,19 +6,6 @@ import { Op } from "sequelize";
 import { uploadMultiple } from "../utils/upload.js";
 import path from "path";
 import fs from "fs";
-
-// Helper function to handle file upload
-const handleFileUpload = (req, res) => {
-    return new Promise((resolve, reject) => {
-        uploadMultiple(req, res, (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(req.files || []);
-            }
-        });
-    });
-};
 
 // Helper function to get public URL for file
 const getFileUrl = (filename) => {
@@ -69,16 +56,19 @@ export const createLogbook = async (req, res) => {
             });
         }
 
-        // Handle file upload
+        // Handle file upload (files already processed by middleware)
         let imageUrls = [];
         try {
-            console.log("Handling file upload..."); // Debug log
-            const files = await handleFileUpload(req, res);
-            imageUrls = files.map(file => getFileUrl(file.filename));
-            console.log("Uploaded images:", imageUrls); // Debug log
+            console.log("Checking for uploaded files..."); // Debug log
+            if (req.files && req.files.length > 0) {
+                imageUrls = req.files.map(file => getFileUrl(file.filename));
+                console.log("Uploaded images:", imageUrls); // Debug log
+            } else {
+                console.log("No files uploaded");
+            }
         } catch (uploadError) {
-            console.error("File upload error:", uploadError);
-            // Continue without images if upload fails
+            console.error("File processing error:", uploadError);
+            // Continue without images if fail
         }
 
         const logbook = await Logbook.create({
@@ -201,14 +191,14 @@ export const updateLogbook = async (req, res) => {
             });
         }
 
-        // Handle file upload for new images
+        // Handle file upload for new images (files processed by middleware)
         let newImageUrls = [];
         try {
-            const files = await handleFileUpload(req, res);
-            newImageUrls = files.map(file => getFileUrl(file.filename));
+            if (req.files && req.files.length > 0) {
+                newImageUrls = req.files.map(file => getFileUrl(file.filename));
+            }
         } catch (uploadError) {
-            console.error("File upload error:", uploadError);
-            // Continue without new images if upload fails
+            console.error("File processing error:", uploadError);
         }
 
         // Combine existing images with new ones

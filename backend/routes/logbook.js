@@ -13,6 +13,8 @@ import {
   deleteLogbook  // Make sure this is included
 } from "../controllers/logbookcontroller.js";
 import protect from "../middleware/authMiddleware.js";
+import { uploadMultiple } from "../utils/upload.js"; // Import upload middleware
+import { uploadMultiple } from "../utils/upload.js"; // Import upload middleware
 import {
   requireStudent,
   requireSupervisor,
@@ -23,11 +25,11 @@ import {
 const router = express.Router();
 
 // Student routes
-router.post("/", protect, requireStudent, createLogbook);
+router.post("/", protect, requireStudent, uploadMultiple, createLogbook); // Add middleware here
 router.get("/my-logbook", protect, requireStudent, getMyLogbooks);
 router.get("/stats", protect, requireStudent, getLogbookStats);
 router.get("/:id", protect, requireStudent, getLogbookById);
-router.put("/:id", protect, requireStudent, updateLogbook);
+router.put("/:id", protect, requireStudent, uploadMultiple, updateLogbook);
 router.delete("/:id", protect, requireStudent, deleteLogbook);
 router.delete("/:id/image", protect, requireStudent, deleteLogbookImage);
 
