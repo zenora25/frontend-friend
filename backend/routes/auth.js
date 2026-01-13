@@ -216,11 +216,15 @@ router.post("/student/signup", async (req, res) => {
 // Student login
 router.post("/student/login", async (req, res) => {
   try {
+    console.log("Student login attempt started"); // Debug log
     const { email, password } = req.body;
+    console.log("Request body:", { email, passwordReceived: !!password }); // Debug log
 
     const student = await Student.findOne({ where: { email } });
+    console.log("Student found:", !!student); // Debug log
 
     if (!student) {
+      console.log("Student not found for email:", email); // Debug log
       return res.status(401).json({ 
         success: false,
         error: "Invalid email or password" 
@@ -228,7 +232,10 @@ router.post("/student/login", async (req, res) => {
     }
 
     const isPasswordValid = await student.comparePassword(password);
+    console.log("Password valid:", isPasswordValid); // Debug log
+
     if (!isPasswordValid) {
+      console.log("Invalid password for student:", email); // Debug log
       return res.status(401).json({ 
         success: false,
         error: "Invalid email or password" 
@@ -236,8 +243,10 @@ router.post("/student/login", async (req, res) => {
     }
 
     // Update last login
+    console.log("Updating last login..."); // Debug log
     student.lastLogin = new Date();
     await student.save();
+    console.log("Last login updated."); // Debug log
 
     const token = jwt.sign(
       {
@@ -249,6 +258,7 @@ router.post("/student/login", async (req, res) => {
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "7d" }
     );
+    console.log("Token generated."); // Debug log
 
     res.json({
       success: true,
@@ -266,8 +276,10 @@ router.post("/student/login", async (req, res) => {
         status: student.status
       },
     });
+    console.log("Login successful response sent."); // Debug log
   } catch (err) {
     console.error("Login error:", err);
+    console.error("Stack trace:", err.stack); // Debug log
     res.status(500).json({ 
       success: false,
       error: "Login failed", 
