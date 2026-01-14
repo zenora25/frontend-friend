@@ -50,7 +50,7 @@ const Student = sequelize.define('Student', {
     field: 'company_address' // Maps to company_address in database
   },
   assignedSupervisor: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     references: {
       model: 'institutionsupervisors',
       key: 'id',
@@ -58,7 +58,7 @@ const Student = sequelize.define('Student', {
     field: 'assigned_supervisor' // Maps to assigned_supervisor in database
   },
   assignedIndustrySupervisor: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     references: {
       model: 'industrysupervisors',
       key: 'id',
@@ -107,7 +107,7 @@ const Student = sequelize.define('Student', {
 });
 
 // Instance method to compare password
-Student.prototype.comparePassword = async function(candidatePassword) {
+Student.prototype.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
