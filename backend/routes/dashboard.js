@@ -1,29 +1,35 @@
-import express from "express";
+import express from 'express';
 import {
-    getStudentDashboard,
-    getSupervisorDashboard,
-    getHODDashboard,
-    getCoordinatorDashboard,
-    getSystemStats,
-} from "../controllers/dashboardController.js";
-import protect from "../middleware/authMiddleware.js";
+  getStudentDashboard,
+  getSupervisorDashboard,
+  getHODDashboard,
+  getCoordinatorDashboard,
+  getSystemStats
+} from '../controllers/dashboardController.js';
+import protect from '../middleware/authMiddleware.js';
 import {
-    requireStudent,
-    requireSupervisor,
-    requireHOD,
-    requireCoordinator,
-    requireAdmin,
-} from "../middleware/roleAuth.js";
+  requireStudent,
+  requireSupervisor,
+  requireHOD,
+  requireCoordinator,
+  requireAdmin
+} from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
-// Role-specific dashboard routes
-router.get("/student", protect, requireStudent, getStudentDashboard);
-router.get("/supervisor", protect, requireSupervisor, getSupervisorDashboard);
-router.get("/hod", protect, requireHOD, getHODDashboard);
-router.get("/coordinator", protect, requireCoordinator, getCoordinatorDashboard);
+// Student dashboard
+router.get('/student', protect, requireStudent, getStudentDashboard);
 
-// System stats (Admin/Coordinator)
-router.get("/system-stats", protect, requireCoordinator, getSystemStats);
+// Supervisor dashboard (both institution and industry)
+router.get('/supervisor', protect, requireSupervisor, getSupervisorDashboard);
+
+// HOD dashboard
+router.get('/hod', protect, requireHOD, getHODDashboard);
+
+// Coordinator dashboard
+router.get('/coordinator', protect, requireCoordinator, getCoordinatorDashboard);
+
+// System stats (admin/coordinator)
+router.get('/system-stats', protect, requireCoordinator, getSystemStats);
 
 export default router;

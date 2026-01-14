@@ -13,6 +13,7 @@ const HOD = sequelize.define(
         fullName: {
             type: DataTypes.STRING(100),
             allowNull: false,
+            field: "full_name", // Map to snake_case column
         },
         email: {
             type: DataTypes.STRING(100),
@@ -32,14 +33,19 @@ const HOD = sequelize.define(
         },
         phone: {
             type: DataTypes.STRING(20),
+            allowNull: true,
         },
         profileImage: {
             type: DataTypes.STRING,
+            allowNull: true,
+            field: "profile_image", // Map to snake_case
         },
     },
     {
-        tableName: "hods",
+        tableName: "h_o_ds",
         timestamps: true,
+        createdAt: "created_at", // Map timestamp columns
+        updatedAt: "updated_at",
         hooks: {
             beforeCreate: async (hod) => {
                 if (hod.password) {
