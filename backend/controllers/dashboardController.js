@@ -25,14 +25,25 @@ export const getStudentDashboard = async (req, res) => {
                 "companyAddress",
                 "progress",
                 "status",
+                "siwesStartDate",
+                "siwesEndDate",
+                "totalWeeks",
+                "assignedSupervisor"
             ],
+            include: [
+                {
+                    model: InstitutionSupervisor,
+                    as: 'Supervisor',
+                    attributes: ['fullName']
+                }
+            ]
         });
 
         if (!student) {
             console.log("❌ Student not found:", studentId);
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "Student not found" 
+                error: "Student not found"
             });
         }
 
@@ -79,10 +90,13 @@ export const getStudentDashboard = async (req, res) => {
 
         res.json({
             success: true,
-            student,
+            student: {
+                ...student.toJSON(),
+                supervisorName: student.Supervisor?.fullName || "Not Assigned",
+            },
             stats: {
                 weeksCompleted: approvedEntries,
-                totalWeeks: 24, // Assuming 24-week program
+                totalWeeks: student.totalWeeks || 24,
                 logbooksSubmitted: totalEntries,
                 logbooksPending: pendingEntries,
                 logbooksApproved: approvedEntries,
@@ -110,7 +124,7 @@ export const getStudentDashboard = async (req, res) => {
     } catch (err) {
         console.error("❌ Get student dashboard error:", err.message);
         console.error("🔍 Error stack:", err.stack);
-        
+
         // Provide more helpful error message
         let errorMessage = "Failed to fetch dashboard data";
         if (err.original && err.original.sqlMessage) {
@@ -118,7 +132,7 @@ export const getStudentDashboard = async (req, res) => {
                 errorMessage = "Some required database tables are missing";
             }
         }
-        
+
         res.status(500).json({
             success: false,
             error: errorMessage,
@@ -157,9 +171,9 @@ export const getSupervisorDashboard = async (req, res) => {
             });
 
             if (!supervisor) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     success: false,
-                    error: "Institution supervisor not found" 
+                    error: "Institution supervisor not found"
                 });
             }
 
@@ -211,9 +225,9 @@ export const getSupervisorDashboard = async (req, res) => {
             });
 
             if (!supervisor) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     success: false,
-                    error: "Industry supervisor not found" 
+                    error: "Industry supervisor not found"
                 });
             }
 
@@ -247,9 +261,9 @@ export const getSupervisorDashboard = async (req, res) => {
                     preview: logbook.weekSummary?.substring(0, 100) + "..." || "No summary",
                 }));
         } else {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                error: "Not authorized" 
+                error: "Not authorized"
             });
         }
 
@@ -284,9 +298,9 @@ export const getHODDashboard = async (req, res) => {
 
         const hod = await HOD.findByPk(hodId);
         if (!hod) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "HOD not found" 
+                error: "HOD not found"
             });
         }
 

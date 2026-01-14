@@ -99,6 +99,26 @@ const Student = sequelize.define('Student', {
     defaultValue: DataTypes.NOW,
     field: 'updated_at' // Maps to updated_at in database
   },
+  lastLogin: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'last_login' // Map to last_login in database for consistency
+  },
+  siwesStartDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'siwes_start_date'
+  },
+  siwesEndDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'siwes_end_date'
+  },
+  totalWeeks: {
+    type: DataTypes.INTEGER,
+    defaultValue: 24,
+    field: 'total_weeks'
+  },
 }, {
   tableName: 'students',
   timestamps: true,

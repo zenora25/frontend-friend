@@ -15,9 +15,9 @@ router.post("/role/login", async (req, res) => {
     const { email, password, role } = req.body;
 
     if (!email || !password || !role) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: "Email, password, and role are required" 
+        error: "Email, password, and role are required"
       });
     }
 
@@ -26,55 +26,55 @@ router.post("/role/login", async (req, res) => {
     // Role-specific queries with explicit attributes
     switch (role) {
       case "student":
-        user = await Student.findOne({ 
+        user = await Student.findOne({
           where: { email },
           attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'password', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
         });
         break;
       case "institutionSupervisor":
-        user = await InstitutionSupervisor.findOne({ 
+        user = await InstitutionSupervisor.findOne({
           where: { email },
           attributes: ['id', 'fullName', 'email', 'department', 'password', 'createdAt', 'updatedAt']
         });
         break;
       case "industrySupervisor":
-        user = await IndustrySupervisor.findOne({ 
+        user = await IndustrySupervisor.findOne({
           where: { email },
           attributes: ['id', 'fullName', 'email', 'companyName', 'password', 'phone', 'profileImage', 'companyAddress', 'position', 'department', 'lastLogin', 'createdAt', 'updatedAt']
         });
         break;
       case "hod":
         // HOD query without phone and profileImage since they don't exist in DB
-        user = await Hod.findOne({ 
+        user = await Hod.findOne({
           where: { email },
           attributes: ['id', 'fullName', 'email', 'department', 'password', 'createdAt', 'updatedAt']
         });
         break;
       case "siwesCoordinator":
-        user = await Coordinator.findOne({ 
+        user = await Coordinator.findOne({
           where: { email },
           attributes: ['id', 'fullName', 'email', 'password', 'createdAt', 'updatedAt']
         });
         break;
       default:
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: "Invalid role specified" 
+          error: "Invalid role specified"
         });
     }
 
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        error: "Invalid email or password" 
+        error: "Invalid email or password"
       });
     }
 
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        error: "Invalid email or password" 
+        error: "Invalid email or password"
       });
     }
 
@@ -143,9 +143,9 @@ router.post("/role/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Login failed", 
+      error: "Login failed",
       details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
@@ -154,12 +154,12 @@ router.post("/role/login", async (req, res) => {
 // Student registration
 router.post("/student/signup", async (req, res) => {
   try {
-    const { 
-      fullName, 
-      email, 
-      verificationCode, 
-      password, 
-      matricNumber, 
+    const {
+      fullName,
+      email,
+      verificationCode,
+      password,
+      matricNumber,
       department,
       phone,
       companyName,
@@ -168,27 +168,27 @@ router.post("/student/signup", async (req, res) => {
 
     // Check required fields
     if (!fullName || !email || !password || !matricNumber || !department) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: "All required fields must be provided" 
+        error: "All required fields must be provided"
       });
     }
 
     // Check if email already exists
     const existingStudent = await Student.findOne({ where: { email } });
     if (existingStudent) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: "Email already registered" 
+        error: "Email already registered"
       });
     }
 
     // Check if matric number exists
     const existingMatric = await Student.findOne({ where: { matricNumber } });
     if (existingMatric) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: "Matric number already registered" 
+        error: "Matric number already registered"
       });
     }
 
@@ -238,9 +238,9 @@ router.post("/student/signup", async (req, res) => {
     });
   } catch (err) {
     console.error("Signup error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Registration failed", 
+      error: "Registration failed",
       details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
@@ -251,23 +251,23 @@ router.post("/student/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const student = await Student.findOne({ 
+    const student = await Student.findOne({
       where: { email },
       attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'password', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
     });
 
     if (!student) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        error: "Invalid email or password" 
+        error: "Invalid email or password"
       });
     }
 
     const isPasswordValid = await student.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        error: "Invalid email or password" 
+        error: "Invalid email or password"
       });
     }
 
@@ -307,9 +307,9 @@ router.post("/student/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Login failed", 
+      error: "Login failed",
       details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
@@ -319,24 +319,24 @@ router.post("/student/login", async (req, res) => {
 router.get("/verify", (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    
+
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        error: "No token provided" 
+        error: "No token provided"
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
-    
+
     res.json({
       success: true,
       user: decoded,
     });
   } catch (err) {
-    res.status(401).json({ 
+    res.status(401).json({
       success: false,
-      error: "Invalid or expired token" 
+      error: "Invalid or expired token"
     });
   }
 });
@@ -345,24 +345,24 @@ router.get("/verify", (req, res) => {
 router.get("/profile", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    
+
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        error: "No token provided" 
+        error: "No token provided"
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
-    
-    let user;
     const { role, id } = decoded;
+
+    let user;
 
     // Role-specific profile queries with explicit attributes
     switch (role) {
       case "student":
         user = await Student.findByPk(id, {
-          attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
+          attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'siwesStartDate', 'siwesEndDate', 'totalWeeks', 'createdAt', 'updatedAt']
         });
         break;
       case "institutionSupervisor":
@@ -386,16 +386,16 @@ router.get("/profile", async (req, res) => {
         });
         break;
       default:
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: "Invalid role" 
+          error: "Invalid role"
         });
     }
 
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "User not found" 
+        error: "User not found"
       });
     }
 
@@ -405,9 +405,94 @@ router.get("/profile", async (req, res) => {
     });
   } catch (err) {
     console.error("Profile error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Failed to fetch profile" 
+      error: "Failed to fetch profile"
+    });
+  }
+});
+
+// Update user profile
+router.put("/profile", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "No token provided"
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const { role, id } = decoded;
+
+    let user;
+    const updates = req.body;
+
+    // Role-specific profile updates
+    switch (role) {
+      case "student":
+        user = await Student.findByPk(id);
+        break;
+      case "institutionSupervisor":
+        user = await InstitutionSupervisor.findByPk(id);
+        break;
+      case "industrySupervisor":
+        user = await IndustrySupervisor.findByPk(id);
+        break;
+      case "hod":
+        user = await Hod.findByPk(id);
+        break;
+      case "siwesCoordinator":
+        user = await Coordinator.findByPk(id);
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          error: "Invalid role"
+        });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found"
+      });
+    }
+
+    // List of common allowed fields + role specific ones
+    const commonAllowed = ['fullName', 'email', 'phone', 'profileImage'];
+    const roleAllowed = {
+      'student': ['companyName', 'companyAddress', 'siwesStartDate', 'siwesEndDate'],
+      'institutionSupervisor': ['department'],
+      'industrySupervisor': ['companyName', 'companyAddress', 'position', 'department'],
+      'hod': ['department'],
+      'siwesCoordinator': ['department']
+    };
+
+    const allowedFields = [...commonAllowed, ...(roleAllowed[role] || [])];
+    const cleanUpdates = {};
+
+    Object.keys(updates).forEach(key => {
+      if (allowedFields.includes(key)) {
+        cleanUpdates[key] = updates[key];
+      }
+    });
+
+    await user.update(cleanUpdates);
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: user
+    });
+  } catch (err) {
+    console.error("Profile update error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update profile",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 });

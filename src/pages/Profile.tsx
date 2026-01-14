@@ -1,26 +1,65 @@
-import { useState } from "react";
-import { User, Mail, Phone, Building, MapPin, Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Mail, Phone, Building, MapPin, Save, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { authAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         fullName: user?.fullName || "",
         email: user?.email || "",
-        phone: "",
+        phone: user?.phone || "",
         companyName: user?.companyName || "",
         companyAddress: user?.companyAddress || "",
     });
 
-    const handleSave = () => {
-        // Save profile logic here
-        setIsEditing(false);
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    const fetchProfile = async () => {
+        try {
+            const response = await authAPI.getProfile();
+            const data = response.data.data;
+            setFormData({
+                fullName: data.fullName || "",
+                email: data.email || "",
+                phone: data.phone || "",
+                companyName: data.companyName || "",
+                companyAddress: data.companyAddress || "",
+            });
+        } catch (error) {
+            console.error("Failed to fetch profile:", error);
+        }
+    };
+
+    const handleSave = async () => {
+        setIsLoading(true);
+        try {
+            await authAPI.updateProfile(formData);
+            toast({
+                title: "Profile updated",
+                description: "Your profile information has been successfully updated.",
+            });
+            setIsEditing(false);
+        } catch (error: any) {
+            toast({
+                title: "Update failed",
+                description: error.response?.data?.error || "Failed to update profile. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -40,9 +79,13 @@ const Profile = () => {
                                     Edit Profile
                                 </Button>
                             ) : (
-                                <Button size="sm" onClick={handleSave}>
-                                    <Save className="w-4 h-4 mr-2" />
-                                    Save Changes
+                                <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                                    {isLoading ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Save className="w-4 h-4 mr-2" />
+                                    )}
+                                    {isLoading ? "Saving..." : "Save Changes"}
                                 </Button>
                             )}
                         </CardTitle>
@@ -55,7 +98,7 @@ const Profile = () => {
                                     Full Name
                                 </Label>
                                 {isEditing ? (
-                                    <Input value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+                                    <Input value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} />
                                 ) : (
                                     <p>{user?.fullName}</p>
                                 )}
@@ -75,7 +118,7 @@ const Profile = () => {
                                 Phone Number
                             </Label>
                             {isEditing ? (
-                                <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                                <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                             ) : (
                                 <p>{formData.phone || "Not provided"}</p>
                             )}
@@ -89,7 +132,7 @@ const Profile = () => {
                                         Company/Organization
                                     </Label>
                                     {isEditing ? (
-                                        <Input value={formData.companyName} onChange={(e) => setFormData({...formData, companyName: e.target.value})} />
+                                        <Input value={formData.companyName} onChange={(e) => setFormData({ ...formData, companyName: e.target.value })} />
                                     ) : (
                                         <p>{formData.companyName}</p>
                                     )}
@@ -101,7 +144,7 @@ const Profile = () => {
                                         Company Address
                                     </Label>
                                     {isEditing ? (
-                                        <Input value={formData.companyAddress} onChange={(e) => setFormData({...formData, companyAddress: e.target.value})} />
+                                        <Input value={formData.companyAddress} onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })} />
                                     ) : (
                                         <p>{formData.companyAddress}</p>
                                     )}
