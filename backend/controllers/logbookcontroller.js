@@ -1,4 +1,4 @@
-import Logbook from "../models/logbook.js";
+import Logbook from "../models/Logbook.js";
 import Student from "../models/student.js";
 import InstitutionSupervisor from "../models/institutionSupervisor.js";
 import IndustrySupervisor from "../models/industrySupervisor.js";
@@ -32,85 +32,151 @@ export const createLogbook = async (req, res) => {
         } = req.body;
 
         const studentId = req.user.id;
-        console.log("Creating logbook for student:", studentId, "Week:", weekNumber); // Debug log
-        console.log("Request body:", req.body); // Debug log
+        console.log("📝 Creating logbook for student:", studentId, "Week:", weekNumber);
+        console.log("📝 Request body:", req.body);
 
         // Validate required fields
-        if (!weekNumber || !startDate || !endDate || !title || !weekSummary) {
+        const missingFields = [];
+        if (!weekNumber) missingFields.push('weekNumber');
+        if (!startDate) missingFields.push('startDate');
+        if (!endDate) missingFields.push('endDate');
+        if (!title) missingFields.push('title');
+        if (!weekSummary) missingFields.push('weekSummary');
+
+        if (missingFields.length > 0) {
+            console.log("❌ Missing required fields:", missingFields);
             return res.status(400).json({
-                error: "Week number, dates, title, and summary are required",
+                error: "Missing required fields",
+                missingFields,
+                message: "Week number, dates, title, and summary are required"
             });
         }
 
+        // Convert weekNumber to integer
+        const weekNum = parseInt(weekNumber);
+        if (isNaN(weekNum) || weekNum < 1) {
+            return res.status(400).json({
+                error: "Invalid week number",
+                message: "Week number must be a valid positive number"
+            });
+        }
+
+        console.log("🔍 Checking for existing logbook...");
+        
         // Check if logbook for this week already exists
         const existingLogbook = await Logbook.findOne({
             where: {
                 studentId,
-                weekNumber,
+                weekNumber: weekNum,
             },
         });
 
         if (existingLogbook) {
+            console.log("❌ Logbook already exists for week:", weekNum);
             return res.status(400).json({
                 error: "Logbook entry for this week already exists",
+                weekNumber: weekNum
             });
         }
 
         // Handle file upload (files already processed by middleware)
         let imageUrls = [];
         try {
-            console.log("Checking for uploaded files..."); // Debug log
+            console.log("📁 Checking for uploaded files...");
             if (req.files && req.files.length > 0) {
                 imageUrls = req.files.map(file => getFileUrl(file.filename));
-                console.log("Uploaded images:", imageUrls); // Debug log
+                console.log("📸 Uploaded images:", imageUrls.length);
             } else {
-                console.log("No files uploaded");
+                console.log("📁 No files uploaded");
             }
         } catch (uploadError) {
-            console.error("File processing error:", uploadError);
-            // Continue without images if fail
+            console.error("⚠️ File processing error:", uploadError.message);
+            // Continue without images
         }
 
+        console.log("🔄 Creating new logbook...");
+        
         const logbook = await Logbook.create({
             studentId,
-            weekNumber,
+            weekNumber: weekNum,
             startDate,
             endDate,
             title,
-            mondayActivities,
-            tuesdayActivities,
-            wednesdayActivities,
-            thursdayActivities,
-            fridayActivities,
+            mondayActivities: mondayActivities || '',
+            tuesdayActivities: tuesdayActivities || '',
+            wednesdayActivities: wednesdayActivities || '',
+            thursdayActivities: thursdayActivities || '',
+            fridayActivities: fridayActivities || '',
             weekSummary,
-            challengesFaced,
-            lessonsLearned,
-            skillsAcquired,
+            challengesFaced: challengesFaced || '',
+            lessonsLearned: lessonsLearned || '',
+            skillsAcquired: skillsAcquired || '',
             images: imageUrls,
             status: "PENDING",
         });
 
-        // Update student progress
-        const student = await Student.findByPk(studentId);
-        const totalWeeks = 24; // Assuming 24-week SIWES program
-        const completedWeeks = await Logbook.count({
-            where: { studentId, status: "APPROVED" },
-        });
-        const progress = Math.round((completedWeeks / totalWeeks) * 100);
+        console.log("✅ Logbook created with ID:", logbook.id);
 
-        student.progress = progress;
-        await student.save();
+        // Update student progress with better error handling
+        try {
+            console.log("📊 Updating student progress...");
+            const student = await Student.findByPk(studentId);
+            
+            if (!student) {
+                console.warn(`⚠️ Student with ID ${studentId} not found for progress update`);
+            } else {
+                const totalWeeks = 24; // Assuming 24-week SIWES program
+                const completedWeeks = await Logbook.count({
+                    where: { 
+                        studentId, 
+                        status: "APPROVED" 
+                    },
+                });
+                const progress = Math.round((completedWeeks / totalWeeks) * 100);
+                console.log(`📈 Progress calculation: ${completedWeeks}/${totalWeeks} = ${progress}%`);
 
+                await student.update({ progress: progress });
+                console.log(`✅ Student progress updated to: ${progress}%`);
+            }
+        } catch (progressError) {
+            console.error("⚠️ Error updating student progress:", progressError.message);
+            // Don't fail the whole request because of progress update
+        }
+
+        console.log("🎉 Logbook creation completed successfully");
+        
         res.status(201).json({
+            success: true,
             message: "Logbook entry created successfully",
-            logbook,
+            logbook: {
+                id: logbook.id,
+                weekNumber: logbook.weekNumber,
+                title: logbook.title,
+                startDate: logbook.startDate,
+                endDate: logbook.endDate,
+                status: logbook.status,
+                createdAt: logbook.createdAt
+            },
         });
     } catch (err) {
-        console.error("Create logbook error:", err);
-        console.error("Stack trace:", err.stack); // Debug log
-        res.status(500).json({
-            error: "Failed to create logbook entry",
-            details: err.message,
+        console.error("❌ Create logbook error:", err.message);
+        console.error("🔍 Error stack:", err.stack);
+        
+        // Provide more specific error messages
+        let errorMessage = "Failed to create logbook entry";
+        let statusCode = 500;
+        
+        if (err.name === 'SequelizeValidationError') {
+            errorMessage = "Validation error";
+            statusCode = 400;
+        } else if (err.name === 'SequelizeDatabaseError') {
+            errorMessage = "Database error";
+        }
+        
+        res.status(statusCode).json({
+            success: false,
+            error: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -119,20 +185,30 @@ export const createLogbook = async (req, res) => {
 export const getMyLogbooks = async (req, res) => {
     try {
         const studentId = req.user.id;
-        console.log("Fetching logbooks for student:", studentId); // Debug log
+        console.log("📋 Fetching logbooks for student:", studentId);
 
         const logbooks = await Logbook.findAll({
             where: { studentId },
             order: [["weekNumber", "DESC"]],
+            attributes: [
+                'id', 'weekNumber', 'title', 'startDate', 'endDate', 
+                'status', 'createdAt', 'updatedAt'
+            ]
         });
 
-        res.json(logbooks);
+        console.log(`✅ Found ${logbooks.length} logbooks`);
+        
+        res.json({
+            success: true,
+            count: logbooks.length,
+            logbooks
+        });
     } catch (err) {
-        console.error("Get my logbooks error:", err);
-        console.error("Stack trace:", err.stack); // Debug log
+        console.error("❌ Get my logbooks error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch logbooks",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -142,6 +218,8 @@ export const getLogbookById = async (req, res) => {
     try {
         const { id } = req.params;
         const studentId = req.user.id;
+
+        console.log(`🔍 Fetching logbook ${id} for student ${studentId}`);
 
         const logbook = await Logbook.findOne({
             where: { id, studentId },
@@ -154,8 +232,14 @@ export const getLogbookById = async (req, res) => {
         });
 
         if (!logbook) {
-            return res.status(404).json({ error: "Logbook not found" });
+            console.log(`❌ Logbook ${id} not found for student ${studentId}`);
+            return res.status(404).json({ 
+                success: false,
+                error: "Logbook not found" 
+            });
         }
+
+        console.log(`✅ Found logbook: ${logbook.title}`);
 
         // Transform image URLs to include full path
         if (logbook.images && Array.isArray(logbook.images)) {
@@ -165,12 +249,16 @@ export const getLogbookById = async (req, res) => {
             }));
         }
 
-        res.json(logbook);
+        res.json({
+            success: true,
+            logbook
+        });
     } catch (err) {
-        console.error("Get logbook error:", err);
+        console.error("❌ Get logbook error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch logbook",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -181,24 +269,29 @@ export const updateLogbook = async (req, res) => {
         const { id } = req.params;
         const studentId = req.user.id;
 
+        console.log(`✏️ Updating logbook ${id} for student ${studentId}`);
+
         const logbook = await Logbook.findOne({
             where: { id, studentId, status: "PENDING" },
         });
 
         if (!logbook) {
+            console.log(`❌ Logbook ${id} not found or already reviewed`);
             return res.status(404).json({
+                success: false,
                 error: "Logbook not found or already reviewed",
             });
         }
 
-        // Handle file upload for new images (files processed by middleware)
+        // Handle file upload for new images
         let newImageUrls = [];
         try {
             if (req.files && req.files.length > 0) {
                 newImageUrls = req.files.map(file => getFileUrl(file.filename));
+                console.log(`📸 Adding ${newImageUrls.length} new images`);
             }
         } catch (uploadError) {
-            console.error("File processing error:", uploadError);
+            console.error("⚠️ File processing error:", uploadError.message);
         }
 
         // Combine existing images with new ones
@@ -208,19 +301,24 @@ export const updateLogbook = async (req, res) => {
         const updatedData = {
             ...req.body,
             images: allImages,
+            status: "PENDING" // Reset to pending when updated
         };
 
         await logbook.update(updatedData);
 
+        console.log(`✅ Logbook ${id} updated successfully`);
+        
         res.json({
+            success: true,
             message: "Logbook updated successfully",
             logbook,
         });
     } catch (err) {
-        console.error("Update logbook error:", err);
+        console.error("❌ Update logbook error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to update logbook",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -231,38 +329,51 @@ export const deleteLogbook = async (req, res) => {
         const { id } = req.params;
         const studentId = req.user.id;
 
+        console.log(`🗑️ Deleting logbook ${id} for student ${studentId}`);
+
         const logbook = await Logbook.findOne({
             where: { id, studentId, status: "PENDING" },
         });
 
         if (!logbook) {
+            console.log(`❌ Logbook ${id} not found or cannot be deleted`);
             return res.status(404).json({
+                success: false,
                 error: "Logbook not found or cannot be deleted",
             });
         }
 
         // Delete associated images
         if (logbook.images && Array.isArray(logbook.images)) {
+            console.log(`🗑️ Deleting ${logbook.images.length} associated images`);
             for (const image of logbook.images) {
-                const filename = path.basename(image);
-                const filePath = path.join('uploads/logbooks', filename);
+                try {
+                    const filename = path.basename(image);
+                    const filePath = path.join('uploads/logbooks', filename);
 
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                        console.log(`🗑️ Deleted file: ${filename}`);
+                    }
+                } catch (fileError) {
+                    console.warn(`⚠️ Could not delete file: ${image}`, fileError.message);
                 }
             }
         }
 
         await logbook.destroy();
+        console.log(`✅ Logbook ${id} deleted successfully`);
 
         res.json({
+            success: true,
             message: "Logbook deleted successfully",
         });
     } catch (err) {
-        console.error("Delete logbook error:", err);
+        console.error("❌ Delete logbook error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to delete logbook",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -274,12 +385,15 @@ export const deleteLogbookImage = async (req, res) => {
         const { imageUrl } = req.body;
         const studentId = req.user.id;
 
+        console.log(`🗑️ Deleting image from logbook ${id}`);
+
         const logbook = await Logbook.findOne({
             where: { id, studentId, status: "PENDING" },
         });
 
         if (!logbook) {
             return res.status(404).json({
+                success: false,
                 error: "Logbook not found or cannot be modified",
             });
         }
@@ -289,24 +403,33 @@ export const deleteLogbookImage = async (req, res) => {
         const updatedImages = images.filter(img => img !== imageUrl);
 
         // Delete the physical file
-        const filename = path.basename(imageUrl);
-        const filePath = path.join('uploads/logbooks', filename);
+        try {
+            const filename = path.basename(imageUrl);
+            const filePath = path.join('uploads/logbooks', filename);
 
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log(`🗑️ Deleted image file: ${filename}`);
+            }
+        } catch (fileError) {
+            console.warn(`⚠️ Could not delete physical file:`, fileError.message);
         }
 
         await logbook.update({ images: updatedImages });
 
+        console.log(`✅ Image removed from logbook ${id}`);
+        
         res.json({
+            success: true,
             message: "Image deleted successfully",
             logbook,
         });
     } catch (err) {
-        console.error("Delete image error:", err);
+        console.error("❌ Delete image error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to delete image",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -317,6 +440,8 @@ export const getSupervisorLogbooks = async (req, res) => {
         const supervisorId = req.user.id;
         const userRole = req.user.role;
         const { status } = req.query;
+
+        console.log(`👨‍🏫 ${userRole} ${supervisorId} fetching assigned logbooks`);
 
         let assignedStudents = [];
 
@@ -338,7 +463,10 @@ export const getSupervisorLogbooks = async (req, res) => {
             });
 
             if (!supervisor) {
-                return res.status(404).json({ error: "Supervisor not found" });
+                return res.status(404).json({ 
+                    success: false,
+                    error: "Supervisor not found" 
+                });
             }
 
             assignedStudents = supervisor.AssignedStudents;
@@ -360,12 +488,18 @@ export const getSupervisorLogbooks = async (req, res) => {
             });
 
             if (!supervisor) {
-                return res.status(404).json({ error: "Industry supervisor not found" });
+                return res.status(404).json({ 
+                    success: false,
+                    error: "Industry supervisor not found" 
+                });
             }
 
             assignedStudents = supervisor.AssignedInterns;
         } else {
-            return res.status(403).json({ error: "Not authorized" });
+            return res.status(403).json({ 
+                success: false,
+                error: "Not authorized" 
+            });
         }
 
         // Flatten logbooks from all assigned students
@@ -386,12 +520,19 @@ export const getSupervisorLogbooks = async (req, res) => {
             }
         });
 
-        res.json(logbooks);
+        console.log(`✅ Found ${logbooks.length} logbooks for ${assignedStudents.length} students`);
+        
+        res.json({
+            success: true,
+            count: logbooks.length,
+            logbooks
+        });
     } catch (err) {
-        console.error("Get supervisor logbooks error:", err);
+        console.error("❌ Get supervisor logbooks error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch supervisor logbooks",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -404,10 +545,15 @@ export const reviewLogbook = async (req, res) => {
         const userRole = req.user.role;
         const { status, comment } = req.body;
 
+        console.log(`📝 ${userRole} ${supervisorId} reviewing logbook ${logbookId}`);
+
         // Validate status
         const validStatuses = ["APPROVED", "REVISION"];
         if (!validStatuses.includes(status)) {
-            return res.status(400).json({ error: "Invalid status" });
+            return res.status(400).json({ 
+                success: false,
+                error: "Invalid status" 
+            });
         }
 
         // Get logbook with student info
@@ -421,13 +567,17 @@ export const reviewLogbook = async (req, res) => {
         });
 
         if (!logbook) {
-            return res.status(404).json({ error: "Logbook not found" });
+            return res.status(404).json({ 
+                success: false,
+                error: "Logbook not found" 
+            });
         }
 
         // Check if supervisor is authorized based on role
         if (userRole === "institutionSupervisor") {
             if (logbook.Student.assignedSupervisor !== supervisorId) {
                 return res.status(403).json({
+                    success: false,
                     error: "Not authorized to review this logbook",
                 });
             }
@@ -437,6 +587,7 @@ export const reviewLogbook = async (req, res) => {
         } else if (userRole === "industrySupervisor") {
             if (logbook.Student.assignedIndustrySupervisor !== supervisorId) {
                 return res.status(403).json({
+                    success: false,
                     error: "Not authorized to review this logbook",
                 });
             }
@@ -444,7 +595,10 @@ export const reviewLogbook = async (req, res) => {
             logbook.industrySupervisorComment = comment;
             logbook.industrySupervisorReviewedAt = new Date();
         } else {
-            return res.status(403).json({ error: "Not authorized" });
+            return res.status(403).json({ 
+                success: false,
+                error: "Not authorized" 
+            });
         }
 
         // Determine overall status
@@ -460,15 +614,19 @@ export const reviewLogbook = async (req, res) => {
 
         await logbook.save();
 
+        console.log(`✅ Logbook ${logbookId} ${status.toLowerCase()} by ${userRole}`);
+        
         res.json({
+            success: true,
             message: `Logbook ${status.toLowerCase()} successfully`,
             logbook,
         });
     } catch (err) {
-        console.error("Review logbook error:", err);
+        console.error("❌ Review logbook error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to review logbook",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -477,6 +635,8 @@ export const reviewLogbook = async (req, res) => {
 export const getAllLogbooks = async (req, res) => {
     try {
         const { department, status, page = 1, limit = 20 } = req.query;
+
+        console.log(`📊 Admin fetching all logbooks - Dept: ${department}, Status: ${status}`);
 
         const where = {};
         const include = [
@@ -499,7 +659,10 @@ export const getAllLogbooks = async (req, res) => {
             offset: parseInt(offset),
         });
 
+        console.log(`✅ Found ${count} total logbooks, showing ${logbooks.length}`);
+        
         res.json({
+            success: true,
             logbooks,
             pagination: {
                 total: count,
@@ -509,10 +672,11 @@ export const getAllLogbooks = async (req, res) => {
             },
         });
     } catch (err) {
-        console.error("Get all logbooks error:", err);
+        console.error("❌ Get all logbooks error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch logbooks",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -521,6 +685,8 @@ export const getAllLogbooks = async (req, res) => {
 export const getStudentLogbook = async (req, res) => {
     try {
         const { studentId } = req.params;
+
+        console.log(`📋 Fetching logbooks for student ${studentId}`);
 
         const logbooks = await Logbook.findAll({
             where: { studentId },
@@ -533,12 +699,19 @@ export const getStudentLogbook = async (req, res) => {
             ],
         });
 
-        res.json(logbooks);
+        console.log(`✅ Found ${logbooks.length} logbooks for student ${studentId}`);
+        
+        res.json({
+            success: true,
+            count: logbooks.length,
+            logbooks
+        });
     } catch (err) {
-        console.error("Get student logbook error:", err);
+        console.error("❌ Get student logbook error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch student logbook",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -548,6 +721,8 @@ export const getLogbookStats = async (req, res) => {
     try {
         const userRole = req.user.role;
         const userId = req.user.id;
+
+        console.log(`📈 Getting logbook stats for ${userRole} ${userId}`);
 
         let stats = {};
 
@@ -584,7 +759,7 @@ export const getLogbookStats = async (req, res) => {
 
             if (supervisor) {
                 const students = supervisor.AssignedStudents;
-                const allLogbooks = students.flatMap((student) => student.Logbooks);
+                const allLogbooks = students.flatMap((student) => student.Logbooks || []);
 
                 const totalEntries = allLogbooks.length;
                 const pendingReviews = allLogbooks.filter((logbook) =>
@@ -617,7 +792,7 @@ export const getLogbookStats = async (req, res) => {
 
             if (supervisor) {
                 const students = supervisor.AssignedInterns;
-                const allLogbooks = students.flatMap((student) => student.Logbooks);
+                const allLogbooks = students.flatMap((student) => student.Logbooks || []);
 
                 const totalEntries = allLogbooks.length;
                 const pendingReviews = allLogbooks.filter((logbook) =>
@@ -653,27 +828,18 @@ export const getLogbookStats = async (req, res) => {
             };
         }
 
-        res.json(stats);
+        console.log(`✅ Stats calculated for ${userRole}`);
+        
+        res.json({
+            success: true,
+            stats
+        });
     } catch (err) {
-        console.error("Get logbook stats error:", err);
+        console.error("❌ Get logbook stats error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch logbook statistics",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
-
-// Export all functions
-/*export {
-    createLogbook,
-    getMyLogbooks,
-    getLogbookById,
-    updateLogbook,
-    deleteLogbook,
-    deleteLogbookImage,
-    getSupervisorLogbooks,
-    reviewLogbook,
-    getAllLogbooks,
-    getStudentLogbook,
-    getLogbookStats,
-};*/

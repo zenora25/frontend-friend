@@ -3,7 +3,7 @@ import InstitutionSupervisor from "../models/institutionSupervisor.js";
 import IndustrySupervisor from "../models/industrySupervisor.js";
 import HOD from "../models/hod.js";
 import SIWESCoordinator from "../models/siwesCoordinator.js";
-import Logbook from "../models/logbook.js";
+import Logbook from "../models/Logbook.js";
 import Defense from "../models/Defense.js";
 import Assignment from "../models/Assignment.js";
 import VerificationCode from "../models/VerificationCode.js";
@@ -13,6 +13,7 @@ import { Op } from "sequelize";
 export const getStudentDashboard = async (req, res) => {
     try {
         const studentId = req.user.id;
+        console.log("📊 Fetching dashboard for student:", studentId);
 
         const student = await Student.findByPk(studentId, {
             attributes: [
@@ -28,8 +29,14 @@ export const getStudentDashboard = async (req, res) => {
         });
 
         if (!student) {
-            return res.status(404).json({ error: "Student not found" });
+            console.log("❌ Student not found:", studentId);
+            return res.status(404).json({ 
+                success: false,
+                error: "Student not found" 
+            });
         }
+
+        console.log("✅ Found student:", student.fullName);
 
         // Get logbook stats
         const totalEntries = await Logbook.count({ where: { studentId } });
@@ -39,12 +46,26 @@ export const getStudentDashboard = async (req, res) => {
         const pendingEntries = await Logbook.count({
             where: { studentId, status: "PENDING" },
         });
-
-        // Get defense info
-        const defense = await Defense.findOne({
-            where: { studentId },
-            attributes: ["defenseDate", "defenseTime", "venue", "status", "score"],
+        const revisionEntries = await Logbook.count({
+            where: { studentId, status: "REVISION" },
         });
+
+        console.log("📈 Logbook stats:", { totalEntries, approvedEntries, pendingEntries, revisionEntries });
+
+        // Get defense info with error handling
+        let defense = null;
+        try {
+            defense = await Defense.findOne({
+                where: { studentId },
+                attributes: ["defenseDate", "defenseTime", "venue", "status", "score"],
+            });
+            if (defense) {
+                console.log("✅ Found defense info for student");
+            }
+        } catch (defenseError) {
+            console.warn("⚠️ Could not fetch defense info:", defenseError.message);
+            // Defense table might not exist yet, continue without it
+        }
 
         // Get recent logbooks
         const recentLogbooks = await Logbook.findAll({
@@ -54,7 +75,10 @@ export const getStudentDashboard = async (req, res) => {
             attributes: ["id", "weekNumber", "title", "status", "createdAt"],
         });
 
+        console.log("✅ Found recent logbooks:", recentLogbooks.length);
+
         res.json({
+            success: true,
             student,
             stats: {
                 weeksCompleted: approvedEntries,
@@ -62,7 +86,9 @@ export const getStudentDashboard = async (req, res) => {
                 logbooksSubmitted: totalEntries,
                 logbooksPending: pendingEntries,
                 logbooksApproved: approvedEntries,
+                logbooksRevision: revisionEntries,
                 progress: student.progress,
+                completionRate: totalEntries > 0 ? Math.round((approvedEntries / totalEntries) * 100) : 0,
             },
             recentActivities: recentLogbooks.map((logbook) => ({
                 id: logbook.id,
@@ -82,10 +108,21 @@ export const getStudentDashboard = async (req, res) => {
                 : null,
         });
     } catch (err) {
-        console.error("Get student dashboard error:", err);
+        console.error("❌ Get student dashboard error:", err.message);
+        console.error("🔍 Error stack:", err.stack);
+        
+        // Provide more helpful error message
+        let errorMessage = "Failed to fetch dashboard data";
+        if (err.original && err.original.sqlMessage) {
+            if (err.original.sqlMessage.includes("doesn't exist")) {
+                errorMessage = "Some required database tables are missing";
+            }
+        }
+        
         res.status(500).json({
-            error: "Failed to fetch dashboard data",
-            details: err.message,
+            success: false,
+            error: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -95,6 +132,8 @@ export const getSupervisorDashboard = async (req, res) => {
     try {
         const supervisorId = req.user.id;
         const userRole = req.user.role;
+
+        console.log(`👨‍🏫 Fetching dashboard for ${userRole}:`, supervisorId);
 
         let stats = {};
         let recentSubmissions = [];
@@ -117,44 +156,49 @@ export const getSupervisorDashboard = async (req, res) => {
                 ],
             });
 
-            if (supervisor) {
-                assignedStudents = supervisor.AssignedStudents;
-
-                const allLogbooks = assignedStudents.flatMap(
-                    (student) => student.Logbooks
-                );
-
-                stats = {
-                    assignedStudents: assignedStudents.length,
-                    pendingReviews: allLogbooks.filter((lb) => lb.status === "PENDING")
-                        .length,
-                    reviewedThisWeek: allLogbooks.filter(
-                        (lb) =>
-                            lb.status === "APPROVED" &&
-                            new Date(lb.updatedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                    ).length,
-                    totalSubmissions: allLogbooks.length,
-                };
-
-                recentSubmissions = allLogbooks
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                    .slice(0, 10)
-                    .map((logbook) => ({
-                        id: logbook.id,
-                        student: assignedStudents.find((s) => s.id === logbook.studentId)
-                            ?.fullName,
-                        week: logbook.weekNumber,
-                        submittedAt: logbook.createdAt,
-                        status: logbook.status,
-                        preview: logbook.weekSummary?.substring(0, 100) + "...",
-                    }));
+            if (!supervisor) {
+                return res.status(404).json({ 
+                    success: false,
+                    error: "Institution supervisor not found" 
+                });
             }
+
+            assignedStudents = supervisor.AssignedStudents || [];
+            console.log(`✅ Found ${assignedStudents.length} assigned students`);
+
+            const allLogbooks = assignedStudents.flatMap(
+                (student) => student.Logbooks || []
+            );
+
+            stats = {
+                assignedStudents: assignedStudents.length,
+                pendingReviews: allLogbooks.filter((lb) => lb.status === "PENDING").length,
+                reviewedThisWeek: allLogbooks.filter(
+                    (lb) =>
+                        lb.status === "APPROVED" &&
+                        new Date(lb.updatedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                ).length,
+                totalSubmissions: allLogbooks.length,
+            };
+
+            recentSubmissions = allLogbooks
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 10)
+                .map((logbook) => ({
+                    id: logbook.id,
+                    student: assignedStudents.find((s) => s.id === logbook.studentId)?.fullName || "Unknown",
+                    week: logbook.weekNumber,
+                    submittedAt: logbook.createdAt,
+                    status: logbook.status,
+                    preview: logbook.weekSummary?.substring(0, 100) + "..." || "No summary",
+                }));
+
         } else if (userRole === "industrySupervisor") {
             const supervisor = await IndustrySupervisor.findByPk(supervisorId, {
                 include: [
                     {
                         model: Student,
-                        as: "IndustryStudents",
+                        as: "AssignedInterns",
                         include: [
                             {
                                 model: Logbook,
@@ -166,41 +210,51 @@ export const getSupervisorDashboard = async (req, res) => {
                 ],
             });
 
-            if (supervisor) {
-                assignedStudents = supervisor.IndustryStudents;
-
-                const allLogbooks = assignedStudents.flatMap(
-                    (student) => student.Logbooks
-                );
-
-                stats = {
-                    assignedStudents: assignedStudents.length,
-                    pendingReviews: allLogbooks.filter((lb) => lb.status === "PENDING")
-                        .length,
-                    reviewedThisWeek: allLogbooks.filter(
-                        (lb) =>
-                            lb.status === "APPROVED" &&
-                            new Date(lb.updatedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                    ).length,
-                    totalSubmissions: allLogbooks.length,
-                };
-
-                recentSubmissions = allLogbooks
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                    .slice(0, 10)
-                    .map((logbook) => ({
-                        id: logbook.id,
-                        student: assignedStudents.find((s) => s.id === logbook.studentId)
-                            ?.fullName,
-                        week: logbook.weekNumber,
-                        submittedAt: logbook.createdAt,
-                        status: logbook.status,
-                        preview: logbook.weekSummary?.substring(0, 100) + "...",
-                    }));
+            if (!supervisor) {
+                return res.status(404).json({ 
+                    success: false,
+                    error: "Industry supervisor not found" 
+                });
             }
+
+            assignedStudents = supervisor.AssignedInterns || [];
+            console.log(`✅ Found ${assignedStudents.length} assigned interns`);
+
+            const allLogbooks = assignedStudents.flatMap(
+                (student) => student.Logbooks || []
+            );
+
+            stats = {
+                assignedStudents: assignedStudents.length,
+                pendingReviews: allLogbooks.filter((lb) => lb.status === "PENDING").length,
+                reviewedThisWeek: allLogbooks.filter(
+                    (lb) =>
+                        lb.status === "APPROVED" &&
+                        new Date(lb.updatedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                ).length,
+                totalSubmissions: allLogbooks.length,
+            };
+
+            recentSubmissions = allLogbooks
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 10)
+                .map((logbook) => ({
+                    id: logbook.id,
+                    student: assignedStudents.find((s) => s.id === logbook.studentId)?.fullName || "Unknown",
+                    week: logbook.weekNumber,
+                    submittedAt: logbook.createdAt,
+                    status: logbook.status,
+                    preview: logbook.weekSummary?.substring(0, 100) + "..." || "No summary",
+                }));
+        } else {
+            return res.status(403).json({ 
+                success: false,
+                error: "Not authorized" 
+            });
         }
 
         res.json({
+            success: true,
             stats,
             recentSubmissions,
             assignedStudents: assignedStudents.map((student) => ({
@@ -213,10 +267,11 @@ export const getSupervisorDashboard = async (req, res) => {
             })),
         });
     } catch (err) {
-        console.error("Get supervisor dashboard error:", err);
+        console.error("❌ Get supervisor dashboard error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch dashboard data",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -225,11 +280,17 @@ export const getSupervisorDashboard = async (req, res) => {
 export const getHODDashboard = async (req, res) => {
     try {
         const hodId = req.user.id;
+        console.log("👨‍💼 Fetching dashboard for HOD:", hodId);
 
         const hod = await HOD.findByPk(hodId);
         if (!hod) {
-            return res.status(404).json({ error: "HOD not found" });
+            return res.status(404).json({ 
+                success: false,
+                error: "HOD not found" 
+            });
         }
+
+        console.log("✅ Found HOD:", hod.fullName, "Department:", hod.department);
 
         // Get department stats
         const totalStudents = await Student.count({
@@ -253,7 +314,7 @@ export const getHODDashboard = async (req, res) => {
             include: [Logbook],
         });
 
-        const allLogbooks = students.flatMap((student) => student.Logbooks);
+        const allLogbooks = students.flatMap((student) => student.Logbooks || []);
         const approvedLogbooks = allLogbooks.filter(
             (lb) => lb.status === "APPROVED"
         );
@@ -261,7 +322,7 @@ export const getHODDashboard = async (req, res) => {
         const avgProgress =
             students.length > 0
                 ? Math.round(
-                    students.reduce((sum, student) => sum + student.progress, 0) /
+                    students.reduce((sum, student) => sum + (student.progress || 0), 0) /
                     students.length
                 )
                 : 0;
@@ -279,9 +340,9 @@ export const getHODDashboard = async (req, res) => {
         });
 
         const supervisorPerformance = supervisors.map((supervisor) => {
-            const assignedStudents = supervisor.AssignedStudents;
+            const assignedStudents = supervisor.AssignedStudents || [];
             const studentLogbooks = assignedStudents.flatMap(
-                (student) => student.Logbooks
+                (student) => student.Logbooks || []
             );
             const reviewed = studentLogbooks.filter(
                 (lb) => lb.status === "APPROVED" || lb.status === "REVISION"
@@ -303,7 +364,10 @@ export const getHODDashboard = async (req, res) => {
             };
         });
 
+        console.log("📊 Department stats calculated");
+
         res.json({
+            success: true,
             stats: {
                 totalStudents,
                 activeStudents,
@@ -314,36 +378,24 @@ export const getHODDashboard = async (req, res) => {
                     totalStudents > 0
                         ? Math.round((completedStudents / totalStudents) * 100)
                         : 0,
+                approvedLogbooks: approvedLogbooks.length,
+                totalLogbooks: allLogbooks.length,
             },
             supervisorPerformance,
             departmentProgress: [
                 {
-                    name: "Computer Science",
-                    students: Math.floor(totalStudents * 0.4),
-                    avgProgress: 72,
-                },
-                {
-                    name: "Software Engineering",
-                    students: Math.floor(totalStudents * 0.3),
-                    avgProgress: 65,
-                },
-                {
-                    name: "Information Technology",
-                    students: Math.floor(totalStudents * 0.2),
-                    avgProgress: 70,
-                },
-                {
-                    name: "Cybersecurity",
-                    students: Math.floor(totalStudents * 0.1),
-                    avgProgress: 62,
+                    name: hod.department || "Computer Science",
+                    students: totalStudents,
+                    avgProgress: avgProgress,
                 },
             ],
         });
     } catch (err) {
-        console.error("Get HOD dashboard error:", err);
+        console.error("❌ Get HOD dashboard error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch dashboard data",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -352,25 +404,38 @@ export const getHODDashboard = async (req, res) => {
 export const getCoordinatorDashboard = async (req, res) => {
     try {
         const coordinatorId = req.user.id;
+        console.log("👩‍💼 Fetching dashboard for coordinator:", coordinatorId);
 
         // Get total students
         const totalStudents = await Student.count();
 
-        // Get active verification codes
-        const activeVerificationCodes = await VerificationCode.count({
-            where: {
-                isUsed: false,
-                expiresAt: { [Op.gt]: new Date() },
-            },
-        });
+        // Get active verification codes with error handling
+        let activeVerificationCodes = 0;
+        try {
+            activeVerificationCodes = await VerificationCode.count({
+                where: {
+                    isUsed: false,
+                    expiresAt: { [Op.gt]: new Date() },
+                },
+            });
+        } catch (vcError) {
+            console.warn("⚠️ Could not fetch verification codes:", vcError.message);
+            // Verification codes table might not exist
+        }
 
-        // Get upcoming defenses
-        const upcomingDefenses = await Defense.count({
-            where: {
-                status: "SCHEDULED",
-                defenseDate: { [Op.gte]: new Date() },
-            },
-        });
+        // Get upcoming defenses with error handling
+        let upcomingDefenses = 0;
+        try {
+            upcomingDefenses = await Defense.count({
+                where: {
+                    status: "SCHEDULED",
+                    defenseDate: { [Op.gte]: new Date() },
+                },
+            });
+        } catch (defenseError) {
+            console.warn("⚠️ Could not fetch defenses:", defenseError.message);
+            // Defenses table might not exist
+        }
 
         // Get pending logbooks
         const pendingLogbooks = await Logbook.count({
@@ -378,12 +443,20 @@ export const getCoordinatorDashboard = async (req, res) => {
         });
 
         // Get recent verification codes
-        const verificationCodes = await VerificationCode.findAll({
-            order: [["createdAt", "DESC"]],
-            limit: 10,
-        });
+        let verificationCodes = [];
+        try {
+            verificationCodes = await VerificationCode.findAll({
+                order: [["createdAt", "DESC"]],
+                limit: 10,
+            });
+        } catch (vcError) {
+            console.warn("⚠️ Could not fetch recent verification codes:", vcError.message);
+        }
+
+        console.log("📊 Coordinator stats calculated");
 
         res.json({
+            success: true,
             stats: {
                 totalStudents,
                 activeVerificationCodes,
@@ -400,10 +473,11 @@ export const getCoordinatorDashboard = async (req, res) => {
             })),
         });
     } catch (err) {
-        console.error("Get coordinator dashboard error:", err);
+        console.error("❌ Get coordinator dashboard error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch dashboard data",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
@@ -411,6 +485,8 @@ export const getCoordinatorDashboard = async (req, res) => {
 // Get system-wide stats (Admin/Coordinator)
 export const getSystemStats = async (req, res) => {
     try {
+        console.log("🌐 Fetching system-wide stats");
+
         const totalStudents = await Student.count();
         const totalSupervisors = await InstitutionSupervisor.count();
         const totalIndustrySupervisors = await IndustrySupervisor.count();
@@ -427,10 +503,16 @@ export const getSystemStats = async (req, res) => {
             where: { status: "APPROVED" },
         });
 
-        const totalDefenses = await Defense.count();
-        const completedDefenses = await Defense.count({
-            where: { status: "COMPLETED" },
-        });
+        let totalDefenses = 0;
+        let completedDefenses = 0;
+        try {
+            totalDefenses = await Defense.count();
+            completedDefenses = await Defense.count({
+                where: { status: "COMPLETED" },
+            });
+        } catch (defenseError) {
+            console.warn("⚠️ Could not fetch defense stats:", defenseError.message);
+        }
 
         // Get department distribution
         const departments = await Student.findAll({
@@ -441,7 +523,10 @@ export const getSystemStats = async (req, res) => {
             group: ["department"],
         });
 
+        console.log("✅ System stats calculated");
+
         res.json({
+            success: true,
             users: {
                 totalStudents,
                 totalSupervisors,
@@ -464,18 +549,11 @@ export const getSystemStats = async (req, res) => {
             departments,
         });
     } catch (err) {
-        console.error("Get system stats error:", err);
+        console.error("❌ Get system stats error:", err.message);
         res.status(500).json({
+            success: false,
             error: "Failed to fetch system statistics",
-            details: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
 };
-
-// export {
-//     getStudentDashboard,
-//     getSupervisorDashboard,
-//     getHODDashboard,
-//     getCoordinatorDashboard,
-//     getSystemStats,
-// };

@@ -1,7 +1,8 @@
-
+// routes/hod.js
 import express from "express";
 import protect from "../middleware/authMiddleware.js";
-import { requireHOD, requireCoordinator } from "../middleware/roleAuth.js";
+import requireHOD from "../middleware/hodAuth.js"; // Updated import
+import { requireCoordinator } from "../middleware/roleAuth.js";
 import {
     createHod,
     getHods,

@@ -22,23 +22,39 @@ router.post("/role/login", async (req, res) => {
     }
 
     let user;
-    let userModel;
 
+    // Role-specific queries with explicit attributes
     switch (role) {
       case "student":
-        userModel = Student;
+        user = await Student.findOne({ 
+          where: { email },
+          attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'password', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
+        });
         break;
       case "institutionSupervisor":
-        userModel = InstitutionSupervisor;
+        user = await InstitutionSupervisor.findOne({ 
+          where: { email },
+          attributes: ['id', 'fullName', 'email', 'department', 'password', 'createdAt', 'updatedAt']
+        });
         break;
       case "industrySupervisor":
-        userModel = IndustrySupervisor;
+        user = await IndustrySupervisor.findOne({ 
+          where: { email },
+          attributes: ['id', 'fullName', 'email', 'companyName', 'password', 'phone', 'profileImage', 'companyAddress', 'position', 'department', 'lastLogin', 'createdAt', 'updatedAt']
+        });
         break;
       case "hod":
-        userModel = Hod;
+        // HOD query without phone and profileImage since they don't exist in DB
+        user = await Hod.findOne({ 
+          where: { email },
+          attributes: ['id', 'fullName', 'email', 'department', 'password', 'createdAt', 'updatedAt']
+        });
         break;
       case "siwesCoordinator":
-        userModel = Coordinator;
+        user = await Coordinator.findOne({ 
+          where: { email },
+          attributes: ['id', 'fullName', 'email', 'password', 'createdAt', 'updatedAt']
+        });
         break;
       default:
         return res.status(400).json({ 
@@ -46,8 +62,6 @@ router.post("/role/login", async (req, res) => {
           error: "Invalid role specified" 
         });
     }
-
-    user = await userModel.findOne({ where: { email } });
 
     if (!user) {
       return res.status(401).json({ 
@@ -64,9 +78,11 @@ router.post("/role/login", async (req, res) => {
       });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    // Update last login if the column exists
+    if (user.lastLogin !== undefined) {
+      user.lastLogin = new Date();
+      await user.save();
+    }
 
     // Generate token
     const token = jwt.sign(
@@ -86,23 +102,37 @@ router.post("/role/login", async (req, res) => {
       fullName: user.fullName,
       email: user.email,
       role: role,
+      lastLogin: user.lastLogin || null,
     };
 
     // Add role-specific fields
-    if (role === "student") {
-      userData.matricNumber = user.matricNumber;
-      userData.department = user.department;
-      userData.progress = user.progress;
-      userData.companyName = user.companyName;
-    } else if (role === "institutionSupervisor") {
-      userData.department = user.department;
-      userData.title = user.title;
-    } else if (role === "industrySupervisor") {
-      userData.companyName = user.companyName;
-      userData.position = user.position;
-      userData.companyAddress = user.companyAddress;
-    } else if (role === "hod") {
-      userData.department = user.department;
+    switch (role) {
+      case "student":
+        userData.matricNumber = user.matricNumber;
+        userData.department = user.department;
+        userData.progress = user.progress;
+        userData.companyName = user.companyName;
+        userData.phone = user.phone;
+        userData.companyAddress = user.companyAddress;
+        userData.status = user.status;
+        break;
+      case "institutionSupervisor":
+        userData.department = user.department;
+        break;
+      case "industrySupervisor":
+        userData.companyName = user.companyName;
+        userData.position = user.position;
+        userData.companyAddress = user.companyAddress;
+        userData.department = user.department;
+        userData.phone = user.phone;
+        userData.profileImage = user.profileImage;
+        break;
+      case "hod":
+        userData.department = user.department;
+        break;
+      case "siwesCoordinator":
+        // Add any coordinator-specific fields
+        break;
     }
 
     res.json({
@@ -116,7 +146,7 @@ router.post("/role/login", async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: "Login failed", 
-      details: err.message 
+      details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
 });
@@ -200,7 +230,10 @@ router.post("/student/signup", async (req, res) => {
         matricNumber: student.matricNumber,
         department: student.department,
         progress: student.progress,
-        companyName: student.companyName
+        companyName: student.companyName,
+        phone: student.phone,
+        companyAddress: student.companyAddress,
+        status: student.status
       },
     });
   } catch (err) {
@@ -208,23 +241,22 @@ router.post("/student/signup", async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: "Registration failed", 
-      details: err.message 
+      details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
 });
 
-// Student login
+// Student login (legacy endpoint - can be removed if using /role/login)
 router.post("/student/login", async (req, res) => {
   try {
-    console.log("Student login attempt started"); // Debug log
     const { email, password } = req.body;
-    console.log("Request body:", { email, passwordReceived: !!password }); // Debug log
 
-    const student = await Student.findOne({ where: { email } });
-    console.log("Student found:", !!student); // Debug log
+    const student = await Student.findOne({ 
+      where: { email },
+      attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'password', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
+    });
 
     if (!student) {
-      console.log("Student not found for email:", email); // Debug log
       return res.status(401).json({ 
         success: false,
         error: "Invalid email or password" 
@@ -232,10 +264,7 @@ router.post("/student/login", async (req, res) => {
     }
 
     const isPasswordValid = await student.comparePassword(password);
-    console.log("Password valid:", isPasswordValid); // Debug log
-
     if (!isPasswordValid) {
-      console.log("Invalid password for student:", email); // Debug log
       return res.status(401).json({ 
         success: false,
         error: "Invalid email or password" 
@@ -243,10 +272,8 @@ router.post("/student/login", async (req, res) => {
     }
 
     // Update last login
-    console.log("Updating last login..."); // Debug log
     student.lastLogin = new Date();
     await student.save();
-    console.log("Last login updated."); // Debug log
 
     const token = jwt.sign(
       {
@@ -258,7 +285,6 @@ router.post("/student/login", async (req, res) => {
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "7d" }
     );
-    console.log("Token generated."); // Debug log
 
     res.json({
       success: true,
@@ -273,17 +299,18 @@ router.post("/student/login", async (req, res) => {
         department: student.department,
         progress: student.progress,
         companyName: student.companyName,
-        status: student.status
+        phone: student.phone,
+        companyAddress: student.companyAddress,
+        status: student.status,
+        lastLogin: student.lastLogin
       },
     });
-    console.log("Login successful response sent."); // Debug log
   } catch (err) {
     console.error("Login error:", err);
-    console.error("Stack trace:", err.stack); // Debug log
     res.status(500).json({ 
       success: false,
       error: "Login failed", 
-      details: err.message 
+      details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
 });
@@ -331,30 +358,31 @@ router.get("/profile", async (req, res) => {
     let user;
     const { role, id } = decoded;
 
+    // Role-specific profile queries with explicit attributes
     switch (role) {
       case "student":
         user = await Student.findByPk(id, {
-          attributes: { exclude: ['password'] }
+          attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
         });
         break;
       case "institutionSupervisor":
         user = await InstitutionSupervisor.findByPk(id, {
-          attributes: { exclude: ['password'] }
+          attributes: ['id', 'fullName', 'email', 'department', 'createdAt', 'updatedAt']
         });
         break;
       case "industrySupervisor":
         user = await IndustrySupervisor.findByPk(id, {
-          attributes: { exclude: ['password'] }
+          attributes: ['id', 'fullName', 'email', 'companyName', 'phone', 'profileImage', 'companyAddress', 'position', 'department', 'lastLogin', 'createdAt', 'updatedAt']
         });
         break;
       case "hod":
         user = await Hod.findByPk(id, {
-          attributes: { exclude: ['password'] }
+          attributes: ['id', 'fullName', 'email', 'department', 'createdAt', 'updatedAt']
         });
         break;
       case "siwesCoordinator":
         user = await Coordinator.findByPk(id, {
-          attributes: { exclude: ['password'] }
+          attributes: ['id', 'fullName', 'email', 'createdAt', 'updatedAt']
         });
         break;
       default:
@@ -382,6 +410,16 @@ router.get("/profile", async (req, res) => {
       error: "Failed to fetch profile" 
     });
   }
+});
+
+// Logout (optional - token invalidation)
+router.post("/logout", (req, res) => {
+  // Since we're using stateless JWT, logout is client-side
+  // You could implement token blacklisting here if needed
+  res.json({
+    success: true,
+    message: "Logout successful"
+  });
 });
 
 export default router;
