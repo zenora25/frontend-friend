@@ -35,7 +35,7 @@ const Assignment = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: "hods",
+                model: "h_o_ds",
                 key: "id",
             },
         },
