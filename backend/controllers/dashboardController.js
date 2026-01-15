@@ -480,7 +480,9 @@ export const getCoordinatorDashboard = async (req, res) => {
             verificationCodes: verificationCodes.map((code) => ({
                 id: code.id,
                 code: code.code,
+                email: code.email,
                 department: code.department,
+                isUsed: code.isUsed,
                 usedBy: code.isUsed ? code.email : null,
                 createdAt: code.createdAt,
                 expiresAt: code.expiresAt,

@@ -104,7 +104,7 @@ const StudentDashboard = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !dashboardData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -288,8 +288,8 @@ const StudentDashboard = () => {
                   </div>
                   <Badge
                     className={`${entry.status === "approved"
-                        ? "bg-green-100 text-green-800 border-green-200"
-                        : "bg-gray-100 text-gray-800 border-gray-200"
+                      ? "bg-green-100 text-green-800 border-green-200"
+                      : "bg-gray-100 text-gray-800 border-gray-200"
                       }`}
                   >
                     {entry.status === "approved" ? (

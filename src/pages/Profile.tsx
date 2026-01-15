@@ -18,6 +18,7 @@ const Profile = () => {
         fullName: user?.fullName || "",
         email: user?.email || "",
         phone: user?.phone || "",
+        department: user?.department || "",
         companyName: user?.companyName || "",
         companyAddress: user?.companyAddress || "",
     });
@@ -34,6 +35,7 @@ const Profile = () => {
                 fullName: data.fullName || "",
                 email: data.email || "",
                 phone: data.phone || "",
+                department: data.department || "",
                 companyName: data.companyName || "",
                 companyAddress: data.companyAddress || "",
             });
@@ -124,8 +126,26 @@ const Profile = () => {
                             )}
                         </div>
 
+                        {user?.role !== "student" && (
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2">
+                                    <Building className="w-4 h-4" />
+                                    Department
+                                </Label>
+                                {isEditing ? (
+                                    <Input value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
+                                ) : (
+                                    <p>{formData.department || "Not assigned"}</p>
+                                )}
+                            </div>
+                        )}
+
                         {user?.role === "student" && (
                             <>
+                                <div className="space-y-1 mt-2">
+                                    <Label className="text-xs text-muted-foreground">Department</Label>
+                                    <p className="font-medium">{user.department}</p>
+                                </div>
                                 <div className="space-y-2">
                                     <Label className="flex items-center gap-2">
                                         <Building className="w-4 h-4" />

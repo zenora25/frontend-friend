@@ -210,9 +210,9 @@ const CoordinatorDashboard = () => {
     }
 
     const emails = bulkEmails
-        .split('\n')
-        .map(email => email.trim())
-        .filter(email => email.length > 0);
+      .split('\n')
+      .map(email => email.trim())
+      .filter(email => email.length > 0);
 
     if (emails.length === 0) {
       toast({
@@ -281,10 +281,10 @@ const CoordinatorDashboard = () => {
   };
 
   const filteredCodes = dashboardData?.verificationCodes.filter(
-      (code) =>
-          code.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          code.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          code.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (code) =>
+      code.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      code.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      code.email.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
   const activeCodes = filteredCodes.filter(code => !code.isUsed && new Date(code.expiresAt) > new Date());
@@ -293,261 +293,261 @@ const CoordinatorDashboard = () => {
 
   if (isLoading || !dashboardData) {
     return (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Coordinator Dashboard</h1>
-            <p className="text-muted-foreground">
-              Manage verification codes, students, and defense schedules.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Generate Code
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Generate Verification Code</DialogTitle>
-                  <DialogDescription>
-                    Create a new verification code for a specific student's email.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Student Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        placeholder="student@baze.edu.ng"
-                        value={newCodeEmail}
-                        onChange={(e) => setNewCodeEmail(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Only this email can use this verification code
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <Select value={newCodeDepartment} onValueChange={setNewCodeDepartment}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Computer Science">Computer Science</SelectItem>
-                        <SelectItem value="Software Engineering">Software Engineering</SelectItem>
-                        <SelectItem value="Information Technology">Information Technology</SelectItem>
-                        <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleGenerateCode} disabled={generatingCode}>
-                    {generatingCode ? "Generating..." : "Generate Code"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Bulk Generate
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Bulk Generate Codes</DialogTitle>
-                  <DialogDescription>
-                    Generate multiple verification codes at once (one per line).
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="bulk-emails">Student Emails (one per line)</Label>
-                    <Textarea
-                        id="bulk-emails"
-                        placeholder="student1@baze.edu.ng&#10;student2@baze.edu.ng&#10;student3@baze.edu.ng"
-                        value={bulkEmails}
-                        onChange={(e) => setBulkEmails(e.target.value)}
-                        rows={5}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Each email will receive a unique verification code
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <Select value={newCodeDepartment} onValueChange={setNewCodeDepartment}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Computer Science">Computer Science</SelectItem>
-                        <SelectItem value="Software Engineering">Software Engineering</SelectItem>
-                        <SelectItem value="Information Technology">Information Technology</SelectItem>
-                        <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleBulkGenerate} disabled={generatingBulk}>
-                    {generatingBulk ? "Generating..." : "Generate Codes"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Coordinator Dashboard</h1>
+          <p className="text-muted-foreground">
+            Manage verification codes, students, and defense schedules.
+          </p>
         </div>
-
-        {/* Stats cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Students</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.totalStudents}</p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Codes</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.activeVerificationCodes}</p>
-                </div>
-                <div className="w-12 h-12 bg-chart-5/20 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-chart-5" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Upcoming Defenses</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.upcomingDefenses}</p>
-                </div>
-                <div className="w-12 h-12 bg-chart-2/20 flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-chart-2" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Pending Logbooks</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.pendingLogbooks}</p>
-                </div>
-                <div className="w-12 h-12 bg-chart-1/20 flex items-center justify-center">
-                  <BookText className="w-6 h-6 text-chart-1" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Verification codes table */}
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg">Verification Codes</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Each code is linked to a specific student email
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                    placeholder="Search codes, emails, or departments..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-full sm:w-64"
-                />
-              </div>
-              <Button variant="outline" size="icon" onClick={fetchDashboardData}>
-                <Loader2 className="h-4 w-4" />
+        <div className="flex gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Generate Code
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="all">All Codes ({filteredCodes.length})</TabsTrigger>
-                <TabsTrigger value="active">Active ({activeCodes.length})</TabsTrigger>
-                <TabsTrigger value="used">Used ({usedCodes.length})</TabsTrigger>
-                <TabsTrigger value="expired">Expired ({expiredCodes.length})</TabsTrigger>
-              </TabsList>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Verification Code</DialogTitle>
+                <DialogDescription>
+                  Create a new verification code for a specific student's email.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Student Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="student@baze.edu.ng"
+                    value={newCodeEmail}
+                    onChange={(e) => setNewCodeEmail(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Only this email can use this verification code
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select value={newCodeDepartment} onValueChange={setNewCodeDepartment}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Computer Science">Computer Science</SelectItem>
+                      <SelectItem value="Software Engineering">Software Engineering</SelectItem>
+                      <SelectItem value="Information Technology">Information Technology</SelectItem>
+                      <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleGenerateCode} disabled={generatingCode}>
+                  {generatingCode ? "Generating..." : "Generate Code"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-              <TabsContent value="all">
-                <CodeTable
-                    codes={filteredCodes}
-                    copiedCode={copiedCode}
-                    onCopyCode={handleCopyCode}
-                    onDeleteCode={handleDeleteCode}
-                />
-              </TabsContent>
-              <TabsContent value="active">
-                <CodeTable
-                    codes={activeCodes}
-                    copiedCode={copiedCode}
-                    onCopyCode={handleCopyCode}
-                    onDeleteCode={handleDeleteCode}
-                />
-              </TabsContent>
-              <TabsContent value="used">
-                <CodeTable
-                    codes={usedCodes}
-                    copiedCode={copiedCode}
-                    onCopyCode={handleCopyCode}
-                    onDeleteCode={handleDeleteCode}
-                />
-              </TabsContent>
-              <TabsContent value="expired">
-                <CodeTable
-                    codes={expiredCodes}
-                    copiedCode={copiedCode}
-                    onCopyCode={handleCopyCode}
-                    onDeleteCode={handleDeleteCode}
-                />
-              </TabsContent>
-            </Tabs>
+          <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Bulk Generate
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Bulk Generate Codes</DialogTitle>
+                <DialogDescription>
+                  Generate multiple verification codes at once (one per line).
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bulk-emails">Student Emails (one per line)</Label>
+                  <Textarea
+                    id="bulk-emails"
+                    placeholder="student1@baze.edu.ng&#10;student2@baze.edu.ng&#10;student3@baze.edu.ng"
+                    value={bulkEmails}
+                    onChange={(e) => setBulkEmails(e.target.value)}
+                    rows={5}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Each email will receive a unique verification code
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select value={newCodeDepartment} onValueChange={setNewCodeDepartment}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Computer Science">Computer Science</SelectItem>
+                      <SelectItem value="Software Engineering">Software Engineering</SelectItem>
+                      <SelectItem value="Information Technology">Information Technology</SelectItem>
+                      <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleBulkGenerate} disabled={generatingBulk}>
+                  {generatingBulk ? "Generating..." : "Generate Codes"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Students</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.totalStudents}</p>
+              </div>
+              <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Codes</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.activeVerificationCodes}</p>
+              </div>
+              <div className="w-12 h-12 bg-chart-5/20 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-chart-5" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Upcoming Defenses</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.upcomingDefenses}</p>
+              </div>
+              <div className="w-12 h-12 bg-chart-2/20 flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-chart-2" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pending Logbooks</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.pendingLogbooks}</p>
+              </div>
+              <div className="w-12 h-12 bg-chart-1/20 flex items-center justify-center">
+                <BookText className="w-6 h-6 text-chart-1" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Verification codes table */}
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg">Verification Codes</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Each code is linked to a specific student email
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search codes, emails, or departments..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-full sm:w-64"
+              />
+            </div>
+            <Button variant="outline" size="icon" onClick={fetchDashboardData}>
+              <Loader2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">All Codes ({filteredCodes.length})</TabsTrigger>
+              <TabsTrigger value="active">Active ({activeCodes.length})</TabsTrigger>
+              <TabsTrigger value="used">Used ({usedCodes.length})</TabsTrigger>
+              <TabsTrigger value="expired">Expired ({expiredCodes.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all">
+              <CodeTable
+                codes={filteredCodes}
+                copiedCode={copiedCode}
+                onCopyCode={handleCopyCode}
+                onDeleteCode={handleDeleteCode}
+              />
+            </TabsContent>
+            <TabsContent value="active">
+              <CodeTable
+                codes={activeCodes}
+                copiedCode={copiedCode}
+                onCopyCode={handleCopyCode}
+                onDeleteCode={handleDeleteCode}
+              />
+            </TabsContent>
+            <TabsContent value="used">
+              <CodeTable
+                codes={usedCodes}
+                copiedCode={copiedCode}
+                onCopyCode={handleCopyCode}
+                onDeleteCode={handleDeleteCode}
+              />
+            </TabsContent>
+            <TabsContent value="expired">
+              <CodeTable
+                codes={expiredCodes}
+                copiedCode={copiedCode}
+                onCopyCode={handleCopyCode}
+                onDeleteCode={handleDeleteCode}
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
@@ -561,16 +561,16 @@ interface CodeTableProps {
 const CodeTable = ({ codes, copiedCode, onCopyCode, onDeleteCode }: CodeTableProps) => {
   if (codes.length === 0) {
     return (
-        <div className="text-center py-8 text-muted-foreground">
-          No verification codes found
-        </div>
+      <div className="text-center py-8 text-muted-foreground">
+        No verification codes found
+      </div>
     );
   }
 
   return (
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
           <tr className="border-b border-border">
             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Code</th>
             <th className="text-left py-3 px-4 font-medium text-muted-foreground">
@@ -585,71 +585,71 @@ const CodeTable = ({ codes, copiedCode, onCopyCode, onDeleteCode }: CodeTablePro
             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Expires</th>
             <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
           </tr>
-          </thead>
-          <tbody>
+        </thead>
+        <tbody>
           {codes.map((code) => {
             const isExpired = !code.isUsed && new Date(code.expiresAt) <= new Date();
             return (
-                <tr key={code.id} className="border-b border-border last:border-0 hover:bg-accent/50">
-                  <td className="py-3 px-4">
-                    <code className="px-2 py-1 bg-accent font-mono text-sm">{code.code}</code>
-                  </td>
-                  <td className="py-3 px-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-3 h-3 text-muted-foreground" />
-                      {code.email}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm">{code.department}</td>
-                  <td className="py-3 px-4">
-                    {code.isUsed ? (
-                        <Badge variant="secondary" className="bg-chart-5/20 text-chart-5">
-                          Used
-                        </Badge>
-                    ) : isExpired ? (
-                        <Badge variant="secondary" className="bg-destructive/20 text-destructive">
-                          Expired
-                        </Badge>
-                    ) : (
-                        <Badge variant="secondary" className="bg-chart-2/20 text-chart-2">
-                          Available
-                        </Badge>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">{code.createdAt}</td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">{code.expiresAt}</td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onCopyCode(code.code)}
-                          disabled={code.isUsed || isExpired}
-                          title="Copy code"
-                      >
-                        {copiedCode === code.code ? (
-                            <Check className="w-4 h-4 text-chart-5" />
-                        ) : (
-                            <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                      <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDeleteCode(code.id, code.code)}
-                          disabled={code.isUsed}
-                          title="Delete code"
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+              <tr key={code.id} className="border-b border-border last:border-0 hover:bg-accent/50">
+                <td className="py-3 px-4">
+                  <code className="px-2 py-1 bg-accent font-mono text-sm">{code.code}</code>
+                </td>
+                <td className="py-3 px-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3 h-3 text-muted-foreground" />
+                    {code.email}
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-sm">{code.department}</td>
+                <td className="py-3 px-4">
+                  {code.isUsed ? (
+                    <Badge variant="secondary" className="bg-chart-5/20 text-chart-5">
+                      Used
+                    </Badge>
+                  ) : isExpired ? (
+                    <Badge variant="secondary" className="bg-destructive/20 text-destructive">
+                      Expired
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-chart-2/20 text-chart-2">
+                      Available
+                    </Badge>
+                  )}
+                </td>
+                <td className="py-3 px-4 text-sm text-muted-foreground">{code.createdAt}</td>
+                <td className="py-3 px-4 text-sm text-muted-foreground">{code.expiresAt}</td>
+                <td className="py-3 px-4 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onCopyCode(code.code)}
+                      disabled={code.isUsed || isExpired}
+                      title="Copy code"
+                    >
+                      {copiedCode === code.code ? (
+                        <Check className="w-4 h-4 text-chart-5" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDeleteCode(code.id, code.code)}
+                      disabled={code.isUsed}
+                      title="Delete code"
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
             );
           })}
-          </tbody>
-        </table>
-      </div>
+        </tbody>
+      </table>
+    </div>
   );
 };
 

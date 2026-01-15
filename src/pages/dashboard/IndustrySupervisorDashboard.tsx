@@ -182,183 +182,183 @@ const IndustrySupervisorDashboard = () => {
 
   if (isLoading || !dashboardData) {
     return (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Industry Supervisor Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor and provide feedback on intern progress at your organization.
-          </p>
-        </div>
-
-        {/* Stats cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Assigned Interns</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.assignedStudents}</p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Pending Reviews</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.pendingReviews}</p>
-                </div>
-                <div className="w-12 h-12 bg-chart-1/20 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-chart-1" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Reviewed This Week</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.reviewedThisWeek}</p>
-                </div>
-                <div className="w-12 h-12 bg-chart-5/20 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-chart-5" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Avg. Rating Given</p>
-                  <p className="text-3xl font-bold text-foreground">{dashboardData.stats.avgRating}</p>
-                </div>
-                <div className="w-12 h-12 bg-chart-2/20 flex items-center justify-center">
-                  <Star className="w-6 h-6 text-chart-2" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Assigned interns */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Assigned Interns</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/students">
-                  View all
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {dashboardData.students.map((student) => (
-                    <div key={student.id} className="p-4 bg-accent space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                              {student.name.split(" ").map((n) => n[0]).join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-foreground">{student.name}</p>
-                            <p className="text-xs text-muted-foreground">{student.role}</p>
-                          </div>
-                        </div>
-                        <Badge
-                            variant="secondary"
-                            className={
-                              student.status === "active"
-                                  ? "bg-chart-5/20 text-chart-5"
-                                  : "bg-muted text-muted-foreground"
-                            }
-                        >
-                          {student.status}
-                        </Badge>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">SIWES Progress</span>
-                          <span className="font-medium">{student.progress}%</span>
-                        </div>
-                        <Progress value={student.progress} className="h-2" />
-                      </div>
-                      <p className="text-xs text-muted-foreground">Last activity: {student.lastActivity}</p>
-                    </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent submissions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Submissions to Review</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {dashboardData.recentSubmissions.map((submission) => (
-                    <div key={submission.id} className="p-4 bg-accent space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-foreground">{submission.student}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Week {submission.week} • {submission.submittedAt}
-                          </p>
-                        </div>
-                        <Badge
-                            variant="secondary"
-                            className={
-                              submission.status === "pending"
-                                  ? "bg-chart-1/20 text-chart-1"
-                                  : "bg-chart-5/20 text-chart-5"
-                            }
-                        >
-                          {submission.status === "pending" ? (
-                              <Clock className="w-3 h-3 mr-1" />
-                          ) : (
-                              <CheckCircle2 className="w-3 h-3 mr-1" />
-                          )}
-                          {submission.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{submission.preview}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <MessageSquare className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Industry Supervisor Dashboard</h1>
+        <p className="text-muted-foreground">
+          Monitor and provide feedback on intern progress at your organization.
+        </p>
       </div>
+
+      {/* Stats cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Assigned Interns</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.assignedStudents}</p>
+              </div>
+              <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pending Reviews</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.pendingReviews}</p>
+              </div>
+              <div className="w-12 h-12 bg-chart-1/20 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-chart-1" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Reviewed This Week</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.reviewedThisWeek}</p>
+              </div>
+              <div className="w-12 h-12 bg-chart-5/20 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-chart-5" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Avg. Rating Given</p>
+                <p className="text-3xl font-bold text-foreground">{dashboardData.stats.avgRating}</p>
+              </div>
+              <div className="w-12 h-12 bg-chart-2/20 flex items-center justify-center">
+                <Star className="w-6 h-6 text-chart-2" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Assigned interns */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Assigned Interns</CardTitle>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/students">
+                View all
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {dashboardData.students.map((student) => (
+                <div key={student.id} className="p-4 bg-accent space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                          {student.name.split(" ").map((n) => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-foreground">{student.name}</p>
+                        <p className="text-xs text-muted-foreground">{student.role}</p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className={
+                        student.status === "active"
+                          ? "bg-chart-5/20 text-chart-5"
+                          : "bg-muted text-muted-foreground"
+                      }
+                    >
+                      {student.status}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">SIWES Progress</span>
+                      <span className="font-medium">{student.progress}%</span>
+                    </div>
+                    <Progress value={student.progress} className="h-2" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Last activity: {student.lastActivity}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent submissions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Submissions to Review</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {dashboardData.recentSubmissions.map((submission) => (
+                <div key={submission.id} className="p-4 bg-accent space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-foreground">{submission.student}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Week {submission.week} • {submission.submittedAt}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className={
+                        submission.status === "pending"
+                          ? "bg-chart-1/20 text-chart-1"
+                          : "bg-chart-5/20 text-chart-5"
+                      }
+                    >
+                      {submission.status === "pending" ? (
+                        <Clock className="w-3 h-3 mr-1" />
+                      ) : (
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                      )}
+                      {submission.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{submission.preview}</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1">
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
+                    <Button size="sm" variant="ghost">
+                      <MessageSquare className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 

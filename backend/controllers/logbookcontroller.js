@@ -62,7 +62,7 @@ export const createLogbook = async (req, res) => {
         }
 
         console.log("🔍 Checking for existing logbook...");
-        
+
         // Check if logbook for this week already exists
         const existingLogbook = await Logbook.findOne({
             where: {
@@ -95,7 +95,7 @@ export const createLogbook = async (req, res) => {
         }
 
         console.log("🔄 Creating new logbook...");
-        
+
         const logbook = await Logbook.create({
             studentId,
             weekNumber: weekNum,
@@ -121,15 +121,15 @@ export const createLogbook = async (req, res) => {
         try {
             console.log("📊 Updating student progress...");
             const student = await Student.findByPk(studentId);
-            
+
             if (!student) {
                 console.warn(`⚠️ Student with ID ${studentId} not found for progress update`);
             } else {
                 const totalWeeks = 24; // Assuming 24-week SIWES program
                 const completedWeeks = await Logbook.count({
-                    where: { 
-                        studentId, 
-                        status: "APPROVED" 
+                    where: {
+                        studentId,
+                        status: "APPROVED"
                     },
                 });
                 const progress = Math.round((completedWeeks / totalWeeks) * 100);
@@ -144,7 +144,7 @@ export const createLogbook = async (req, res) => {
         }
 
         console.log("🎉 Logbook creation completed successfully");
-        
+
         res.status(201).json({
             success: true,
             message: "Logbook entry created successfully",
@@ -161,18 +161,18 @@ export const createLogbook = async (req, res) => {
     } catch (err) {
         console.error("❌ Create logbook error:", err.message);
         console.error("🔍 Error stack:", err.stack);
-        
+
         // Provide more specific error messages
         let errorMessage = "Failed to create logbook entry";
         let statusCode = 500;
-        
+
         if (err.name === 'SequelizeValidationError') {
             errorMessage = "Validation error";
             statusCode = 400;
         } else if (err.name === 'SequelizeDatabaseError') {
             errorMessage = "Database error";
         }
-        
+
         res.status(statusCode).json({
             success: false,
             error: errorMessage,
@@ -191,13 +191,13 @@ export const getMyLogbooks = async (req, res) => {
             where: { studentId },
             order: [["weekNumber", "DESC"]],
             attributes: [
-                'id', 'weekNumber', 'title', 'startDate', 'endDate', 
+                'id', 'weekNumber', 'title', 'startDate', 'endDate',
                 'status', 'createdAt', 'updatedAt'
             ]
         });
 
         console.log(`✅ Found ${logbooks.length} logbooks`);
-        
+
         res.json({
             success: true,
             count: logbooks.length,
@@ -233,9 +233,9 @@ export const getLogbookById = async (req, res) => {
 
         if (!logbook) {
             console.log(`❌ Logbook ${id} not found for student ${studentId}`);
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "Logbook not found" 
+                error: "Logbook not found"
             });
         }
 
@@ -307,7 +307,7 @@ export const updateLogbook = async (req, res) => {
         await logbook.update(updatedData);
 
         console.log(`✅ Logbook ${id} updated successfully`);
-        
+
         res.json({
             success: true,
             message: "Logbook updated successfully",
@@ -418,7 +418,7 @@ export const deleteLogbookImage = async (req, res) => {
         await logbook.update({ images: updatedImages });
 
         console.log(`✅ Image removed from logbook ${id}`);
-        
+
         res.json({
             success: true,
             message: "Image deleted successfully",
@@ -463,9 +463,9 @@ export const getSupervisorLogbooks = async (req, res) => {
             });
 
             if (!supervisor) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     success: false,
-                    error: "Supervisor not found" 
+                    error: "Supervisor not found"
                 });
             }
 
@@ -488,17 +488,17 @@ export const getSupervisorLogbooks = async (req, res) => {
             });
 
             if (!supervisor) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     success: false,
-                    error: "Industry supervisor not found" 
+                    error: "Industry supervisor not found"
                 });
             }
 
             assignedStudents = supervisor.AssignedInterns;
         } else {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                error: "Not authorized" 
+                error: "Not authorized"
             });
         }
 
@@ -521,7 +521,7 @@ export const getSupervisorLogbooks = async (req, res) => {
         });
 
         console.log(`✅ Found ${logbooks.length} logbooks for ${assignedStudents.length} students`);
-        
+
         res.json({
             success: true,
             count: logbooks.length,
@@ -550,9 +550,9 @@ export const reviewLogbook = async (req, res) => {
         // Validate status
         const validStatuses = ["APPROVED", "REVISION"];
         if (!validStatuses.includes(status)) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "Invalid status" 
+                error: "Invalid status"
             });
         }
 
@@ -567,9 +567,9 @@ export const reviewLogbook = async (req, res) => {
         });
 
         if (!logbook) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "Logbook not found" 
+                error: "Logbook not found"
             });
         }
 
@@ -581,9 +581,9 @@ export const reviewLogbook = async (req, res) => {
                     error: "Not authorized to review this logbook",
                 });
             }
-            logbook.institutionSupervisorStatus = status;
-            logbook.institutionSupervisorComment = comment;
-            logbook.institutionSupervisorReviewedAt = new Date();
+            logbook.institutionStatus = status;
+            logbook.institutionComment = comment;
+            logbook.institutionReviewedAt = new Date();
         } else if (userRole === "industrySupervisor") {
             if (logbook.Student.assignedIndustrySupervisor !== supervisorId) {
                 return res.status(403).json({
@@ -591,22 +591,22 @@ export const reviewLogbook = async (req, res) => {
                     error: "Not authorized to review this logbook",
                 });
             }
-            logbook.industrySupervisorStatus = status;
-            logbook.industrySupervisorComment = comment;
-            logbook.industrySupervisorReviewedAt = new Date();
+            logbook.industryStatus = status;
+            logbook.industryComment = comment;
+            logbook.industryReviewedAt = new Date();
         } else {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                error: "Not authorized" 
+                error: "Not authorized"
             });
         }
 
         // Determine overall status
-        if (logbook.institutionSupervisorStatus === "APPROVED" &&
-            logbook.industrySupervisorStatus === "APPROVED") {
+        if (logbook.institutionStatus === "APPROVED" &&
+            logbook.industryStatus === "APPROVED") {
             logbook.status = "APPROVED";
-        } else if (logbook.institutionSupervisorStatus === "REVISION" ||
-            logbook.industrySupervisorStatus === "REVISION") {
+        } else if (logbook.institutionStatus === "REVISION" ||
+            logbook.industryStatus === "REVISION") {
             logbook.status = "REVISION";
         } else {
             logbook.status = "PENDING";
@@ -615,7 +615,7 @@ export const reviewLogbook = async (req, res) => {
         await logbook.save();
 
         console.log(`✅ Logbook ${logbookId} ${status.toLowerCase()} by ${userRole}`);
-        
+
         res.json({
             success: true,
             message: `Logbook ${status.toLowerCase()} successfully`,
@@ -660,7 +660,7 @@ export const getAllLogbooks = async (req, res) => {
         });
 
         console.log(`✅ Found ${count} total logbooks, showing ${logbooks.length}`);
-        
+
         res.json({
             success: true,
             logbooks,
@@ -700,7 +700,7 @@ export const getStudentLogbook = async (req, res) => {
         });
 
         console.log(`✅ Found ${logbooks.length} logbooks for student ${studentId}`);
-        
+
         res.json({
             success: true,
             count: logbooks.length,
@@ -764,12 +764,12 @@ export const getLogbookStats = async (req, res) => {
                 const totalEntries = allLogbooks.length;
                 const pendingReviews = allLogbooks.filter((logbook) =>
                     logbook.status === "PENDING" ||
-                    (logbook.institutionSupervisorStatus === "PENDING" && logbook.status !== "APPROVED")
+                    (logbook.institutionStatus === "PENDING" && logbook.status !== "APPROVED")
                 ).length;
                 const reviewedThisWeek = allLogbooks.filter(
                     (logbook) =>
-                        logbook.institutionSupervisorStatus === "APPROVED" &&
-                        new Date(logbook.institutionSupervisorReviewedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                        logbook.institutionStatus === "APPROVED" &&
+                        new Date(logbook.institutionReviewedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
                 ).length;
 
                 stats = {
@@ -797,12 +797,12 @@ export const getLogbookStats = async (req, res) => {
                 const totalEntries = allLogbooks.length;
                 const pendingReviews = allLogbooks.filter((logbook) =>
                     logbook.status === "PENDING" ||
-                    (logbook.industrySupervisorStatus === "PENDING" && logbook.status !== "APPROVED")
+                    (logbook.industryStatus === "PENDING" && logbook.status !== "APPROVED")
                 ).length;
                 const reviewedThisWeek = allLogbooks.filter(
                     (logbook) =>
-                        logbook.industrySupervisorStatus === "APPROVED" &&
-                        new Date(logbook.industrySupervisorReviewedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                        logbook.industryStatus === "APPROVED" &&
+                        new Date(logbook.industryReviewedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
                 ).length;
 
                 stats = {
@@ -829,7 +829,7 @@ export const getLogbookStats = async (req, res) => {
         }
 
         console.log(`✅ Stats calculated for ${userRole}`);
-        
+
         res.json({
             success: true,
             stats

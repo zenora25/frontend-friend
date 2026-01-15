@@ -100,6 +100,12 @@ const SubmitLogbook = lazy(() => import("@/pages/logbook/SubmitLogbook"));
 const LogbookDetails = lazy(() => import("@/pages/logbook/LogbookDetails"));
 const LogbookReview = lazy(() => import("@/pages/logbook/LogbookReview"));
 
+// Profile and Management pages
+const Profile = lazy(() => import("@/pages/Profile"));
+const Students = lazy(() => import("@/pages/students/Students"));
+const AssignStudents = lazy(() => import("@/pages/students/AssignStudents"));
+const VerificationCodes = lazy(() => import("@/pages/coordinator/VerificationCodes"));
+
 // Create a client
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -196,9 +202,9 @@ const LoadingSpinner = () => (
 
 // Protected Route Component
 const ProtectedRoute = ({
-                            children,
-                            requiredRole
-                        }: {
+    children,
+    requiredRole
+}: {
     children: React.ReactNode;
     requiredRole?: string | string[];
 }) => {
@@ -721,32 +727,12 @@ function App() {
                                         }
                                     />
 
-                                    {/* Student Profile */}
+                                    {/* Profile */}
                                     <Route
                                         path="profile"
                                         element={
                                             <ProtectedRoute>
-                                                <div className="text-center py-12">
-                                                    <UserCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                                                    <h2 className="text-2xl font-bold mb-2 text-gray-900">My Profile</h2>
-                                                    <p className="text-gray-600 mb-4">Profile management coming soon</p>
-                                                    <div className="max-w-md mx-auto text-left bg-white p-6 rounded-lg border border-gray-200">
-                                                        <div className="space-y-4">
-                                                            <div>
-                                                                <p className="text-sm text-gray-500">Name</p>
-                                                                <p className="font-medium">Loading...</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm text-gray-500">Email</p>
-                                                                <p className="font-medium">Loading...</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm text-gray-500">Role</p>
-                                                                <p className="font-medium">Loading...</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <Profile />
                                             </ProtectedRoute>
                                         }
                                     />
@@ -761,21 +747,12 @@ function App() {
                                         }
                                     />
 
-                                    {/* Supervisor Students */}
+                                    {/* Managed Students List */}
                                     <Route
                                         path="students"
                                         element={
                                             <ProtectedRoute requiredRole={["institutionSupervisor", "industrySupervisor", "hod", "siwesCoordinator"]}>
-                                                <div className="p-6">
-                                                    <h2 className="text-2xl font-bold mb-4">Student Management</h2>
-                                                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                                                        <div className="text-center py-8">
-                                                            <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                                                            <h3 className="text-lg font-medium mb-2">Student List</h3>
-                                                            <p className="text-gray-600">Student management interface coming soon</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <Students />
                                             </ProtectedRoute>
                                         }
                                     />
@@ -805,16 +782,7 @@ function App() {
                                         path="assign-students"
                                         element={
                                             <ProtectedRoute requiredRole="hod">
-                                                <div className="p-6">
-                                                    <h2 className="text-2xl font-bold mb-4">Assign Students to Supervisors</h2>
-                                                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                                                        <div className="text-center py-8">
-                                                            <UserPlus className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                                                            <h3 className="text-lg font-medium mb-2">Student Assignment</h3>
-                                                            <p className="text-gray-600">Student assignment interface coming soon</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <AssignStudents />
                                             </ProtectedRoute>
                                         }
                                     />
@@ -834,16 +802,7 @@ function App() {
                                         path="verification-codes"
                                         element={
                                             <ProtectedRoute requiredRole="siwesCoordinator">
-                                                <div className="p-6">
-                                                    <h2 className="text-2xl font-bold mb-4">Verification Codes</h2>
-                                                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                                                        <div className="text-center py-8">
-                                                            <Key className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                                                            <h3 className="text-lg font-medium mb-2">Verification Code Management</h3>
-                                                            <p className="text-gray-600">Verification code interface coming soon</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <VerificationCodes />
                                             </ProtectedRoute>
                                         }
                                     />

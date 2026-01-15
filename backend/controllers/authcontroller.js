@@ -428,6 +428,97 @@ export const verifyToken = (req, res) => {
   });
 };
 
+// Update user profile
+export const updateProfile = async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    const { fullName, phone, profileImage, companyName, companyAddress, department } = req.body;
+
+    const Model = getModelByRole(role);
+    const user = await Model.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    // Update common fields
+    if (fullName) user.fullName = fullName;
+    if (phone !== undefined) user.phone = phone;
+    if (profileImage !== undefined) user.profileImage = profileImage;
+    if (department && role !== 'student') user.department = department;
+
+    // Update role-specific fields
+    if (role === 'student') {
+      if (companyName) user.companyName = companyName;
+      if (companyAddress) user.companyAddress = companyAddress;
+    }
+
+    await user.save();
+
+    // Remove password from response
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: userResponse
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({
+      error: 'Failed to update profile',
+      details: err.message
+    });
+  }
+};
+
+// Change password
+export const changePassword = async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        error: 'Current and new passwords are required'
+      });
+    }
+
+    const Model = getModelByRole(role);
+    const user = await Model.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isPasswordValid = await user.comparePassword(currentPassword);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        error: 'Incorrect current password'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      message: 'Password changed successfully'
+    });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({
+      error: 'Failed to change password',
+      details: err.message
+    });
+  }
+};
+
 // Helper function to get model by role
 const getModelByRole = (role) => {
   switch (role) {

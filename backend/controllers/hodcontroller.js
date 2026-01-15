@@ -1,15 +1,14 @@
-import HOD from "../models/hod.js";
-import Student from "../models/student.js";
-import InstitutionSupervisor from "../models/institutionSupervisor.js";
-import Logbook from "../models/Logbook.js";
-import Defense from "../models/Defense.js";
-import Assignment from "../models/Assignment.js";
-import IndustrySupervisor from "../models/industrySupervisor.js";
+import {
+    HOD,
+    Student,
+    InstitutionSupervisor,
+    Logbook,
+    Defense,
+    Assignment,
+    IndustrySupervisor,
+    sequelize
+} from "../models/index.js";
 import { Op } from "sequelize";
-
-// Add this at the top after imports
-import sequelize from "../config/db.js";
-const { Sequelize } = sequelize;
 
 // Create HOD (Admin/Coordinator)
 export const createHod = async (req, res) => {
@@ -17,18 +16,18 @@ export const createHod = async (req, res) => {
         const { fullName, email, department, password } = req.body;
 
         if (!fullName || !email || !department || !password) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "All fields are required" 
+                error: "All fields are required"
             });
         }
 
         // Check if email already exists
         const existingHod = await HOD.findOne({ where: { email } });
         if (existingHod) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "HOD with this email already exists" 
+                error: "HOD with this email already exists"
             });
         }
 
@@ -85,9 +84,9 @@ export const getHodById = async (req, res) => {
         });
 
         if (!hod) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "HOD not found" 
+                error: "HOD not found"
             });
         }
 
@@ -105,65 +104,143 @@ export const getHodById = async (req, res) => {
     }
 };
 
-// Get HOD dashboard - SIMPLIFIED VERSION
+// Get HOD dashboard - COMPREHENSIVE VERSION
 export const getHODDashboard = async (req, res) => {
     try {
-        console.log("Getting HOD dashboard for user:", req.user);
-        
-        // First get HOD data
+        console.log("📊 Fetching comprehensive HOD dashboard for user:", req.user.id);
+
         const hod = await HOD.findByPk(req.user.id, {
             attributes: ['id', 'fullName', 'email', 'department']
         });
 
         if (!hod) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "HOD not found" 
+                error: "HOD not found"
             });
         }
 
-        console.log("HOD found, department:", hod.department);
+        const dept = hod.department;
+        console.log("🏢 Department:", dept);
 
-        if (!hod.department) {
+        if (!dept) {
             return res.status(400).json({
                 success: false,
                 error: "HOD department not set",
-                data: {
-                    hod: {
-                        id: hod.id,
-                        fullName: hod.fullName,
-                        email: hod.email,
-                        department: hod.department
-                    }
-                }
+                data: { hod }
             });
         }
 
-        // Simple test queries
-        const totalStudents = await Student.count({
-            where: { department: hod.department }
+        // 1. Basic Counts
+        const totalStudents = await Student.count({ where: { department: dept } });
+        const activeStudents = await Student.count({ where: { department: dept, status: "ACTIVE" } });
+        const completedStudents = await Student.count({ where: { department: dept, status: "COMPLETED" } });
+        const institutionSupervisorsCount = await InstitutionSupervisor.count({ where: { department: dept } });
+
+        // 2. Logbook Stats
+        const studentsInDept = await Student.findAll({
+            where: { department: dept },
+            attributes: ['id']
+        });
+        const studentIds = studentsInDept.map(s => s.id);
+
+        const totalLogbooks = await Logbook.count({ where: { studentId: studentIds } });
+        const pendingLogbooks = await Logbook.count({ where: { studentId: studentIds, status: "PENDING" } });
+        const approvedLogbooks = await Logbook.count({ where: { studentId: studentIds, status: "APPROVED" } });
+
+        // 3. Defense Stats
+        const totalDefenses = await Defense.count({
+            include: [{
+                model: Student,
+                where: { department: dept }
+            }]
+        });
+        const scheduledDefenses = await Defense.count({
+            where: { status: "SCHEDULED" },
+            include: [{
+                model: Student,
+                where: { department: dept }
+            }]
         });
 
-        const activeStudents = await Student.count({
+        // 4. Progress & Rates
+        const avgProgressResult = await Student.findAll({
+            where: { department: dept },
+            attributes: [
+                [sequelize.fn('AVG', sequelize.col('progress')), 'avgProgress']
+            ],
+            raw: true
+        });
+        const avgProgress = Math.round(avgProgressResult[0]?.avgProgress || 0);
+        const completionRate = totalStudents > 0 ? Math.round((completedStudents / totalStudents) * 100) : 0;
+        const approvalRate = totalLogbooks > 0 ? Math.round((approvedLogbooks / totalLogbooks) * 100) : 0;
+
+        // 5. Recent Activities
+        const recentLogbooks = await Logbook.findAll({
+            where: { studentId: studentIds },
+            include: [{
+                model: Student,
+                as: 'student', // Using the alias defined in models/index.js
+                attributes: ['fullName', 'matricNumber']
+            }],
+            order: [['createdAt', 'DESC']],
+            limit: 5
+        });
+
+        const upcomingDefenses = await Defense.findAll({
             where: {
-                department: hod.department,
-                status: "ACTIVE"
-            }
+                status: "SCHEDULED",
+                defenseDate: { [Op.gte]: new Date() }
+            },
+            include: [{
+                model: Student,
+                where: { department: dept },
+                attributes: ['fullName', 'matricNumber']
+            }],
+            order: [['defenseDate', 'ASC']],
+            limit: 5
         });
 
-        const institutionSupervisors = await InstitutionSupervisor.count({
-            where: { department: hod.department }
+        // 6. Supervisor Performance
+        const supervisors = await InstitutionSupervisor.findAll({
+            where: { department: dept },
+            attributes: ['id', 'fullName', 'email']
         });
 
-        // Get recent students
-        const recentStudents = await Student.findAll({
-            where: { department: hod.department },
-            attributes: ['id', 'fullName', 'matricNumber', 'email', 'progress', 'status'],
-            limit: 5,
-            order: [['createdAt', 'DESC']]
-        });
+        const supervisorPerformance = await Promise.all(supervisors.map(async (sup) => {
+            const assignedStudentsCount = await Student.count({ where: { assignedSupervisor: sup.id } });
 
-        console.log("Total students in department:", totalStudents);
+            const supStudentIds = (await Student.findAll({
+                where: { assignedSupervisor: sup.id },
+                attributes: ['id']
+            })).map(s => s.id);
+
+            const reviewsTotal = await Logbook.count({
+                where: {
+                    studentId: supStudentIds,
+                    status: { [Op.ne]: "PENDING" }
+                }
+            });
+            const pendingTotal = await Logbook.count({
+                where: {
+                    studentId: supStudentIds,
+                    status: "PENDING"
+                }
+            });
+
+            const totalLogbooksForSup = reviewsTotal + pendingTotal;
+            const reviewRate = totalLogbooksForSup > 0 ? Math.round((reviewsTotal / totalLogbooksForSup) * 100) : 0;
+
+            return {
+                id: sup.id,
+                name: sup.fullName,
+                email: sup.email,
+                studentsAssigned: assignedStudentsCount,
+                logbooksReviewed: reviewsTotal,
+                logbooksPending: pendingTotal,
+                reviewRate
+            };
+        }));
 
         res.json({
             success: true,
@@ -172,29 +249,52 @@ export const getHODDashboard = async (req, res) => {
                     id: hod.id,
                     fullName: hod.fullName,
                     email: hod.email,
-                    department: hod.department
+                    department: dept
                 },
                 stats: {
                     totalStudents,
                     activeStudents,
-                    institutionSupervisors,
-                    department: hod.department
+                    completedStudents,
+                    institutionSupervisors: institutionSupervisorsCount,
+                    totalLogbooks,
+                    pendingLogbooks,
+                    approvedLogbooks,
+                    totalDefenses,
+                    scheduledDefenses,
+                    avgProgress,
+                    completionRate,
+                    approvalRate
                 },
-                recentStudents: recentStudents.map(student => ({
-                    id: student.id,
-                    name: student.fullName,
-                    matricNumber: student.matricNumber,
-                    email: student.email,
-                    progress: student.progress,
-                    status: student.status
-                }))
+                recentActivities: {
+                    logbooks: recentLogbooks.map(lb => ({
+                        id: lb.id,
+                        studentName: lb.student?.fullName || "Unknown",
+                        studentMatric: lb.student?.matricNumber || "Unknown",
+                        weekNumber: lb.weekNumber,
+                        title: lb.title,
+                        status: lb.status,
+                        submittedAt: lb.createdAt
+                    })),
+                    upcomingDefenses: upcomingDefenses.map(def => ({
+                        id: def.id,
+                        studentName: def.Student?.fullName || "Unknown", // Defense model uses Student (capitalized) in its own association
+                        studentMatric: def.Student?.matricNumber || "Unknown",
+                        defenseDate: def.defenseDate,
+                        defenseTime: def.defenseTime,
+                        venue: def.venue
+                    }))
+                },
+                supervisorPerformance,
+                departmentProgress: {
+                    current: avgProgress,
+                    target: 100,
+                    remaining: 100 - avgProgress
+                }
             }
         });
 
     } catch (err) {
-        console.error("Get HOD dashboard error:", err);
-        console.error("Error details:", err.message);
-        console.error("Error stack:", err.stack);
+        console.error("❌ HOD Dashboard Error:", err);
         res.status(500).json({
             success: false,
             error: "Failed to fetch HOD dashboard",
@@ -207,12 +307,12 @@ export const getHODDashboard = async (req, res) => {
 export const getDepartmentDefenses = async (req, res) => {
     try {
         console.log("Getting department defenses for user:", req.user);
-        
+
         const hod = await HOD.findByPk(req.user.id);
         if (!hod || !hod.department) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "HOD department not found" 
+                error: "HOD department not found"
             });
         }
 
@@ -266,12 +366,12 @@ export const getDepartmentDefenses = async (req, res) => {
 export const getDepartmentalAssignments = async (req, res) => {
     try {
         console.log("Getting department assignments for user:", req.user);
-        
+
         const hod = await HOD.findByPk(req.user.id);
         if (!hod || !hod.department) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "HOD department not found" 
+                error: "HOD department not found"
             });
         }
 
@@ -320,12 +420,12 @@ export const getDepartmentalAssignments = async (req, res) => {
 export const getSupervisorPerformance = async (req, res) => {
     try {
         console.log("Getting supervisor performance for user:", req.user);
-        
+
         const hod = await HOD.findByPk(req.user.id);
         if (!hod || !hod.department) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "HOD department not found" 
+                error: "HOD department not found"
             });
         }
 
@@ -369,7 +469,7 @@ export const getSupervisorPerformance = async (req, res) => {
 export const assignStudentToSupervisor = async (req, res) => {
     try {
         console.log("Assigning student to supervisor:", req.body);
-        
+
         const hodId = req.user.id;
         const { studentId, institutionSupervisorId } = req.body;
 
@@ -382,18 +482,18 @@ export const assignStudentToSupervisor = async (req, res) => {
 
         const hod = await HOD.findByPk(hodId);
         if (!hod || !hod.department) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                error: "HOD department not found" 
+                error: "HOD department not found"
             });
         }
 
         // Check if student exists and belongs to HOD's department
         const student = await Student.findByPk(studentId);
         if (!student) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "Student not found" 
+                error: "Student not found"
             });
         }
 
@@ -407,9 +507,9 @@ export const assignStudentToSupervisor = async (req, res) => {
         // Check if supervisor exists and belongs to HOD's department
         const supervisor = await InstitutionSupervisor.findByPk(institutionSupervisorId);
         if (!supervisor) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "Institution Supervisor not found" 
+                error: "Institution Supervisor not found"
             });
         }
 
@@ -459,15 +559,15 @@ export const assignStudentToSupervisor = async (req, res) => {
 export const updateHod = async (req, res) => {
     try {
         console.log("Updating HOD profile:", req.body);
-        
+
         const hodId = req.user.id;
         const { fullName, department, phone, profileImage } = req.body;
 
         const hod = await HOD.findByPk(hodId);
         if (!hod) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "HOD not found" 
+                error: "HOD not found"
             });
         }
 
@@ -503,7 +603,7 @@ export const updateHod = async (req, res) => {
 export const changePassword = async (req, res) => {
     try {
         console.log("Changing HOD password");
-        
+
         const hodId = req.user.id;
         const { currentPassword, newPassword } = req.body;
 
@@ -523,9 +623,9 @@ export const changePassword = async (req, res) => {
 
         const hod = await HOD.findByPk(hodId);
         if (!hod) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "HOD not found" 
+                error: "HOD not found"
             });
         }
 
@@ -561,14 +661,14 @@ export const changePassword = async (req, res) => {
 export const deleteHod = async (req, res) => {
     try {
         console.log("Deleting HOD:", req.params.id);
-        
+
         const { id } = req.params;
 
         const hod = await HOD.findByPk(id);
         if (!hod) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "HOD not found" 
+                error: "HOD not found"
             });
         }
 
@@ -602,45 +702,36 @@ export const deleteHod = async (req, res) => {
     }
 };
 
-// Get department students - SIMPLIFIED VERSION
+// Get department students - ENHANCED VERSION
 export const getDepartmentStudents = async (req, res) => {
     try {
-        console.log("Getting department students for user:", req.user);
-        
+        console.log("📊 Getting department students for user:", req.user.id);
+
         const hod = await HOD.findByPk(req.user.id);
         if (!hod) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                error: "HOD not found" 
+                error: "HOD not found"
             });
         }
 
-        console.log("HOD department:", hod.department);
-
-        if (!hod.department) {
+        const dept = hod.department;
+        if (!dept) {
             return res.status(400).json({
                 success: false,
-                error: "HOD department not set",
-                data: {
-                    hod: {
-                        id: hod.id,
-                        fullName: hod.fullName,
-                        email: hod.email
-                    }
-                }
+                error: "HOD department not set"
             });
         }
 
         const { page = 1, limit = 10, search = '', status } = req.query;
         const offset = (page - 1) * limit;
 
-        // Build where clause
-        const where = { department: hod.department };
-        
-        if (status) {
+        const where = { department: dept };
+
+        if (status && status !== 'all') {
             where.status = status;
         }
-        
+
         if (search) {
             where[Op.or] = [
                 { fullName: { [Op.like]: `%${search}%` } },
@@ -649,16 +740,25 @@ export const getDepartmentStudents = async (req, res) => {
             ];
         }
 
-        // Simple query without complex includes
         const { count, rows: students } = await Student.findAndCountAll({
             where,
+            include: [
+                {
+                    model: InstitutionSupervisor,
+                    as: 'Supervisor',
+                    attributes: ['fullName', 'email']
+                },
+                {
+                    model: IndustrySupervisor,
+                    as: 'IndustrySupervisor',
+                    attributes: ['fullName', 'companyName']
+                }
+            ],
             attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'progress', 'status', 'companyName', 'assignedSupervisor'],
             limit: parseInt(limit),
             offset: parseInt(offset),
             order: [['createdAt', 'DESC']]
         });
-
-        console.log("Found students:", count);
 
         res.json({
             success: true,
@@ -667,16 +767,15 @@ export const getDepartmentStudents = async (req, res) => {
                 pagination: {
                     total: count,
                     page: parseInt(page),
-                    totalPages: Math.ceil(count / limit),
+                    pages: Math.ceil(count / limit),
                     limit: parseInt(limit)
                 },
-                department: hod.department
+                department: dept
             }
         });
 
     } catch (err) {
-        console.error("Get department students error:", err);
-        console.error("Error details:", err.message);
+        console.error("❌ Get department students error:", err);
         res.status(500).json({
             success: false,
             error: "Failed to fetch department students",

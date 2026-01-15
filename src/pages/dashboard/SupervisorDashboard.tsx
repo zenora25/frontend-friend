@@ -97,7 +97,7 @@ const SupervisorDashboard = () => {
         description: "Failed to load dashboard data. Please try again.",
         variant: "destructive",
       });
-      
+
       // Fallback to mock data for development
       setDashboardData({
         supervisor: {
@@ -231,7 +231,7 @@ const SupervisorDashboard = () => {
     }
   };
 
-  if (isLoading && !dashboardData) {
+  if (isLoading || !dashboardData) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -292,14 +292,14 @@ const SupervisorDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Students</p>
-                    <p className="text-3xl font-bold text-foreground">{dashboardData.stats.totalStudents}</p>
+                    <p className="text-3xl font-bold text-foreground">{dashboardData?.stats?.totalStudents || 0}</p>
                   </div>
                   <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
                     <Users className="w-6 h-6 text-primary" />
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {dashboardData.stats.activeStudents} active • {dashboardData.stats.completedStudents} completed
+                  {dashboardData?.stats?.activeStudents || 0} active • {dashboardData?.stats?.completedStudents || 0} completed
                 </div>
               </CardContent>
             </Card>
@@ -309,14 +309,14 @@ const SupervisorDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Pending Reviews</p>
-                    <p className="text-3xl font-bold text-foreground">{dashboardData.stats.pendingLogbooks}</p>
+                    <p className="text-3xl font-bold text-foreground">{dashboardData?.stats?.pendingLogbooks || 0}</p>
                   </div>
                   <div className="w-12 h-12 bg-chart-1/20 flex items-center justify-center">
                     <Clock className="w-6 h-6 text-chart-1" />
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {dashboardData.stats.avgResponseTime} days avg. response time
+                  {dashboardData?.stats?.avgResponseTime || 0} days avg. response time
                 </div>
               </CardContent>
             </Card>
@@ -326,14 +326,14 @@ const SupervisorDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Approval Rate</p>
-                    <p className="text-3xl font-bold text-foreground">{dashboardData.stats.approvalRate}%</p>
+                    <p className="text-3xl font-bold text-foreground">{dashboardData?.stats?.approvalRate || 0}%</p>
                   </div>
                   <div className="w-12 h-12 bg-chart-5/20 flex items-center justify-center">
                     <CheckCircle2 className="w-6 h-6 text-chart-5" />
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {dashboardData.stats.approvedLogbooks} of {dashboardData.stats.totalLogbooks} approved
+                  {dashboardData?.stats?.approvedLogbooks || 0} of {dashboardData?.stats?.totalLogbooks || 0} approved
                 </div>
               </CardContent>
             </Card>
@@ -343,14 +343,14 @@ const SupervisorDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Completion Rate</p>
-                    <p className="text-3xl font-bold text-foreground">{dashboardData.stats.completionRate}%</p>
+                    <p className="text-3xl font-bold text-foreground">{dashboardData?.stats?.completionRate || 0}%</p>
                   </div>
                   <div className="w-12 h-12 bg-chart-2/20 flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-chart-2" />
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {dashboardData.stats.completedStudents} students completed
+                  {dashboardData?.stats?.completedStudents || 0} students completed
                 </div>
               </CardContent>
             </Card>
@@ -386,17 +386,17 @@ const SupervisorDashboard = () => {
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">{logbook.title}</p>
                       <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="flex-1"
                           onClick={() => handleReviewLogbook(logbook.id)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
                           Review
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="ghost"
                           onClick={() => handleViewStudent(logbook.studentId)}
                         >
