@@ -29,6 +29,7 @@ const LogbookReview = () => {
 
     const fetchLogbook = async () => {
         try {
+            if (!id) return;
             const response = await logbookAPI.getById(id!);
             setLogbook(response.data);
         } catch (error) {
@@ -129,7 +130,7 @@ const LogbookReview = () => {
                     <CardContent className="space-y-6 pt-6">
                         <div className="space-y-3">
                             <Label className="text-gray-900">Decision</Label>
-                            <RadioGroup value={review.status} onValueChange={(value: "APPROVED" | "REVISION") => setReview({...review, status: value})}>
+                            <RadioGroup value={review.status} onValueChange={(value: "APPROVED" | "REVISION") => setReview({ ...review, status: value })}>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="APPROVED" id="approved" />
                                     <Label htmlFor="approved" className="flex items-center gap-2 text-gray-700">
@@ -156,7 +157,7 @@ const LogbookReview = () => {
                                 id="comment"
                                 placeholder="Provide constructive feedback for the student..."
                                 value={review.comment}
-                                onChange={(e) => setReview({...review, comment: e.target.value})}
+                                onChange={(e) => setReview({ ...review, comment: e.target.value })}
                                 rows={6}
                                 className="border-gray-300 focus:border-gray-400"
                             />

@@ -180,7 +180,7 @@ export const getHODDashboard = async (req, res) => {
             where: { studentId: studentIds },
             include: [{
                 model: Student,
-                as: 'student', // Using the alias defined in models/index.js
+                as: 'student',
                 attributes: ['fullName', 'matricNumber']
             }],
             order: [['createdAt', 'DESC']],
@@ -754,7 +754,7 @@ export const getDepartmentStudents = async (req, res) => {
                     attributes: ['fullName', 'companyName']
                 }
             ],
-            attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'progress', 'status', 'companyName', 'assignedSupervisor'],
+            // Removed specific attributes selection to avoid issues with missing fields
             limit: parseInt(limit),
             offset: parseInt(offset),
             order: [['createdAt', 'DESC']]

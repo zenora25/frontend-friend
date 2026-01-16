@@ -646,7 +646,7 @@ const DashboardLayout = () => {
 function App() {
     return (
         <React.StrictMode>
-            <BrowserRouter>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <QueryClientProvider client={queryClient}>
                     <TooltipProvider>
                         <AuthProvider>

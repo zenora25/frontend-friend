@@ -463,4 +463,14 @@ export const notificationAPI = {
   getUnreadCount: () => api.get('/notifications/unread-count'),
 };
 
+export const supervisorsAPI = {
+  getAll: () => hodAPI.getDepartmentSupervisors(),
+};
+
+export const coordinatorAPI = {
+  getVerificationCodes: (params: any) => verificationAPI.getCodes(params),
+  bulkGenerateCodes: (data: any) => verificationAPI.bulkGenerateCodes(data),
+  deleteVerificationCode: (id: string) => verificationAPI.deleteCode(id),
+};
+
 export default api;
