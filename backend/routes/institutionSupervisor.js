@@ -11,10 +11,14 @@ import {
   getPendingLogbooks,
   updateInstitutionSupervisor,
   changePassword,
-  deleteInstitutionSupervisor
+  deleteInstitutionSupervisor,
+  testAuth
 } from "../controllers/institutionSupervisorController.js";
 
 const router = express.Router();
+
+// Test endpoint (for debugging)
+router.get("/test-auth", protect, requireInstitutionSupervisor, testAuth);
 
 // Public routes (for admin/coordinator to manage supervisors)
 router.post("/", protect, requireCoordinator, createInstitutionSupervisor);

@@ -1,3 +1,4 @@
+// models/student.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
 import bcrypt from 'bcryptjs';
@@ -11,7 +12,6 @@ const Student = sequelize.define('Student', {
   fullName: {
     type: DataTypes.STRING,
     allowNull: false,
-    field: 'full_name' // Maps to full_name in database
   },
   email: {
     type: DataTypes.STRING,
@@ -25,13 +25,11 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
-    field: 'matric_number' // Maps to matric_number in database
   },
   password: {
     type: DataTypes.STRING,
     allowNull: false,
     set(value) {
-      // Hash password before saving
       const salt = bcrypt.genSaltSync(10);
       const hash = bcrypt.hashSync(value, salt);
       this.setDataValue('password', hash);
@@ -43,11 +41,9 @@ const Student = sequelize.define('Student', {
   },
   companyName: {
     type: DataTypes.STRING,
-    field: 'company_name' // Maps to company_name in database
   },
   companyAddress: {
     type: DataTypes.TEXT,
-    field: 'company_address' // Maps to company_address in database
   },
   assignedSupervisor: {
     type: DataTypes.INTEGER,
@@ -55,7 +51,6 @@ const Student = sequelize.define('Student', {
       model: 'institutionsupervisors',
       key: 'id',
     },
-    field: 'assigned_supervisor' // Maps to assigned_supervisor in database
   },
   assignedIndustrySupervisor: {
     type: DataTypes.INTEGER,
@@ -63,72 +58,71 @@ const Student = sequelize.define('Student', {
       model: 'industrysupervisors',
       key: 'id',
     },
-    field: 'assigned_industry_supervisor' // Maps to assigned_industry_supervisor in database
   },
   isVerified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
-    field: 'is_verified' // Maps to is_verified in database
   },
   verificationCodeUsed: {
     type: DataTypes.STRING,
-    field: 'verification_code_used' // Maps to verification_code_used in database
   },
   phone: {
     type: DataTypes.STRING,
   },
   profileImage: {
     type: DataTypes.TEXT,
-    field: 'profile_image' // Maps to profile_image in database
   },
   progress: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
+    validate: {
+      min: 0,
+      max: 100
+    }
   },
   status: {
-    type: DataTypes.STRING,
+    type: DataTypes.ENUM('PENDING', 'ACTIVE', 'COMPLETED', 'INACTIVE'),
     defaultValue: 'ACTIVE',
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'created_at' // Maps to created_at in database
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
-    field: 'updated_at' // Maps to updated_at in database
-  },
-  lastLogin: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    field: 'last_login' // Map to last_login in database for consistency
   },
   siwesStartDate: {
     type: DataTypes.DATEONLY,
-    allowNull: true,
-    field: 'siwes_start_date'
   },
   siwesEndDate: {
     type: DataTypes.DATEONLY,
-    allowNull: true,
-    field: 'siwes_end_date'
   },
   totalWeeks: {
     type: DataTypes.INTEGER,
     defaultValue: 24,
-    field: 'total_weeks'
   },
+  lastLogin: {
+    type: DataTypes.DATE,
+  }
 }, {
   tableName: 'students',
   timestamps: true,
-  // Note: We're not using underscored: true because we're explicitly mapping each field
-  // This gives us more control over the mapping
+  underscored: false,
+  hooks: {
+    beforeCreate: async (student) => {
+      if (student.password && student.changed('password')) {
+        const salt = await bcrypt.genSalt(10);
+        student.password = await bcrypt.hash(student.password, salt);
+      }
+    },
+    beforeUpdate: async (student) => {
+      if (student.password && student.changed('password')) {
+        const salt = await bcrypt.genSalt(10);
+        student.password = await bcrypt.hash(student.password, salt);
+      }
+    }
+  }
 });
 
 // Instance method to compare password
 Student.prototype.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
+
+// Remove the old associate method and let db.js handle it
+// Associations are now defined in db.js
 
 export default Student;

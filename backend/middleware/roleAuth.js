@@ -1,30 +1,47 @@
-import jwt from "jsonwebtoken";
+// middleware/roleAuth.js
 
 // Higher-order function to check user role
 export const requireRole = (allowedRoles) => {
-    return (req, res, next) => {
-        try {
-            if (!req.user) {
-                return res.status(401).json({ error: "Authentication required" });
-            }
+  return (req, res, next) => {
+    try {
+      console.log("🔐 Role Authorization Check:");
+      console.log("- Request user:", req.user);
+      console.log("- Allowed roles:", allowedRoles);
 
-            const userRole = req.user.role;
+      if (!req.user) {
+        console.log("❌ No user in request");
+        return res.status(401).json({ 
+          success: false,
+          error: "Authentication required" 
+        });
+      }
 
-            // Convert single role to array for consistency
-            const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      const userRole = req.user.role;
+      console.log("- User role:", userRole);
 
-            if (!rolesArray.includes(userRole)) {
-                return res.status(403).json({
-                    error: `Access denied. Required roles: ${rolesArray.join(', ')}`
-                });
-            }
+      // Convert single role to array for consistency
+      const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
 
-            next();
-        } catch (err) {
-            console.error("Role auth error:", err);
-            res.status(500).json({ error: "Authorization failed" });
-        }
-    };
+      if (!rolesArray.includes(userRole)) {
+        console.log("❌ Access denied. User role not in allowed roles");
+        return res.status(403).json({
+          success: false,
+          error: `Access denied. Required roles: ${rolesArray.join(', ')}`,
+          userRole: userRole,
+          requiredRoles: rolesArray
+        });
+      }
+
+      console.log("✅ Role authorization passed");
+      next();
+    } catch (err) {
+      console.error("❌ Role auth error:", err);
+      res.status(500).json({ 
+        success: false,
+        error: "Authorization failed" 
+      });
+    }
+  };
 };
 
 // Convenience middleware for specific roles
@@ -39,3 +56,12 @@ export const requireSupervisor = requireRole(['institutionSupervisor', 'industry
 
 // Middleware for admin roles (HOD and Coordinator)
 export const requireAdmin = requireRole(['hod', 'siwesCoordinator']);
+
+// Special middleware for dashboard access
+export const requireDashboardAccess = requireRole([
+  'student', 
+  'institutionSupervisor', 
+  'industrySupervisor', 
+  'hod', 
+  'siwesCoordinator'
+]);
