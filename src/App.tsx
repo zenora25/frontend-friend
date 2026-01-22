@@ -103,6 +103,7 @@ const LogbookReview = lazy(() => import("@/pages/logbook/LogbookReview"));
 // Profile and Management pages
 const Profile = lazy(() => import("@/pages/Profile"));
 const Students = lazy(() => import("@/pages/students/Students"));
+const StudentDetails = lazy(() => import("@/pages/students/StudentDetails"));
 const AssignStudents = lazy(() => import("@/pages/students/AssignStudents"));
 const VerificationCodes = lazy(() => import("@/pages/coordinator/VerificationCodes"));
 
@@ -747,12 +748,20 @@ function App() {
                                         }
                                     />
 
-                                    {/* Managed Students List */}
                                     <Route
                                         path="students"
                                         element={
                                             <ProtectedRoute requiredRole={["institutionSupervisor", "industrySupervisor", "hod", "siwesCoordinator"]}>
                                                 <Students />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+
+                                    <Route
+                                        path="students/:id"
+                                        element={
+                                            <ProtectedRoute requiredRole={["institutionSupervisor", "industrySupervisor", "hod", "siwesCoordinator"]}>
+                                                <StudentDetails />
                                             </ProtectedRoute>
                                         }
                                     />

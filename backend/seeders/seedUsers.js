@@ -8,7 +8,7 @@ import IndustrySupervisor from "../models/industrySupervisor.js";
 import HOD from "../models/hod.js";
 import SIWESCoordinator from "../models/siwesCoordinator.js";
 import VerificationCode from "../models/VerificationCode.js";
-import Logbook from "../models/Logbook.js";
+import Logbook from "../models/logbook.js";
 import Assignment from "../models/Assignment.js";
 import Defense from "../models/Defense.js";
 
@@ -41,7 +41,7 @@ const seedDatabase = async () => {
         console.log("👑 Creating SIWES Coordinator...");
         const coordinator = await SIWESCoordinator.create({
             fullName: "Dr. Admin Coordinator",
-            email: "coordinator@baze.edu.ng",
+            email: "coordinator@bazeuniversity.edu.ng",
             password: "password123", // Will be hashed by hook
             department: "Faculty of Computing",
         });
@@ -51,14 +51,14 @@ const seedDatabase = async () => {
         console.log("👨‍🏫 Creating HODs...");
         const hodCS = await HOD.create({
             fullName: "Dr. Computer Science HOD",
-            email: "hod.cs@baze.edu.ng",
+            email: "hod.cs@bazeuniversity.edu.ng",
             password: "password123",
             department: "Computer Science",
         });
 
         const hodSE = await HOD.create({
             fullName: "Dr. Software Engineering HOD",
-            email: "hod.se@baze.edu.ng",
+            email: "hod.se@bazeuniversity.edu.ng",
             password: "password123",
             department: "Software Engineering",
         });
@@ -68,14 +68,14 @@ const seedDatabase = async () => {
         console.log("👨‍🏫 Creating Institution Supervisors...");
         const supervisor1 = await InstitutionSupervisor.create({
             fullName: "Dr. Sarah Johnson",
-            email: "sarah.johnson@baze.edu.ng",
+            email: "sarah.johnson@bazeuniversity.edu.ng",
             password: "password123",
             department: "Computer Science",
         });
 
         const supervisor2 = await InstitutionSupervisor.create({
             fullName: "Prof. Michael Adeyemi",
-            email: "michael.adeyemi@baze.edu.ng",
+            email: "michael.adeyemi@bazeuniversity.edu.ng",
             password: "password123",
             department: "Software Engineering",
         });
@@ -104,7 +104,7 @@ const seedDatabase = async () => {
         console.log("🎓 Creating Students...");
         const student1 = await Student.create({
             fullName: "John Doe",
-            email: "john.doe@baze.edu.ng",
+            email: "john.doe@bazeuniversity.edu.ng",
             password: "password123",
             matricNumber: "BU/23A/CS/8001",
             department: "Computer Science",
@@ -120,7 +120,7 @@ const seedDatabase = async () => {
 
         const student2 = await Student.create({
             fullName: "Jane Smith",
-            email: "jane.smith@baze.edu.ng",
+            email: "jane.smith@bazeuniversity.edu.ng",
             password: "password123",
             matricNumber: "BU/23A/SE/8002",
             department: "Software Engineering",
@@ -139,7 +139,7 @@ const seedDatabase = async () => {
         console.log("🔐 Creating Verification Codes...");
         const verificationCode1 = await VerificationCode.create({
             code: "ABC123",
-            email: "newstudent1@baze.edu.ng",
+            email: "newstudent1@bazeuniversity.edu.ng",
             department: "Computer Science",
             issuedBy: coordinator.id,
             isUsed: false,
@@ -148,7 +148,7 @@ const seedDatabase = async () => {
 
         const verificationCode2 = await VerificationCode.create({
             code: "DEF456",
-            email: "newstudent2@baze.edu.ng",
+            email: "newstudent2@bazeuniversity.edu.ng",
             department: "Software Engineering",
             issuedBy: coordinator.id,
             isUsed: false, // CHANGED FROM true TO false
@@ -216,15 +216,15 @@ const seedDatabase = async () => {
         console.log("   TEST ACCOUNTS");
         console.log("   =============================");
         console.log("\n👑 SIWES Coordinator:");
-        console.log("   Email: coordinator@baze.edu.ng");
+        console.log("   Email: coordinator@bazeuniversity.edu.ng");
         console.log("   Password: password123");
 
         console.log("\n👨‍🏫 HOD (Computer Science):");
-        console.log("   Email: hod.cs@baze.edu.ng");
+        console.log("   Email: hod.cs@bazeuniversity.edu.ng");
         console.log("   Password: password123");
 
         console.log("\n👨‍🏫 Institution Supervisor:");
-        console.log("   Email: sarah.johnson@baze.edu.ng");
+        console.log("   Email: sarah.johnson@bazeuniversity.edu.ng");
         console.log("   Password: password123");
 
         console.log("\n👨‍💼 Industry Supervisor:");
@@ -232,18 +232,18 @@ const seedDatabase = async () => {
         console.log("   Password: password123");
 
         console.log("\n🎓 Student:");
-        console.log("   Email: john.doe@baze.edu.ng");
+        console.log("   Email: john.doe@bazeuniversity.edu.ng");
         console.log("   Password: password123");
         console.log("   Matric: BU/23A/CS/8001");
 
         console.log("\n🔐 Verification Code (unused):");
         console.log("   Code: ABC123");
-        console.log("   Email: newstudent1@baze.edu.ng");
+        console.log("   Email: newstudent1@bazeuniversity.edu.ng");
         console.log("   Department: Computer Science");
 
         console.log("\n🔐 Verification Code (unused - FIXED):");
         console.log("   Code: DEF456");
-        console.log("   Email: newstudent2@baze.edu.ng");
+        console.log("   Email: newstudent2@bazeuniversity.edu.ng");
         console.log("   Department: Software Engineering");
 
         console.log("\n📊 Summary:");

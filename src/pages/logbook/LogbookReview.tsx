@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, MessageSquare, AlertCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, MessageSquare, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,24 +21,40 @@ const LogbookReview = () => {
         status: "APPROVED",
         comment: "",
     });
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchLogbook();
     }, [id]);
 
     const fetchLogbook = async () => {
+        setIsLoading(true);
+        setError(null);
         try {
             if (!id) return;
             const response = await logbookAPI.getById(id!);
-            setLogbook(response.data);
-        } catch (error) {
-            console.error("Failed to fetch logbook:", error);
+            console.log("📥 Logbook response:", response.data);
+
+            // Backend returns { success: true, logbook: { ... } }
+            if (response.data && response.data.logbook) {
+                setLogbook(response.data.logbook);
+            } else if (response.data && !response.data.success) {
+                setError(response.data.error || "Failed to load logbook");
+            } else {
+                setLogbook(response.data);
+            }
+        } catch (err: any) {
+            console.error("Failed to fetch logbook:", err);
+            const errorMessage = err.error || "Failed to load logbook. You might not have permission to view it.";
+            setError(errorMessage);
             toast({
                 title: "Error",
-                description: "Failed to load logbook",
+                description: errorMessage,
                 variant: "destructive",
             });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -60,10 +76,10 @@ const LogbookReview = () => {
                 description: "Logbook has been reviewed successfully",
             });
             navigate("/dashboard/supervisor-dashboard");
-        } catch (error: any) {
+        } catch (err: any) {
             toast({
                 title: "Submission failed",
-                description: error.response?.data?.error || "Please try again",
+                description: err.error || "Please try again",
                 variant: "destructive",
             });
         } finally {
@@ -71,12 +87,34 @@ const LogbookReview = () => {
         }
     };
 
-    if (!logbook) {
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-700 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading logbook...</p>
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground font-medium">Loading logbook Review...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !logbook) {
+        return (
+            <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div className="w-16 h-16 bg-red-50 flex items-center justify-center rounded-full mb-4">
+                    <AlertCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Review unavailable</h2>
+                <p className="text-gray-600 mb-6 max-w-md">{error || "The logbook could not be loaded or you don't have permission to review it."}</p>
+                <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => navigate(-1)}>
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Go Back
+                    </Button>
+                    <Button onClick={fetchLogbook} variant="secondary">
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Try Again
+                    </Button>
                 </div>
             </div>
         );
@@ -91,7 +129,7 @@ const LogbookReview = () => {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Review Logbook</h1>
                     <p className="text-gray-600">
-                        Week {logbook.weekNumber} by {logbook.Student?.fullName}
+                        Week {logbook.weekNumber} by {logbook.student?.fullName || logbook.Student?.fullName}
                     </p>
                 </div>
             </div>

@@ -28,7 +28,7 @@ const router = express.Router();
 router.post("/", protect, requireStudent, uploadMultiple, createLogbook); // Add middleware here
 router.get("/my-logbook", protect, requireStudent, getMyLogbooks);
 router.get("/stats", protect, requireStudent, getLogbookStats);
-router.get("/:id", protect, requireStudent, getLogbookById);
+router.get("/:id", protect, getLogbookById);
 router.put("/:id", protect, requireStudent, uploadMultiple, updateLogbook);
 router.delete("/:id", protect, requireStudent, deleteLogbook);
 router.delete("/:id/image", protect, requireStudent, deleteLogbookImage);

@@ -25,10 +25,9 @@ export const generateCode = async (req, res) => {
       return res.status(400).json({ error: "Email and department required" });
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Invalid email format" });
+    // Validate email format and domain
+    if (!email.toLowerCase().endsWith('@bazeuniversity.edu.ng')) {
+      return res.status(400).json({ error: "Only @bazeuniversity.edu.ng emails are allowed" });
     }
 
     // Check if student already exists
@@ -290,12 +289,11 @@ export const bulkGenerateCodes = async (req, res) => {
     }
 
     // Validate all emails
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emails.filter(email => !emailRegex.test(email));
+    const invalidEmails = emails.filter(email => !email.toLowerCase().endsWith('@bazeuniversity.edu.ng'));
 
     if (invalidEmails.length > 0) {
       return res.status(400).json({
-        error: "Some emails have invalid format",
+        error: "All emails must be @bazeuniversity.edu.ng addresses",
         invalidEmails
       });
     }

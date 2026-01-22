@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { logbookAPI } from "@/lib/api";
 
@@ -26,9 +26,15 @@ const LogbookDetails = () => {
     }, [id]);
 
     const fetchLogbookDetails = async () => {
+        setIsLoading(true);
         try {
             const response = await logbookAPI.getById(id!);
-            setLogbook(response.data);
+            // Handle { success: true, logbook: { ... } } structure
+            if (response.data && response.data.logbook) {
+                setLogbook(response.data.logbook);
+            } else {
+                setLogbook(response.data);
+            }
         } catch (error) {
             console.error("Failed to fetch logbook details:", error);
         } finally {

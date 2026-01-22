@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
     Users,
@@ -37,10 +38,11 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { hodAPI } from "@/lib/api";
+import { hodAPI, institutionSupervisorAPI, industrySupervisorAPI, studentAPI } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Students = () => {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("all");
@@ -50,14 +52,30 @@ const Students = () => {
     const { data, isLoading, error } = useQuery({
         queryKey: ["students", search, status, page],
         queryFn: async () => {
-            // Use HOD API to get department students
-            const response = await hodAPI.getDepartmentStudents({
+            const params = {
                 search,
                 status: status === "all" ? undefined : status,
                 page,
                 limit
-            });
-            return response.data;
+            };
+
+            if (user?.role === "institutionSupervisor") {
+                const response = await institutionSupervisorAPI.getAssignedStudents(params);
+                return response.data;
+            } else if (user?.role === "industrySupervisor") {
+                const response = await industrySupervisorAPI.getAssignedStudents(params);
+                return response.data;
+            } else if (user?.role === "hod") {
+                const response = await hodAPI.getDepartmentStudents(params);
+                return response.data;
+            } else if (user?.role === "siwesCoordinator") {
+                // Coordinator sees all students
+                const response = await studentAPI.getAll(params);
+                return response.data;
+            }
+
+            // Fallback
+            return { students: [], pagination: { total: 0, pages: 0 } };
         }
     });
 
@@ -200,7 +218,7 @@ const Students = () => {
                                                     <DropdownMenuContent align="end" className="w-48">
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="gap-2">
+                                                        <DropdownMenuItem className="gap-2" onClick={() => navigate(`/dashboard/students/${student.id}`)}>
                                                             <Eye className="w-4 h-4" />
                                                             View Profile
                                                         </DropdownMenuItem>

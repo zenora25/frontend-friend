@@ -37,10 +37,17 @@ export const studentSignup = async (req, res) => {
     }
 
     // Check if student already exists
-    const existingStudent = await Student.findOne({ where: { email } });
+    const existingStudent = await Student.findOne({ where: { email: email.toLowerCase() } });
     if (existingStudent) {
       return res.status(400).json({
         error: 'Student with this email already exists'
+      });
+    }
+
+    // Enforce @bazeuniversity.edu.ng domain
+    if (!email.toLowerCase().endsWith('@bazeuniversity.edu.ng')) {
+      return res.status(400).json({
+        error: 'Student registration requires a @bazeuniversity.edu.ng email address'
       });
     }
 

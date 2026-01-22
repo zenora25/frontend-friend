@@ -1,15 +1,15 @@
-import letter from "../models/letter.js";
+import Letter from "../models/letter.js";
 
 // Upload a new letter
 export const uploadLetter = async (req, res) => {
   try {
     const { studentId, fileUrl } = req.body;
 
-    const letter = await letter.create({ studentId, fileUrl });
+    const newLetter = await Letter.create({ studentId, fileUrl });
 
     res.status(201).json({
       message: "Letter uploaded successfully",
-      letter,
+      letter: newLetter,
     });
   } catch (err) {
     console.error(err);

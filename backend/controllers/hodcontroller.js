@@ -57,7 +57,7 @@ export const createHod = async (req, res) => {
 export const getHods = async (req, res) => {
     try {
         const hods = await HOD.findAll({
-            attributes: { exclude: ['password'] },
+            attributes: ['id', 'fullName', 'email', 'department'],
             order: [['createdAt', 'DESC']]
         });
         res.json({
@@ -80,7 +80,7 @@ export const getHodById = async (req, res) => {
         const { id } = req.params;
 
         const hod = await HOD.findByPk(id, {
-            attributes: { exclude: ['password'] }
+            attributes: ['id', 'fullName', 'email', 'department']
         });
 
         if (!hod) {
@@ -152,6 +152,7 @@ export const getHODDashboard = async (req, res) => {
         const totalDefenses = await Defense.count({
             include: [{
                 model: Student,
+                as: 'student',
                 where: { department: dept }
             }]
         });
@@ -159,6 +160,7 @@ export const getHODDashboard = async (req, res) => {
             where: { status: "SCHEDULED" },
             include: [{
                 model: Student,
+                as: 'student',
                 where: { department: dept }
             }]
         });
@@ -194,6 +196,7 @@ export const getHODDashboard = async (req, res) => {
             },
             include: [{
                 model: Student,
+                as: 'student',
                 where: { department: dept },
                 attributes: ['fullName', 'matricNumber']
             }],
@@ -330,6 +333,7 @@ export const getDepartmentDefenses = async (req, res) => {
             where,
             include: [{
                 model: Student,
+                as: 'student',
                 where: { department: hod.department },
                 attributes: ['id', 'fullName', 'matricNumber', 'email']
             }],
@@ -383,6 +387,7 @@ export const getDepartmentalAssignments = async (req, res) => {
             include: [
                 {
                     model: Student,
+                    as: 'student',
                     where: { department: hod.department },
                     attributes: ['id', 'fullName', 'matricNumber', 'email']
                 }
@@ -754,7 +759,7 @@ export const getDepartmentStudents = async (req, res) => {
                     attributes: ['fullName', 'companyName']
                 }
             ],
-            // Removed specific attributes selection to avoid issues with missing fields
+            attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status'],
             limit: parseInt(limit),
             offset: parseInt(offset),
             order: [['createdAt', 'DESC']]

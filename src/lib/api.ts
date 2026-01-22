@@ -15,7 +15,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
-    
+
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -23,7 +23,7 @@ api.interceptors.request.use(
     } else {
       console.log('⚠️ No token found in localStorage');
     }
-    
+
     // Log request data for debugging (excluding passwords)
     if (config.data && config.method !== 'get') {
       const safeData = { ...config.data };
@@ -32,7 +32,7 @@ api.interceptors.request.use(
       if (safeData.newPassword) safeData.newPassword = '***HIDDEN***';
       console.log('📦 Request data:', safeData);
     }
-    
+
     return config;
   },
   (error) => {
@@ -59,17 +59,17 @@ api.interceptors.response.use(
 
     // If we have a toast hook, we could use it here
     // For now, we'll just log errors and handle redirects
-    
+
     if (error.response) {
       const { status, data } = error.response;
-      
+
       switch (status) {
         case 401:
           console.error('🔒 401 Unauthorized - Token invalid or expired');
           // Clear local storage
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          
+
           // Only redirect if not already on login page
           if (!window.location.pathname.includes('/login')) {
             setTimeout(() => {
@@ -77,13 +77,13 @@ api.interceptors.response.use(
             }, 1000);
           }
           break;
-          
+
         case 403:
           console.error('🚫 403 Forbidden - Insufficient permissions');
           // Get current user role
           const userStr = localStorage.getItem('user');
           const user = userStr ? JSON.parse(userStr) : null;
-          
+
           // Redirect to appropriate dashboard
           if (user?.role) {
             setTimeout(() => {
@@ -94,16 +94,16 @@ api.interceptors.response.use(
             }, 1500);
           }
           break;
-          
+
         case 404:
           console.error('🔍 404 Not Found');
           break;
-          
+
         case 500:
           console.error('💥 500 Internal Server Error');
           // Could show a toast notification here
           break;
-          
+
         default:
           console.error(`❌ HTTP Error ${status}`);
       }
@@ -204,7 +204,7 @@ export const authAPI = {
   updateProfile: (data: any) => api.put('/auth/profile', data),
 
   checkAuth: () => api.get('/auth/check'),
-  
+
   // Test endpoints
   testAuth: () => api.get('/auth/test'),
 };
@@ -260,7 +260,7 @@ export const institutionSupervisorAPI = {
 
   // Analytics
   getPerformanceAnalytics: () => api.get('/dashboard/supervisor'),
-  
+
   // Test endpoint
   testAuth: () => api.get('/institution-supervisors/test-auth'),
 };
@@ -321,7 +321,7 @@ export const hodAPI = {
     api.put(`/students/${studentId}/progress`, { progress }),
 
   // Supervisor Management
-  getDepartmentSupervisors: (department?: string) => 
+  getDepartmentSupervisors: (department?: string) =>
     api.get(`/institution-supervisors${department ? `?department=${department}` : ''}`),
 
   // Analytics
@@ -330,7 +330,7 @@ export const hodAPI = {
   // Reports
   generateDepartmentReport: (department: string) =>
     api.get(`/reports/department/${department}`),
-  
+
   // Test endpoint
   testAuth: () => api.get('/hods/test-auth'),
 };
@@ -419,7 +419,7 @@ export const studentAPI = {
 
   getStudentDefense: (studentId: string) =>
     api.get(`/defense/student/${studentId}`),
-  
+
   // Test endpoint
   testAuth: () => api.get('/students/test-auth'),
 };
@@ -590,7 +590,7 @@ export const coordinatorAPI = {
   getVerificationCodes: (params: any) => verificationAPI.getCodes(params),
   bulkGenerateCodes: (data: any) => verificationAPI.bulkGenerateCodes(data),
   deleteVerificationCode: (id: string) => verificationAPI.deleteCode(id),
-  
+
   // Test endpoint
   testAuth: () => api.get('/coordinators/test-auth'),
 };
@@ -600,19 +600,19 @@ export const coordinatorAPI = {
 // =========================
 export const industrySupervisorAPI = {
   getDashboard: () => api.get('/industry-supervisors/dashboard/overview'),
-  
+
   getAssignedStudents: (params?: {
     page?: number;
     limit?: number;
     status?: string;
     search?: string;
   }) => api.get('/industry-supervisors/dashboard/students', { params }),
-  
+
   getPendingLogbooks: (params?: {
     page?: number;
     limit?: number;
   }) => api.get('/industry-supervisors/dashboard/pending-logbooks', { params }),
-  
+
   // Test endpoint
   testAuth: () => api.get('/industry-supervisors/test-auth'),
 };
@@ -627,7 +627,7 @@ export const testAPI = {
   testCoordinatorAuth: () => api.get('/coordinators/test-auth'),
   testStudentAuth: () => api.get('/students/test-auth'),
   testIndustrySupervisorAuth: () => api.get('/industry-supervisors/test-auth'),
-  
+
   // Test endpoint that doesn't require auth
   testPublicEndpoint: () => api.get('/public/test'),
 };

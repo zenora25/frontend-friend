@@ -1,4 +1,4 @@
-import Logbook from "../models/Logbook.js";
+import Logbook from "../models/logbook.js";
 import Student from "../models/student.js";
 import InstitutionSupervisor from "../models/institutionSupervisor.js";
 import IndustrySupervisor from "../models/industrySupervisor.js";
@@ -217,25 +217,58 @@ export const getMyLogbooks = async (req, res) => {
 export const getLogbookById = async (req, res) => {
     try {
         const { id } = req.params;
-        const studentId = req.user.id;
+        const userId = req.user.id;
+        const userRole = req.user.role;
 
-        console.log(`🔍 Fetching logbook ${id} for student ${studentId}`);
+        console.log(`🔍 Fetching logbook ${id} for user ${userId} (${userRole})`);
 
-        const logbook = await Logbook.findOne({
-            where: { id, studentId },
+        // Find the logbook first to check ownership/permission
+        const logbook = await Logbook.findByPk(id, {
             include: [
                 {
                     model: Student,
-                    attributes: ["id", "fullName", "matricNumber", "department"],
+                    as: 'student',
+                    attributes: ["id", "fullName", "matricNumber", "department", "assignedSupervisor", "assignedIndustrySupervisor"],
                 },
             ],
         });
 
         if (!logbook) {
-            console.log(`❌ Logbook ${id} not found for student ${studentId}`);
+            console.log(`❌ Logbook ${id} not found`);
             return res.status(404).json({
                 success: false,
                 error: "Logbook not found"
+            });
+        }
+
+        // Check permissions
+        let isAuthorized = false;
+
+        if (userRole === "student") {
+            // Students can only view their own logbooks
+            if (logbook.studentId === userId) {
+                isAuthorized = true;
+            }
+        } else if (userRole === "institutionSupervisor") {
+            // Institution supervisors can view logbooks of their assigned students
+            if (logbook.student && logbook.student.assignedSupervisor == userId) {
+                isAuthorized = true;
+            }
+        } else if (userRole === "industrySupervisor") {
+            // Industry supervisors can view logbooks of their assigned interns
+            if (logbook.student && logbook.student.assignedIndustrySupervisor == userId) {
+                isAuthorized = true;
+            }
+        } else if (["admin", "hod", "siwesCoordinator", "coordinator"].includes(userRole)) {
+            // Admins/HODs/Coordinators can view all (or department filtered - simplifed to all for now/detail view)
+            isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
+            console.log(`❌ Unauthorized access to logbook ${id} by ${userRole} ${userId}`);
+            return res.status(403).json({
+                success: false,
+                error: "Not authorized to view this logbook"
             });
         }
 
@@ -454,6 +487,7 @@ export const getSupervisorLogbooks = async (req, res) => {
                         include: [
                             {
                                 model: Logbook,
+                                as: 'Logbooks',
                                 where: status ? { status } : {},
                                 required: false,
                             },
@@ -479,6 +513,7 @@ export const getSupervisorLogbooks = async (req, res) => {
                         include: [
                             {
                                 model: Logbook,
+                                as: 'Logbooks',
                                 where: status ? { status } : {},
                                 required: false,
                             },
@@ -561,6 +596,7 @@ export const reviewLogbook = async (req, res) => {
             include: [
                 {
                     model: Student,
+                    as: 'student',
                     attributes: ["id", "assignedSupervisor", "assignedIndustrySupervisor"],
                 },
             ],
@@ -575,7 +611,7 @@ export const reviewLogbook = async (req, res) => {
 
         // Check if supervisor is authorized based on role
         if (userRole === "institutionSupervisor") {
-            if (logbook.Student.assignedSupervisor !== supervisorId) {
+            if (logbook.student.assignedSupervisor !== supervisorId) {
                 return res.status(403).json({
                     success: false,
                     error: "Not authorized to review this logbook",
@@ -585,7 +621,7 @@ export const reviewLogbook = async (req, res) => {
             logbook.institutionComment = comment;
             logbook.institutionReviewedAt = new Date();
         } else if (userRole === "industrySupervisor") {
-            if (logbook.Student.assignedIndustrySupervisor !== supervisorId) {
+            if (logbook.student.assignedIndustrySupervisor !== supervisorId) {
                 return res.status(403).json({
                     success: false,
                     error: "Not authorized to review this logbook",
@@ -642,6 +678,7 @@ export const getAllLogbooks = async (req, res) => {
         const include = [
             {
                 model: Student,
+                as: 'student',
                 attributes: ["id", "fullName", "matricNumber", "department"],
                 where: department ? { department } : {},
             },
@@ -694,6 +731,7 @@ export const getStudentLogbook = async (req, res) => {
             include: [
                 {
                     model: Student,
+                    as: 'student',
                     attributes: ["id", "fullName", "matricNumber", "department"],
                 },
             ],
@@ -752,7 +790,7 @@ export const getLogbookStats = async (req, res) => {
                     {
                         model: Student,
                         as: "AssignedStudents",
-                        include: [Logbook],
+                        include: [{ model: Logbook, as: 'Logbooks' }],
                     },
                 ],
             });
@@ -785,7 +823,7 @@ export const getLogbookStats = async (req, res) => {
                     {
                         model: Student,
                         as: "AssignedInterns",
-                        include: [Logbook],
+                        include: [{ model: Logbook, as: 'Logbooks' }],
                     },
                 ],
             });

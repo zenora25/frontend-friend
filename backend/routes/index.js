@@ -10,6 +10,7 @@ import logbookRoutes from './logbook.js';
 import defenseRoutes from './defense.js';
 import assignmentRoutes from './assignment.js';
 import dashboardRoutes from './dashboard.js';
+import reportRoutes from './report.js';
 
 const router = express.Router();
 
@@ -25,5 +26,6 @@ router.use('/logbook', logbookRoutes);
 router.use('/defense', defenseRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/reports', reportRoutes);
 
 export default router;

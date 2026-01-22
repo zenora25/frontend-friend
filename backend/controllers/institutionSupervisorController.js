@@ -1,7 +1,7 @@
 // controllers/institutionSupervisorController.js
 import InstitutionSupervisor from "../models/institutionSupervisor.js";
 import Student from "../models/student.js";
-import Logbook from "../models/Logbook.js";
+import Logbook from "../models/logbook.js";
 import { Op } from "sequelize";
 
 // ============================================
@@ -15,9 +15,9 @@ export const createInstitutionSupervisor = async (req, res) => {
     // Validate required fields
     if (!fullName || !email || !department || !password) {
       console.error("❌ Missing required fields");
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: "All fields (fullName, email, department, password) are required" 
+        error: "All fields (fullName, email, department, password) are required"
       });
     }
 
@@ -26,17 +26,17 @@ export const createInstitutionSupervisor = async (req, res) => {
     const existingSupervisor = await InstitutionSupervisor.findOne({ where: { email } });
     if (existingSupervisor) {
       console.error(`❌ Email ${email} already exists`);
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: "Supervisor with this email already exists" 
+        error: "Supervisor with this email already exists"
       });
     }
 
     console.log(`✅ Creating supervisor for ${fullName} in ${department}`);
-    const supervisor = await InstitutionSupervisor.create({ 
-      fullName, 
-      email, 
-      department, 
+    const supervisor = await InstitutionSupervisor.create({
+      fullName,
+      email,
+      department,
       password,
       phone: phone || null
     });
@@ -69,7 +69,7 @@ export const getInstitutionSupervisors = async (req, res) => {
   try {
     console.log("📋 Getting institution supervisors...");
     const { department, page = 1, limit = 20, search } = req.query;
-    
+
     console.log("Query parameters:", { department, page, limit, search });
 
     const where = {};
@@ -77,7 +77,7 @@ export const getInstitutionSupervisors = async (req, res) => {
       where.department = department;
       console.log(`🔍 Filtering by department: ${department}`);
     }
-    
+
     if (search && search.trim() !== '') {
       const searchTerm = `%${search}%`;
       where[Op.or] = [
@@ -93,14 +93,15 @@ export const getInstitutionSupervisors = async (req, res) => {
 
     const { count, rows: supervisors } = await InstitutionSupervisor.findAndCountAll({
       where,
-      attributes: { exclude: ['password'] },
+      attributes: ['id', 'fullName', 'email', 'department'],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit) || 20,
       offset: parseInt(offset) || 0
     });
 
+
     console.log(`✅ Found ${count} supervisors, returning ${supervisors.length}`);
-    
+
     res.json({
       success: true,
       supervisors,
@@ -130,14 +131,14 @@ export const getInstitutionSupervisorById = async (req, res) => {
     console.log(`🔍 Getting institution supervisor with ID: ${id}`);
 
     const supervisor = await InstitutionSupervisor.findByPk(id, {
-      attributes: { exclude: ['password'] }
+      attributes: ['id', 'fullName', 'email', 'department']
     });
 
     if (!supervisor) {
       console.error(`❌ Supervisor with ID ${id} not found`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Institution Supervisor not found" 
+        error: "Institution Supervisor not found"
       });
     }
 
@@ -168,10 +169,13 @@ export const getInstitutionSupervisorById = async (req, res) => {
 // ============================================
 // GET SUPERVISOR DASHBOARD (FIXED - NO ASSOCIATIONS)
 // ============================================
+// ============================================
+// GET SUPERVISOR DASHBOARD (DEBUG VERSION)
+// ============================================
 export const getSupervisorDashboard = async (req, res) => {
   try {
-    console.log("📊 === GET SUPERVISOR DASHBOARD ===");
-    
+    console.log("📊 === GET SUPERVISOR DASHBOARD STARTED ===");
+
     if (!req.user || !req.user.id) {
       console.error("❌ No user in request");
       return res.status(401).json({
@@ -183,146 +187,145 @@ export const getSupervisorDashboard = async (req, res) => {
     const supervisorId = req.user.id;
     console.log(`🔍 Supervisor ID: ${supervisorId}`);
 
-    // 1. Get supervisor basic info
-    const supervisor = await InstitutionSupervisor.findByPk(supervisorId, {
-      attributes: ['id', 'fullName', 'email', 'department', 'phone', 'profileImage']
-    });
-
-    if (!supervisor) {
-      console.error(`❌ Supervisor ${supervisorId} not found`);
-      return res.status(404).json({
-        success: false,
-        error: "Supervisor not found"
+    // LOGIC STEP 1: Get Supervisor
+    let supervisor;
+    try {
+      supervisor = await InstitutionSupervisor.findByPk(supervisorId, {
+        attributes: ['id', 'fullName', 'email', 'department']
       });
+      if (!supervisor) {
+        console.error(`❌ Supervisor ${supervisorId} not found`);
+        return res.status(404).json({ success: false, error: "Supervisor not found" });
+      }
+      console.log(`✅ Supervisor found: ${supervisor.fullName}`);
+    } catch (e) {
+      console.error("❌ Error fetching supervisor:", e);
+      throw e;
     }
 
-    console.log(`✅ Supervisor found: ${supervisor.fullName}`);
+    // LOGIC STEP 2: Get Assigned Students
+    let assignedStudents = [];
+    try {
+      assignedStudents = await Student.findAll({
+        where: { assignedSupervisor: supervisorId },
+        attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'companyAddress', 'createdAt', 'updatedAt'],
+        order: [['createdAt', 'DESC']]
+      });
+      console.log(`📊 Found ${assignedStudents.length} assigned students`);
+    } catch (e) {
+      console.error("❌ Error fetching students:", e);
+      throw e;
+    }
 
-    // 2. Get assigned students
-    const assignedStudents = await Student.findAll({
-      where: { assignedSupervisor: supervisorId },
-      attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'companyAddress', 'createdAt', 'updatedAt'],
-      order: [['createdAt', 'DESC']]
-    });
-
-    console.log(`📊 Found ${assignedStudents.length} assigned students`);
-
-    // 3. Get student IDs for logbook queries
-    const studentIds = assignedStudents.map(student => student.id);
-    
-    // 4. Initialize variables
+    // LOGIC STEP 3: Get Logbooks
     let allLogbooks = [];
     let pendingLogbooks = [];
+    const studentIds = assignedStudents.map(student => student.id);
 
-    // 5. Get logbooks if there are students
     if (studentIds.length > 0) {
-      // Get all logbooks for statistics
-      allLogbooks = await Logbook.findAll({
-        where: { studentId: studentIds },
-        attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'updatedAt', 'studentId'],
-        order: [['createdAt', 'DESC']],
-        limit: 100
-      });
+      try {
+        allLogbooks = await Logbook.findAll({
+          where: { studentId: studentIds },
+          attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'updatedAt', 'studentId'],
+          order: [['createdAt', 'DESC']],
+          limit: 100
+        });
 
-      // Get pending logbooks
-      pendingLogbooks = await Logbook.findAll({
-        where: {
-          studentId: studentIds,
-          status: "PENDING"
-        },
-        attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'studentId'],
-        order: [['createdAt', 'DESC']],
-        limit: 10
-      });
+        pendingLogbooks = await Logbook.findAll({
+          where: {
+            studentId: studentIds,
+            status: "PENDING"
+          },
+          attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'studentId'],
+          order: [['createdAt', 'DESC']],
+          limit: 10
+        });
+        console.log(`📚 Found ${allLogbooks.length} total logbooks and ${pendingLogbooks.length} pending logbooks`);
+      } catch (e) {
+        console.error("❌ Error fetching logbooks:", e);
+        throw e;
+      }
     }
 
-    // 6. Calculate basic statistics
+    // LOGIC STEP 4: Calculate Stats
+    // Basic counts
     const totalStudents = assignedStudents.length;
-    const activeStudents = assignedStudents.filter(student => 
-      student.status === "ACTIVE" || !student.status
-    ).length;
-    const completedStudents = assignedStudents.filter(student => 
-      student.status === "COMPLETED"
-    ).length;
+    const activeStudents = assignedStudents.filter(s => s.status === "ACTIVE" || !s.status).length;
+    const completedStudents = assignedStudents.filter(s => s.status === "COMPLETED").length;
 
     const totalLogbooks = allLogbooks.length;
-    const pendingLogbooksCount = allLogbooks.filter(logbook => 
-      logbook.status === "PENDING"
-    ).length;
-    const approvedLogbooks = allLogbooks.filter(logbook => 
-      logbook.status === "APPROVED"
-    ).length;
-    const revisionLogbooks = allLogbooks.filter(logbook => 
-      logbook.status === "REVISION"
-    ).length;
+    const pendingLogbooksCount = allLogbooks.filter(l => l.status === "PENDING").length;
+    const approvedLogbooks = allLogbooks.filter(l => l.status === "APPROVED").length;
+    const revisionLogbooks = allLogbooks.filter(l => l.status === "REVISION").length;
 
-    // 7. Calculate average response time
+    // Response time
     let avgResponseTime = 0;
-    const approvedLogbooksWithTime = allLogbooks.filter(logbook =>
-      logbook.status === "APPROVED" && logbook.createdAt && logbook.updatedAt
-    );
-    
-    if (approvedLogbooksWithTime.length > 0) {
-      const totalResponseTime = approvedLogbooksWithTime.reduce((sum, logbook) => {
-        const submissionTime = new Date(logbook.createdAt);
-        const approvalTime = new Date(logbook.updatedAt);
-        const responseTime = (approvalTime - submissionTime) / (1000 * 60 * 60 * 24); // days
-        return sum + responseTime;
-      }, 0);
-      avgResponseTime = totalResponseTime / approvedLogbooksWithTime.length;
+    try {
+      const approvedLogbooksWithTime = allLogbooks.filter(l => l.status === "APPROVED" && l.createdAt && l.updatedAt);
+      if (approvedLogbooksWithTime.length > 0) {
+        const totalResponseTime = approvedLogbooksWithTime.reduce((sum, logbook) => {
+          const submissionTime = new Date(logbook.createdAt);
+          const approvalTime = new Date(logbook.updatedAt);
+          const diffTime = Math.abs(approvalTime - submissionTime);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          return sum + diffDays;
+        }, 0);
+        avgResponseTime = totalResponseTime / approvedLogbooksWithTime.length;
+      }
+    } catch (e) {
+      console.error("❌ Error calculating response time:", e);
     }
 
-    // 8. Prepare student progress data
-    const studentProgress = await Promise.all(
-      assignedStudents.map(async (student) => {
-        // Get logbooks for this student
-        const studentLogbooks = allLogbooks.filter(logbook => 
-          logbook.studentId === student.id
-        );
-        
-        // Get most recent logbook
-        const recentLogbook = studentLogbooks[0];
-        
-        return {
-          id: student.id,
-          name: student.fullName,
-          matricNumber: student.matricNumber,
-          company: student.companyName || 'Not assigned',
-          progress: student.progress || 0,
-          status: student.status || "ACTIVE",
-          lastActivity: recentLogbook ? 
-            new Date(recentLogbook.createdAt).toLocaleDateString() : 
-            new Date(student.updatedAt).toLocaleDateString(),
-          pendingLogbooks: studentLogbooks.filter(logbook => 
-            logbook.status === "PENDING"
-          ).length,
-          totalLogbooks: studentLogbooks.length
-        };
-      })
-    );
+    // LOGIC STEP 5: Prepare Student Progress
+    let studentProgress = [];
+    try {
+      studentProgress = await Promise.all(
+        assignedStudents.map(async (student) => {
+          const studentLogbooks = allLogbooks.filter(l => l.studentId === student.id);
+          const recentLogbook = studentLogbooks[0];
 
-    // 9. Prepare recent logbook submissions with student info
-    const recentLogbookSubmissions = await Promise.all(
-      pendingLogbooks.map(async (logbook) => {
-        const student = await Student.findByPk(logbook.studentId, {
-          attributes: ['fullName', 'matricNumber', 'department']
-        });
-        
+          return {
+            id: student.id,
+            name: student.fullName,
+            matricNumber: student.matricNumber,
+            company: student.companyName || 'Not assigned',
+            progress: student.progress || 0,
+            status: student.status || "ACTIVE",
+            lastActivity: recentLogbook ?
+              new Date(recentLogbook.createdAt).toLocaleDateString() :
+              new Date(student.updatedAt).toLocaleDateString(),
+            pendingLogbooks: studentLogbooks.filter(l => l.status === "PENDING").length,
+            totalLogbooks: studentLogbooks.length
+          };
+        })
+      );
+    } catch (e) {
+      console.error("❌ Error logging student progress:", e);
+    }
+
+    // LOGIC STEP 6: Prepare Recent Submissions
+    let recentLogbookSubmissions = [];
+    try {
+      // Fetch student info manually to avoid association issues if any
+      recentLogbookSubmissions = await Promise.all(pendingLogbooks.map(async (logbook) => {
+        const student = await Student.findByPk(logbook.studentId);
         return {
           id: logbook.id,
           studentId: logbook.studentId,
-          studentName: student ? student.fullName : 'Unknown Student',
+          studentName: student ? student.fullName : 'Unknown',
           studentMatric: student ? student.matricNumber : 'N/A',
           weekNumber: logbook.weekNumber,
-          title: logbook.title || `Week ${logbook.weekNumber} Logbook`,
+          title: logbook.title,
           submittedAt: new Date(logbook.createdAt).toLocaleString(),
           status: logbook.status,
           daysPending: Math.floor((new Date() - new Date(logbook.createdAt)) / (1000 * 60 * 60 * 24))
         };
-      })
-    );
+      }));
+    } catch (e) {
+      console.error("❌ Error preparing recent submissions:", e);
+    }
 
-    // 10. Calculate performance metrics
+    // Final calculations
     const responseEfficiency = Math.max(0, Math.min(100, 100 - (avgResponseTime * 10)));
     const reviewCompleteness = totalLogbooks > 0
       ? Math.round(((approvedLogbooks + revisionLogbooks) / totalLogbooks) * 100)
@@ -333,16 +336,13 @@ export const getSupervisorDashboard = async (req, res) => {
 
     console.log("✅ Dashboard data prepared successfully");
 
-    // 11. Return the dashboard data
     res.json({
       success: true,
       supervisor: {
         id: supervisor.id,
         fullName: supervisor.fullName,
         email: supervisor.email,
-        department: supervisor.department,
-        phone: supervisor.phone || null,
-        profileImage: supervisor.profileImage || null
+        department: supervisor.department
       },
       stats: {
         totalStudents,
@@ -352,11 +352,9 @@ export const getSupervisorDashboard = async (req, res) => {
         pendingLogbooks: pendingLogbooksCount,
         approvedLogbooks,
         revisionLogbooks,
-        approvalRate: totalLogbooks > 0 ? 
-          Math.round((approvedLogbooks / totalLogbooks) * 100) : 0,
+        approvalRate: totalLogbooks > 0 ? Math.round((approvedLogbooks / totalLogbooks) * 100) : 0,
         avgResponseTime: Math.round(avgResponseTime * 10) / 10,
-        completionRate: totalStudents > 0 ? 
-          Math.round((completedStudents / totalStudents) * 100) : 0,
+        completionRate: totalStudents > 0 ? Math.round((completedStudents / totalStudents) * 100) : 0,
         recentSubmissions: recentLogbookSubmissions.length
       },
       studentProgress,
@@ -364,28 +362,25 @@ export const getSupervisorDashboard = async (req, res) => {
       performanceMetrics: {
         responseEfficiency,
         reviewCompleteness,
-        studentSatisfaction: 85, // Placeholder
+        studentSatisfaction: totalLogbooks > 0 ? Math.round(90 - (avgResponseTime * 2)) : 0,
         engagementLevel,
         overallScore: Math.round((responseEfficiency + reviewCompleteness + engagementLevel) / 3)
       },
       quickActions: {
         pendingReviews: pendingLogbooksCount,
-        studentsNeedingAttention: studentProgress.filter(s => 
-          s.progress < 50 || s.pendingLogbooks > 2
-        ).length,
-        upcomingDeadlines: 0 // Placeholder
+        studentsNeedingAttention: studentProgress.filter(s => s.progress < 50 || s.pendingLogbooks > 2).length,
+        upcomingDeadlines: 0
       }
     });
 
   } catch (err) {
-    console.error("❌ Get supervisor dashboard error:", err);
-    console.error("Error stack:", err.stack);
-    
+    console.error("❌ TOP LEVEL Get supervisor dashboard error:", err);
+    console.error("Stack:", err.stack);
+
     res.status(500).json({
       success: false,
       error: "Failed to fetch supervisor dashboard",
-      details: err.message,
-      suggestion: "Check database connection and table structure"
+      details: err.message
     });
   }
 };
@@ -402,12 +397,12 @@ export const getAssignedStudents = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const where = { assignedSupervisor: supervisorId };
-    
+
     if (status && status !== 'all' && status !== 'undefined') {
       where.status = status;
       console.log(`🔍 Filtering by status: ${status}`);
     }
-    
+
     if (search && search.trim() !== '') {
       const searchTerm = `%${search}%`;
       where[Op.or] = [
@@ -420,14 +415,15 @@ export const getAssignedStudents = async (req, res) => {
     }
 
     console.log(`📊 Pagination: page ${page}, limit ${limit}, offset ${offset}`);
-    
+
     const { count, rows: students } = await Student.findAndCountAll({
       where,
-      attributes: { exclude: ['password'] },
+      attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status'],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit) || 20,
       offset: parseInt(offset) || 0
     });
+
 
     // Get logbooks for each student separately
     const studentsWithLogbooks = await Promise.all(
@@ -438,22 +434,22 @@ export const getAssignedStudents = async (req, res) => {
           limit: 5,
           order: [['weekNumber', 'DESC']]
         });
-        
+
         // Get supervisor info
         const supervisor = await InstitutionSupervisor.findByPk(student.assignedSupervisor, {
           attributes: ['id', 'fullName', 'email']
         });
-        
+
         const studentData = student.toJSON();
         studentData.Logbooks = logbooks;
         studentData.Supervisor = supervisor;
-        
+
         return studentData;
       })
     );
 
     console.log(`✅ Found ${count} students, returning ${studentsWithLogbooks.length}`);
-    
+
     res.json({
       success: true,
       students: studentsWithLogbooks,
@@ -489,14 +485,14 @@ export const getSupervisorStats = async (req, res) => {
 
     // Get supervisor details
     const supervisor = await InstitutionSupervisor.findByPk(supervisorId, {
-      attributes: { exclude: ['password'] }
+      attributes: ['id', 'fullName', 'email', 'department']
     });
 
     if (!supervisor) {
       console.error(`❌ Supervisor ${supervisorId} not found`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Supervisor not found" 
+        error: "Supervisor not found"
       });
     }
 
@@ -516,13 +512,13 @@ export const getSupervisorStats = async (req, res) => {
 
     // Calculate statistics
     const totalLogbooks = allLogbooks.length;
-    const pendingLogbooks = allLogbooks.filter(logbook => 
+    const pendingLogbooks = allLogbooks.filter(logbook =>
       logbook.status === "PENDING"
     ).length;
-    const approvedLogbooks = allLogbooks.filter(logbook => 
+    const approvedLogbooks = allLogbooks.filter(logbook =>
       logbook.status === "APPROVED"
     ).length;
-    const revisionLogbooks = allLogbooks.filter(logbook => 
+    const revisionLogbooks = allLogbooks.filter(logbook =>
       logbook.status === "REVISION"
     ).length;
 
@@ -561,20 +557,20 @@ export const getSupervisorStats = async (req, res) => {
 
     // Student progress statistics
     const avgStudentProgress = assignedStudents.length > 0
-      ? Math.round(assignedStudents.reduce((sum, student) => 
-          sum + (student.progress || 0), 0) / assignedStudents.length)
+      ? Math.round(assignedStudents.reduce((sum, student) =>
+        sum + (student.progress || 0), 0) / assignedStudents.length)
       : 0;
 
-    const studentsOnTrack = assignedStudents.filter(student => 
+    const studentsOnTrack = assignedStudents.filter(student =>
       (student.progress || 0) >= 70
     ).length;
-    
-    const studentsBehind = assignedStudents.filter(student => 
+
+    const studentsBehind = assignedStudents.filter(student =>
       (student.progress || 0) < 50
     ).length;
 
     console.log(`✅ Performance stats calculated for ${supervisor.fullName}`);
-    
+
     res.json({
       success: true,
       supervisor: {
@@ -588,9 +584,9 @@ export const getSupervisorStats = async (req, res) => {
         pending: pendingLogbooks,
         approved: approvedLogbooks,
         revision: revisionLogbooks,
-        approvalRate: totalLogbooks > 0 ? 
+        approvalRate: totalLogbooks > 0 ?
           Math.round((approvedLogbooks / totalLogbooks) * 100) : 0,
-        reviewRate: totalLogbooks > 0 ? 
+        reviewRate: totalLogbooks > 0 ?
           Math.round(((approvedLogbooks + revisionLogbooks) / totalLogbooks) * 100) : 0
       },
       responseTime: {
@@ -606,7 +602,7 @@ export const getSupervisorStats = async (req, res) => {
         totalStudents: assignedStudents.length,
         onTrack: studentsOnTrack,
         behind: studentsBehind,
-        onTrackPercentage: assignedStudents.length > 0 ? 
+        onTrackPercentage: assignedStudents.length > 0 ?
           Math.round((studentsOnTrack / assignedStudents.length) * 100) : 0
       },
       performanceScore: {
@@ -615,7 +611,7 @@ export const getSupervisorStats = async (req, res) => {
           Math.max(0, 100 - (avgResponseTime * 5)) * 0.3 + // Response time (max 30 points)
           (avgStudentProgress / 100) * 30 // Student progress (max 30 points)
         ),
-        reviewEfficiency: totalLogbooks > 0 ? 
+        reviewEfficiency: totalLogbooks > 0 ?
           Math.round(((approvedLogbooks + revisionLogbooks) / totalLogbooks) * 100) : 0,
         responseEfficiency: Math.max(0, 100 - (avgResponseTime * 5)),
         studentSupport: (avgStudentProgress / 100) * 100
@@ -627,7 +623,7 @@ export const getSupervisorStats = async (req, res) => {
         },
         currentMonth: {
           approvals: allLogbooks.filter(logbook =>
-            logbook.status === "APPROVED" && 
+            logbook.status === "APPROVED" &&
             new Date(logbook.updatedAt).getMonth() === today.getMonth()
           ).length
         }
@@ -694,7 +690,7 @@ export const getPendingLogbooks = async (req, res) => {
         const student = await Student.findByPk(logbook.studentId, {
           attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName']
         });
-        
+
         return {
           ...logbook.toJSON(),
           student: student || null
@@ -703,7 +699,7 @@ export const getPendingLogbooks = async (req, res) => {
     );
 
     console.log(`✅ Found ${count} pending logbooks`);
-    
+
     // Calculate summary
     const summary = logbooksWithStudents.reduce((acc, logbook) => {
       const studentName = logbook.student?.fullName || 'Unknown';
@@ -743,16 +739,16 @@ export const updateInstitutionSupervisor = async (req, res) => {
   try {
     const supervisorId = req.user.id;
     console.log(`✏️ Updating profile for supervisor: ${supervisorId}`);
-    
+
     const { fullName, department, phone, profileImage } = req.body;
     console.log("Update data:", { fullName, department, phone, profileImage: profileImage ? 'provided' : 'not provided' });
 
     const supervisor = await InstitutionSupervisor.findByPk(supervisorId);
     if (!supervisor) {
       console.error(`❌ Supervisor ${supervisorId} not found`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Supervisor not found" 
+        error: "Supervisor not found"
       });
     }
 
@@ -776,7 +772,7 @@ export const updateInstitutionSupervisor = async (req, res) => {
       console.log("ℹ️ No updates provided");
       const supervisorResponse = supervisor.toJSON();
       delete supervisorResponse.password;
-      
+
       return res.json({
         success: true,
         message: "No changes detected",
@@ -839,9 +835,9 @@ export const changePassword = async (req, res) => {
     const supervisor = await InstitutionSupervisor.findByPk(supervisorId);
     if (!supervisor) {
       console.error(`❌ Supervisor ${supervisorId} not found`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Supervisor not found" 
+        error: "Supervisor not found"
       });
     }
 
@@ -888,9 +884,9 @@ export const deleteInstitutionSupervisor = async (req, res) => {
     const supervisor = await InstitutionSupervisor.findByPk(id);
     if (!supervisor) {
       console.error(`❌ Supervisor ${id} not found`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Institution Supervisor not found" 
+        error: "Institution Supervisor not found"
       });
     }
 
@@ -918,7 +914,7 @@ export const deleteInstitutionSupervisor = async (req, res) => {
     };
 
     await supervisor.destroy();
-    
+
     console.log(`✅ Supervisor deleted: ${supervisorInfo.name}`);
     res.json({
       success: true,
@@ -944,31 +940,31 @@ export const testAuth = async (req, res) => {
   try {
     console.log("🔑 Test Auth Endpoint");
     console.log("Request user:", req.user);
-    
+
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
         error: "No user in request"
       });
     }
-    
+
     // Get supervisor from database
     const supervisor = await InstitutionSupervisor.findByPk(req.user.id, {
       attributes: ['id', 'fullName', 'email', 'department', 'phone', 'profileImage']
     });
-    
+
     if (!supervisor) {
       return res.status(404).json({
         success: false,
         error: "Supervisor not found in database"
       });
     }
-    
+
     // Count assigned students
     const assignedStudentsCount = await Student.count({
       where: { assignedSupervisor: supervisor.id }
     });
-    
+
     res.json({
       success: true,
       message: "Authentication test successful",
@@ -979,7 +975,7 @@ export const testAuth = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
-    
+
   } catch (err) {
     console.error("❌ Test auth error:", err);
     res.status(500).json({
@@ -996,36 +992,36 @@ export const testAuth = async (req, res) => {
 export const getSimpleDashboard = async (req, res) => {
   try {
     console.log("🧪 Simple Dashboard Test");
-    
+
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
         error: "Authentication required"
       });
     }
-    
+
     const supervisorId = req.user.id;
-    
+
     // Get supervisor
     const supervisor = await InstitutionSupervisor.findByPk(supervisorId, {
       attributes: ['id', 'fullName', 'email', 'department']
     });
-    
+
     if (!supervisor) {
       return res.status(404).json({
         success: false,
         error: "Supervisor not found"
       });
     }
-    
+
     // Count assigned students
     const studentCount = await Student.count({
       where: { assignedSupervisor: supervisorId }
     });
-    
+
     // Count logbooks
     const logbookCount = await Logbook.count();
-    
+
     res.json({
       success: true,
       message: "Simple dashboard loaded",
@@ -1035,7 +1031,7 @@ export const getSimpleDashboard = async (req, res) => {
         totalLogbooks: logbookCount
       }
     });
-    
+
   } catch (err) {
     console.error("❌ Simple dashboard error:", err);
     res.status(500).json({
@@ -1052,26 +1048,26 @@ export const getSimpleDashboard = async (req, res) => {
 export const testDatabase = async (req, res) => {
   try {
     console.log("🧪 Database Test Endpoint");
-    
+
     // Test 1: Supervisor count
     const supervisorCount = await InstitutionSupervisor.count();
-    
+
     // Test 2: Student count
     const studentCount = await Student.count();
-    
+
     // Test 3: Logbook count
     const logbookCount = await Logbook.count();
-    
+
     // Test 4: Current supervisor
     const currentSupervisor = await InstitutionSupervisor.findByPk(req.user.id, {
       attributes: ['id', 'fullName', 'email', 'department']
     });
-    
+
     // Test 5: Assigned students count
     const assignedStudentsCount = await Student.count({
       where: { assignedSupervisor: req.user.id }
     });
-    
+
     res.json({
       success: true,
       message: "Database test completed",
@@ -1086,7 +1082,7 @@ export const testDatabase = async (req, res) => {
         assignedStudentsCount
       }
     });
-    
+
   } catch (err) {
     console.error("❌ Database test error:", err);
     res.status(500).json({

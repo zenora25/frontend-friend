@@ -3,7 +3,7 @@ import InstitutionSupervisor from "../models/institutionSupervisor.js";
 import IndustrySupervisor from "../models/industrySupervisor.js";
 import HOD from "../models/hod.js";
 import SIWESCoordinator from "../models/siwesCoordinator.js";
-import Logbook from "../models/Logbook.js";
+import Logbook from "../models/logbook.js";
 import Defense from "../models/Defense.js";
 import Assignment from "../models/Assignment.js";
 import VerificationCode from "../models/VerificationCode.js";
@@ -141,7 +141,6 @@ export const getStudentDashboard = async (req, res) => {
     }
 };
 
-// Get supervisor dashboard stats
 export const getSupervisorDashboard = async (req, res) => {
     try {
         const supervisorId = req.user.id;
@@ -151,127 +150,82 @@ export const getSupervisorDashboard = async (req, res) => {
 
         let stats = {};
         let recentSubmissions = [];
-        let assignedStudents = [];
+        let assignedStudentsList = [];
 
         if (userRole === "institutionSupervisor") {
             const supervisor = await InstitutionSupervisor.findByPk(supervisorId, {
-                include: [
-                    {
-                        model: Student,
-                        as: "AssignedStudents",
-                        include: [
-                            {
-                                model: Logbook,
-                                order: [["createdAt", "DESC"]],
-                                limit: 3,
-                            },
-                        ],
-                    },
-                ],
+                attributes: ['id', 'fullName', 'email', 'department']
             });
 
             if (!supervisor) {
-                return res.status(404).json({
-                    success: false,
-                    error: "Institution supervisor not found"
-                });
+                return res.status(404).json({ success: false, error: "Institution supervisor not found" });
             }
 
-            assignedStudents = supervisor.AssignedStudents || [];
-            console.log(`✅ Found ${assignedStudents.length} assigned students`);
-
-            const allLogbooks = assignedStudents.flatMap(
-                (student) => student.Logbooks || []
-            );
-
-            stats = {
-                assignedStudents: assignedStudents.length,
-                pendingReviews: allLogbooks.filter((lb) => lb.status === "PENDING").length,
-                reviewedThisWeek: allLogbooks.filter(
-                    (lb) =>
-                        lb.status === "APPROVED" &&
-                        new Date(lb.updatedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                ).length,
-                totalSubmissions: allLogbooks.length,
-            };
-
-            recentSubmissions = allLogbooks
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .slice(0, 10)
-                .map((logbook) => ({
-                    id: logbook.id,
-                    student: assignedStudents.find((s) => s.id === logbook.studentId)?.fullName || "Unknown",
-                    week: logbook.weekNumber,
-                    submittedAt: logbook.createdAt,
-                    status: logbook.status,
-                    preview: logbook.weekSummary?.substring(0, 100) + "..." || "No summary",
-                }));
+            assignedStudentsList = await Student.findAll({
+                where: { assignedSupervisor: supervisorId },
+                attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'updatedAt'],
+                order: [['fullName', 'ASC']]
+            });
 
         } else if (userRole === "industrySupervisor") {
             const supervisor = await IndustrySupervisor.findByPk(supervisorId, {
-                include: [
-                    {
-                        model: Student,
-                        as: "AssignedInterns",
-                        include: [
-                            {
-                                model: Logbook,
-                                order: [["createdAt", "DESC"]],
-                                limit: 3,
-                            },
-                        ],
-                    },
-                ],
+                attributes: ['id', 'fullName', 'email', 'companyName']
             });
 
             if (!supervisor) {
-                return res.status(404).json({
-                    success: false,
-                    error: "Industry supervisor not found"
-                });
+                return res.status(404).json({ success: false, error: "Industry supervisor not found" });
             }
 
-            assignedStudents = supervisor.AssignedInterns || [];
-            console.log(`✅ Found ${assignedStudents.length} assigned interns`);
-
-            const allLogbooks = assignedStudents.flatMap(
-                (student) => student.Logbooks || []
-            );
-
-            stats = {
-                assignedStudents: assignedStudents.length,
-                pendingReviews: allLogbooks.filter((lb) => lb.status === "PENDING").length,
-                reviewedThisWeek: allLogbooks.filter(
-                    (lb) =>
-                        lb.status === "APPROVED" &&
-                        new Date(lb.updatedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                ).length,
-                totalSubmissions: allLogbooks.length,
-            };
-
-            recentSubmissions = allLogbooks
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .slice(0, 10)
-                .map((logbook) => ({
-                    id: logbook.id,
-                    student: assignedStudents.find((s) => s.id === logbook.studentId)?.fullName || "Unknown",
-                    week: logbook.weekNumber,
-                    submittedAt: logbook.createdAt,
-                    status: logbook.status,
-                    preview: logbook.weekSummary?.substring(0, 100) + "..." || "No summary",
-                }));
-        } else {
-            return res.status(403).json({
-                success: false,
-                error: "Not authorized"
+            assignedStudentsList = await Student.findAll({
+                where: { assignedIndustrySupervisor: supervisorId },
+                attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'companyAddress', 'updatedAt'],
+                order: [['fullName', 'ASC']]
             });
+        } else {
+            return res.status(403).json({ success: false, error: "Not authorized" });
         }
+
+        console.log(`✅ Found ${assignedStudentsList.length} assigned students`);
+
+        // Fetch logbooks for all students manully
+        const studentIds = assignedStudentsList.map(s => s.id);
+        const allLogbooks = studentIds.length > 0 ? await Logbook.findAll({
+            where: { studentId: studentIds },
+            attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'updatedAt', 'studentId', 'weekSummary'],
+            order: [["createdAt", "DESC"]]
+        }) : [];
+
+        // Calculate statistics
+        const pendingReviews = allLogbooks.filter((lb) => lb.status === "PENDING").length;
+        const reviewedThisWeek = allLogbooks.filter(
+            (lb) => lb.status === "APPROVED" && new Date(lb.updatedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        ).length;
+
+        stats = {
+            assignedStudents: assignedStudentsList.length,
+            pendingReviews,
+            reviewedThisWeek,
+            totalSubmissions: allLogbooks.length,
+        };
+
+        // Prepare recent submissions
+        recentSubmissions = allLogbooks.slice(0, 10).map((logbook) => {
+            const student = assignedStudentsList.find((s) => s.id === logbook.studentId);
+            return {
+                id: logbook.id,
+                student: student ? student.fullName : "Unknown",
+                week: logbook.weekNumber,
+                submittedAt: logbook.createdAt,
+                status: logbook.status,
+                preview: logbook.weekSummary ? (logbook.weekSummary.substring(0, 100) + "...") : "No summary",
+            };
+        });
 
         res.json({
             success: true,
             stats,
             recentSubmissions,
-            assignedStudents: assignedStudents.map((student) => ({
+            assignedStudents: assignedStudentsList.map((student) => ({
                 id: student.id,
                 name: student.fullName,
                 matricNumber: student.matricNumber,
@@ -296,7 +250,9 @@ export const getHODDashboard = async (req, res) => {
         const hodId = req.user.id;
         console.log("👨‍💼 Fetching dashboard for HOD:", hodId);
 
-        const hod = await HOD.findByPk(hodId);
+        const hod = await HOD.findByPk(hodId, {
+            attributes: ['id', 'fullName', 'email', 'department']
+        });
         if (!hod) {
             return res.status(404).json({
                 success: false,
@@ -325,7 +281,12 @@ export const getHODDashboard = async (req, res) => {
         // Get logbook stats
         const students = await Student.findAll({
             where: { department: hod.department },
-            include: [Logbook],
+            attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'progress'],
+            include: [{
+                model: Logbook,
+                as: 'Logbooks',
+                attributes: ['id', 'status', 'createdAt', 'studentId']
+            }],
         });
 
         const allLogbooks = students.flatMap((student) => student.Logbooks || []);
@@ -344,11 +305,17 @@ export const getHODDashboard = async (req, res) => {
         // Get supervisor performance
         const supervisors = await InstitutionSupervisor.findAll({
             where: { department: hod.department },
+            attributes: ['id', 'fullName', 'email', 'department'],
             include: [
                 {
                     model: Student,
                     as: "AssignedStudents",
-                    include: [Logbook],
+                    attributes: ['id', 'fullName', 'progress'],
+                    include: [{
+                        model: Logbook,
+                        as: 'Logbooks',
+                        attributes: ['id', 'status', 'studentId']
+                    }],
                 },
             ],
         });

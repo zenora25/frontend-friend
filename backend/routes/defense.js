@@ -27,6 +27,7 @@ router.put("/grade/:defenseId", protect, requireSupervisor, submitGrade);
 
 // Coordinator routes
 router.post("/schedule", protect, requireCoordinator, scheduleDefense);
+router.post("/submit", protect, requireCoordinator, submitGrade);
 router.get("/", protect, requireCoordinator, getAllDefenses);
 router.get("/stats", protect, requireCoordinator, getDefenseStats);
 router.delete("/:defenseId", protect, requireCoordinator, cancelDefense);

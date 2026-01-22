@@ -32,20 +32,20 @@ export const connectMYSQL = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ MySQL Connected Successfully');
-    
+
     // Import models AFTER connection is established
     const models = await Promise.all([
       import('../models/student.js').then(m => m.default),
       import('../models/institutionSupervisor.js').then(m => m.default),
-      import('../models/Logbook.js').then(m => m.default),
+      import('../models/logbook.js').then(m => m.default),
       import('../models/Assignment.js').then(m => m.default),
       import('../models/industrySupervisor.js').then(m => m.default),
       import('../models/hod.js').then(m => m.default),
       import('../models/siwesCoordinator.js').then(m => m.default)
     ]);
-    
+
     const [Student, InstitutionSupervisor, Logbook, Assignment, IndustrySupervisor, HOD, Coordinator] = models;
-    
+
     // Define associations
     defineAssociations({
       Student,
@@ -56,13 +56,13 @@ export const connectMYSQL = async () => {
       HOD,
       Coordinator
     });
-    
+
     // Sync models in development
     if (process.env.NODE_ENV === 'development') {
       await sequelize.sync({ alter: true });
       console.log('✅ Database tables synced');
     }
-    
+
     return true;
   } catch (error) {
     console.error('❌ MySQL Connection Failed:', error.message);
@@ -81,7 +81,7 @@ function defineAssociations(models) {
     HOD,
     Coordinator
   } = models;
-  
+
   // ============================================
   // STUDENT ASSOCIATIONS
   // ============================================
@@ -90,25 +90,25 @@ function defineAssociations(models) {
     as: 'Supervisor',
     constraints: false
   });
-  
+
   Student.belongsTo(IndustrySupervisor, {
     foreignKey: 'assignedIndustrySupervisor',
     as: 'IndustrySupervisor',
     constraints: false
   });
-  
+
   Student.hasMany(Logbook, {
     foreignKey: 'studentId',
     as: 'Logbooks',
     constraints: false
   });
-  
+
   Student.hasOne(Assignment, {
     foreignKey: 'studentId',
     as: 'Assignment',
     constraints: false
   });
-  
+
   // ============================================
   // INSTITUTION SUPERVISOR ASSOCIATIONS
   // ============================================
@@ -117,13 +117,13 @@ function defineAssociations(models) {
     as: 'assignedStudents',
     constraints: false
   });
-  
+
   InstitutionSupervisor.hasMany(Assignment, {
     foreignKey: 'institutionSupervisorId',
     as: 'Assignments',
     constraints: false
   });
-  
+
   // ============================================
   // LOGBOOK ASSOCIATIONS
   // ============================================
@@ -132,7 +132,7 @@ function defineAssociations(models) {
     as: 'student',
     constraints: false
   });
-  
+
   // ============================================
   // ASSIGNMENT ASSOCIATIONS
   // ============================================
@@ -141,19 +141,19 @@ function defineAssociations(models) {
     as: 'student',
     constraints: false
   });
-  
+
   Assignment.belongsTo(InstitutionSupervisor, {
     foreignKey: 'institutionSupervisorId',
     as: 'institutionSupervisor',
     constraints: false
   });
-  
+
   Assignment.belongsTo(IndustrySupervisor, {
     foreignKey: 'industrySupervisorId',
     as: 'industrySupervisor',
     constraints: false
   });
-  
+
   // ============================================
   // INDUSTRY SUPERVISOR ASSOCIATIONS
   // ============================================
@@ -162,13 +162,13 @@ function defineAssociations(models) {
     as: 'assignedStudents',
     constraints: false
   });
-  
+
   IndustrySupervisor.hasMany(Assignment, {
     foreignKey: 'industrySupervisorId',
     as: 'Assignments',
     constraints: false
   });
-  
+
   console.log('✅ All model associations defined');
 }
 

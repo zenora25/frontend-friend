@@ -131,66 +131,59 @@ export const getDepartmentalAssignments = async (req, res) => {
     }
 };
 
-// Get supervisor's assigned students
 export const getSupervisorStudents = async (req, res) => {
     try {
         const supervisorId = req.user.id;
         const userRole = req.user.role;
 
-        let assignments;
-        let supervisor;
+        console.log(`👨‍🏫 Fetching students for ${userRole}:`, supervisorId);
+
+        let students = [];
 
         if (userRole === "institutionSupervisor") {
-            supervisor = await InstitutionSupervisor.findByPk(supervisorId, {
-                include: [
-                    {
-                        model: Student,
-                        as: "AssignedStudents",
-                        include: [
-                            {
-                                model: Assignment,
-                                include: [
-                                    {
-                                        model: IndustrySupervisor,
-                                        attributes: ["id", "fullName", "companyName"],
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
+            students = await Student.findAll({
+                where: { assignedSupervisor: supervisorId },
+                attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'updatedAt'],
+                order: [['fullName', 'ASC']]
             });
-
-            assignments = supervisor?.AssignedStudents || [];
         } else if (userRole === "industrySupervisor") {
-            supervisor = await IndustrySupervisor.findByPk(supervisorId, {
-                include: [
-                    {
-                        model: Student,
-                        as: "IndustryStudents",
-                        include: [
-                            {
-                                model: Assignment,
-                                include: [
-                                    {
-                                        model: InstitutionSupervisor,
-                                        attributes: ["id", "fullName", "email"],
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
+            students = await Student.findAll({
+                where: { assignedIndustrySupervisor: supervisorId },
+                attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'companyAddress', 'updatedAt'],
+                order: [['fullName', 'ASC']]
             });
-
-            assignments = supervisor?.IndustryStudents || [];
         } else {
             return res.status(400).json({ error: "Invalid role for this operation" });
         }
 
-        res.json(assignments);
+        // Fetch assignment details manually for each student to avoid complex joins
+        const studentsWithDetails = await Promise.all(
+            students.map(async (student) => {
+                const assignment = await Assignment.findOne({
+                    where: { studentId: student.id },
+                    include: [
+                        {
+                            model: InstitutionSupervisor,
+                            as: 'institutionSupervisor',
+                            attributes: ["id", "fullName", "email"],
+                        },
+                        {
+                            model: IndustrySupervisor,
+                            as: 'industrySupervisor',
+                            attributes: ["id", "fullName", "email", "companyName"],
+                        },
+                    ],
+                });
+
+                const studentData = student.toJSON();
+                studentData.Assignment = assignment;
+                return studentData;
+            })
+        );
+
+        res.json(studentsWithDetails);
     } catch (err) {
-        console.error("Get supervisor students error:", err);
+        console.error("❌ Get supervisor students error:", err.message);
         res.status(500).json({
             error: "Failed to fetch assigned students",
             details: err.message,
@@ -207,15 +200,18 @@ export const getAllAssignments = async (req, res) => {
         const include = [
             {
                 model: Student,
+                as: 'student',
                 attributes: ["id", "fullName", "matricNumber", "department"],
                 where: department ? { department } : undefined,
             },
             {
                 model: InstitutionSupervisor,
+                as: 'institutionSupervisor',
                 attributes: ["id", "fullName", "email"],
             },
             {
                 model: IndustrySupervisor,
+                as: 'industrySupervisor',
                 attributes: ["id", "fullName", "companyName"],
             },
         ];
@@ -258,6 +254,7 @@ export const removeAssignment = async (req, res) => {
             include: [
                 {
                     model: Student,
+                    as: 'student',
                     attributes: ["id", "department"],
                 },
             ],
@@ -270,7 +267,7 @@ export const removeAssignment = async (req, res) => {
         // Check authorization for HOD
         if (userRole === "hod") {
             const hod = await HOD.findByPk(req.user.id);
-            if (hod.department !== assignment.Student.department) {
+            if (hod.department !== assignment.student.department) {
                 return res.status(403).json({
                     error: "Not authorized to remove this assignment",
                 });

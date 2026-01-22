@@ -1,4 +1,4 @@
-// models/Logbook.js
+// models/logbook.js
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 

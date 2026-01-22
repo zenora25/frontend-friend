@@ -1,6 +1,6 @@
 import IndustrySupervisor from "../models/industrySupervisor.js";
 import Student from "../models/student.js";
-import Logbook from "../models/Logbook.js";
+import Logbook from "../models/logbook.js";
 import Assignment from "../models/Assignment.js";
 import InstitutionSupervisor from "../models/institutionSupervisor.js"; // Added import
 import { Op } from "sequelize";
@@ -11,7 +11,7 @@ export const getIndustrySupervisorDashboard = async (req, res) => {
     const supervisorId = req.user.id;
 
     const supervisor = await IndustrySupervisor.findByPk(supervisorId, {
-      attributes: { exclude: ['password'] },
+      attributes: ['id', 'fullName', 'email', 'companyName'],
       include: [{
         model: Student,
         as: "AssignedInterns",
@@ -52,6 +52,7 @@ export const getIndustrySupervisorDashboard = async (req, res) => {
       },
       include: [{
         model: Student,
+        as: 'student',
         attributes: ['id', 'fullName', 'matricNumber', 'department']
       }],
       order: [['createdAt', 'DESC']],
@@ -94,8 +95,8 @@ export const getIndustrySupervisorDashboard = async (req, res) => {
       recentActivities: recentPendingLogbooks.map(logbook => ({
         id: logbook.id,
         studentId: logbook.studentId,
-        studentName: logbook.Student.fullName,
-        studentMatric: logbook.Student.matricNumber,
+        studentName: logbook.student ? logbook.student.fullName : 'Unknown',
+        studentMatric: logbook.student ? logbook.student.matricNumber : 'N/A',
         weekNumber: logbook.weekNumber,
         title: logbook.title,
         submittedAt: logbook.createdAt,
@@ -135,37 +136,47 @@ export const getAssignedInterns = async (req, res) => {
 
     const { count, rows: interns } = await Student.findAndCountAll({
       where,
-      attributes: { exclude: ['password'] },
-      include: [
-        {
-          model: Logbook,
+      attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'companyAddress', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit) || 20,
+      offset: parseInt(offset) || 0
+    });
+
+    // Fetch logbooks and supervisor info manually for each intern
+    const internsWithDetails = await Promise.all(
+      interns.map(async (intern) => {
+        const logbooks = await Logbook.findAll({
+          where: { studentId: intern.id },
           attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt'],
           limit: 5,
           order: [['weekNumber', 'DESC']]
-        },
-        {
-          model: InstitutionSupervisor,
-          as: 'Supervisor',
+        });
+
+        const instSupervisor = await InstitutionSupervisor.findByPk(intern.assignedSupervisor, {
           attributes: ['id', 'fullName', 'email']
-        },
-        {
-          model: IndustrySupervisor,
-          as: 'IndustrySupervisor',
+        });
+
+        const indSupervisor = await IndustrySupervisor.findByPk(intern.assignedIndustrySupervisor, {
           attributes: ['id', 'fullName', 'email', 'companyName']
-        }
-      ],
-      order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
+        });
+
+        const internData = intern.toJSON();
+        internData.Logbooks = logbooks;
+        internData.Supervisor = instSupervisor;
+        internData.IndustrySupervisor = indSupervisor;
+
+        return internData;
+      })
+    );
 
     res.json({
-      interns,
+      success: true,
+      interns: internsWithDetails,
       pagination: {
         total: count,
-        page: parseInt(page),
-        pages: Math.ceil(count / limit),
-        limit: parseInt(limit)
+        page: parseInt(page) || 1,
+        pages: Math.ceil(count / (parseInt(limit) || 20)),
+        limit: parseInt(limit) || 20
       }
     });
 
@@ -201,6 +212,7 @@ export const reviewLogbook = async (req, res) => {
       where: { id: logbookId },
       include: [{
         model: Student,
+        as: 'student',
         where: { assignedIndustrySupervisor: supervisorId }
       }]
     });
@@ -211,9 +223,9 @@ export const reviewLogbook = async (req, res) => {
       });
     }
 
-    if (logbook.status !== 'PENDING') {
+    if (!logbook || logbook.status !== 'PENDING') {
       return res.status(400).json({
-        error: "Logbook has already been reviewed"
+        error: "Logbook has already been reviewed or not found"
       });
     }
 
@@ -280,6 +292,7 @@ export const getPendingLogbooks = async (req, res) => {
       },
       include: [{
         model: Student,
+        as: 'student',
         attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName']
       }],
       order: [['createdAt', 'ASC']],
@@ -312,7 +325,9 @@ export const updateIndustrySupervisor = async (req, res) => {
     const supervisorId = req.user.id;
     const { fullName, phone, profileImage } = req.body;
 
-    const supervisor = await IndustrySupervisor.findByPk(supervisorId);
+    const supervisor = await IndustrySupervisor.findByPk(supervisorId, {
+      attributes: ['id', 'fullName', 'email', 'companyName', 'phone', 'profileImage', 'position', 'department']
+    });
     if (!supervisor) {
       return res.status(404).json({ error: "Industry Supervisor not found" });
     }
@@ -396,7 +411,7 @@ export const getMyProfile = async (req, res) => {
     const supervisorId = req.user.id;
 
     const supervisor = await IndustrySupervisor.findByPk(supervisorId, {
-      attributes: { exclude: ['password'] }
+      attributes: ['id', 'fullName', 'email', 'companyName', 'phone', 'profileImage', 'position', 'department']
     });
 
     if (!supervisor) {

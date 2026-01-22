@@ -103,10 +103,10 @@ const defineAssociations = () => {
   });
 
   // Defense associations
-  // Changed alias to 'Student' (capitalized) to match controller usage
+  // Changed alias to 'student' (lowercase) for consistency
   Defense.belongsTo(Student, {
     foreignKey: 'studentId',
-    as: 'Student'
+    as: 'student'
   });
 
   Defense.belongsTo(SIWESCoordinator, {

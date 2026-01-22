@@ -19,6 +19,11 @@ const Student = sequelize.define('Student', {
     unique: true,
     validate: {
       isEmail: true,
+      isBazeEmail(value) {
+        if (!value.toLowerCase().endsWith('@bazeuniversity.edu.ng')) {
+          throw new Error('Only @bazeuniversity.edu.ng email addresses are allowed');
+        }
+      }
     },
   },
   matricNumber: {
@@ -29,11 +34,6 @@ const Student = sequelize.define('Student', {
   password: {
     type: DataTypes.STRING,
     allowNull: false,
-    set(value) {
-      const salt = bcrypt.genSaltSync(10);
-      const hash = bcrypt.hashSync(value, salt);
-      this.setDataValue('password', hash);
-    }
   },
   department: {
     type: DataTypes.STRING,
@@ -100,7 +100,7 @@ const Student = sequelize.define('Student', {
 }, {
   tableName: 'students',
   timestamps: true,
-  underscored: false,
+  underscored: true,
   hooks: {
     beforeCreate: async (student) => {
       if (student.password && student.changed('password')) {

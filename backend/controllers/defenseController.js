@@ -2,6 +2,8 @@ import Defense from "../models/Defense.js";
 import Student from "../models/student.js";
 import SIWESCoordinator from "../models/siwesCoordinator.js";
 import HOD from "../models/hod.js";
+import Logbook from "../models/logbook.js";
+import { sendEmail, emailTemplates } from "../utils/emailService.js";
 import { Op } from "sequelize";
 
 // Schedule defense
@@ -29,6 +31,21 @@ export const scheduleDefense = async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
+    // Check if all logbooks are approved (weeks 1-13)
+    const logbooks = await Logbook.findAll({
+      where: { studentId, status: 'APPROVED' }
+    });
+
+    const approvedWeeks = new Set(logbooks.map(l => l.weekNumber));
+    const allWeeksApproved = Array.from({ length: 13 }, (_, i) => i + 1)
+      .every(week => approvedWeeks.has(week));
+
+    if (!allWeeksApproved) {
+      return res.status(400).json({
+        error: "All 13 weeks of logbooks must be approved before scheduling defense"
+      });
+    }
+
     // Check if student already has a defense scheduled
     const existingDefense = await Defense.findOne({
       where: { studentId, status: "SCHEDULED" }
@@ -51,6 +68,12 @@ export const scheduleDefense = async (req, res) => {
       panelMembers,
       status: "SCHEDULED",
       scheduledBy: coordinatorId
+    });
+
+    // Notify student
+    await sendEmail({
+      to: student.email,
+      ...emailTemplates.defenseScheduled(student.fullName, `${defenseDate} at ${defenseTime}`)
     });
 
     res.status(201).json({
@@ -146,6 +169,7 @@ export const getAllDefenses = async (req, res) => {
 
     const include = [{
       model: Student,
+      as: 'student',
       attributes: ['id', 'fullName', 'matricNumber', 'email', 'department']
     }];
 
@@ -188,6 +212,7 @@ export const getMyDefense = async (req, res) => {
       where: { studentId },
       include: [{
         model: Student,
+        as: 'student',
         attributes: ['id', 'fullName', 'matricNumber', 'email', 'department']
       }]
     });
@@ -215,6 +240,7 @@ export const getStudentDefense = async (req, res) => {
       where: { studentId },
       include: [{
         model: Student,
+        as: 'student',
         attributes: ['id', 'fullName', 'matricNumber', 'email', 'department']
       }]
     });
@@ -298,6 +324,7 @@ export const getDefenseStats = async (req, res) => {
         },
         include: [{
           model: Student,
+          as: 'student',
           attributes: ['fullName', 'matricNumber', 'department']
         }],
         order: [['defenseDate', 'ASC']],
@@ -320,6 +347,7 @@ export const getDefenseStats = async (req, res) => {
       const totalDefenses = await Defense.count({
         include: [{
           model: Student,
+          as: 'student',
           where: { department: hod.department }
         }]
       });
@@ -328,6 +356,7 @@ export const getDefenseStats = async (req, res) => {
         where: { status: "SCHEDULED" },
         include: [{
           model: Student,
+          as: 'student',
           where: { department: hod.department }
         }]
       });
@@ -336,6 +365,7 @@ export const getDefenseStats = async (req, res) => {
         where: { status: "COMPLETED" },
         include: [{
           model: Student,
+          as: 'student',
           where: { department: hod.department }
         }]
       });

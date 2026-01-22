@@ -209,6 +209,53 @@ const HODDashboard = () => {
     });
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      const dept = dashboardData?.hod.department || user?.department;
+      if (!dept) {
+        toast({
+          title: "Error",
+          description: "Department not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Generating Report",
+        description: "Your report is being generated...",
+      });
+
+      const response = await hodAPI.generateDepartmentReport(dept);
+
+      // Convert JSON to CSV-like blob for download
+      const data = response.data.data;
+      const csvContent = "data:text/csv;charset=utf-8,"
+        + "Full Name,Matric Number,Progress,Status\n"
+        + data.students.map((s: any) => `${s.fullName},${s.matricNumber},${s.progress},${s.status}`).join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${dept}_department_report.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Success",
+        description: "Report downloaded successfully",
+      });
+    } catch (error) {
+      console.error("Failed to generate report:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate report",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ACTIVE":
@@ -255,7 +302,7 @@ const HODDashboard = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleDownloadReport}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
@@ -794,7 +841,7 @@ const HODDashboard = () => {
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="cursor-pointer hover:border-primary transition-colors">
+            <Card className="cursor-pointer hover:border-primary transition-colors" onClick={handleDownloadReport}>
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-primary/10 flex items-center justify-center">
@@ -810,7 +857,7 @@ const HODDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="cursor-pointer hover:border-primary transition-colors">
+            <Card className="cursor-pointer hover:border-primary transition-colors" onClick={handleDownloadReport}>
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-chart-1/20 flex items-center justify-center">
@@ -826,7 +873,7 @@ const HODDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="cursor-pointer hover:border-primary transition-colors">
+            <Card className="cursor-pointer hover:border-primary transition-colors" onClick={handleDownloadReport}>
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-chart-2/20 flex items-center justify-center">
@@ -883,11 +930,11 @@ const HODDashboard = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button>
+                  <Button onClick={handleDownloadReport}>
                     <Download className="h-4 w-4 mr-2" />
                     Generate Report
                   </Button>
-                  <Button variant="outline">Preview Report</Button>
+                  <Button variant="outline" onClick={handleDownloadReport}>Preview Report</Button>
                 </div>
               </div>
             </CardContent>

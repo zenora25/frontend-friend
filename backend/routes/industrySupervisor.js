@@ -15,10 +15,10 @@ import { requireIndustrySupervisor } from "../middleware/roleAuth.js";
 const router = express.Router();
 
 // Dashboard
-router.get("/dashboard", protect, requireIndustrySupervisor, getIndustrySupervisorDashboard);
+router.get("/dashboard/overview", protect, requireIndustrySupervisor, getIndustrySupervisorDashboard);
 
 // Students (interns)
-router.get("/students", protect, requireIndustrySupervisor, getAssignedInterns);
+router.get("/dashboard/students", protect, requireIndustrySupervisor, getAssignedInterns);
 
 // Profile
 router.get("/profile", protect, requireIndustrySupervisor, getMyProfile);
