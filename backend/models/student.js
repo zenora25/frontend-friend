@@ -12,6 +12,7 @@ const Student = sequelize.define('Student', {
   fullName: {
     type: DataTypes.STRING,
     allowNull: false,
+    field: 'full_name'
   },
   email: {
     type: DataTypes.STRING,
@@ -19,17 +20,13 @@ const Student = sequelize.define('Student', {
     unique: true,
     validate: {
       isEmail: true,
-      isBazeEmail(value) {
-        if (!value.toLowerCase().endsWith('@bazeuniversity.edu.ng')) {
-          throw new Error('Only @bazeuniversity.edu.ng email addresses are allowed');
-        }
-      }
     },
   },
   matricNumber: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
+    field: 'matric_number'
   },
   password: {
     type: DataTypes.STRING,
@@ -41,36 +38,35 @@ const Student = sequelize.define('Student', {
   },
   companyName: {
     type: DataTypes.STRING,
+    field: 'company_name'
   },
   companyAddress: {
     type: DataTypes.TEXT,
+    field: 'company_address'
   },
   assignedSupervisor: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'institutionsupervisors',
-      key: 'id',
-    },
+    field: 'assigned_supervisor',
   },
   assignedIndustrySupervisor: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'industrysupervisors',
-      key: 'id',
-    },
+    field: 'assigned_industry_supervisor',
   },
   isVerified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+    field: 'is_verified'
   },
   verificationCodeUsed: {
     type: DataTypes.STRING,
+    field: 'verification_code_used'
   },
   phone: {
     type: DataTypes.STRING,
   },
   profileImage: {
     type: DataTypes.TEXT,
+    field: 'profile_image'
   },
   progress: {
     type: DataTypes.INTEGER,
@@ -86,43 +82,32 @@ const Student = sequelize.define('Student', {
   },
   siwesStartDate: {
     type: DataTypes.DATEONLY,
+    field: 'siwes_start_date'
   },
   siwesEndDate: {
     type: DataTypes.DATEONLY,
+    field: 'siwes_end_date'
   },
   totalWeeks: {
     type: DataTypes.INTEGER,
     defaultValue: 24,
+    field: 'total_weeks'
   },
   lastLogin: {
     type: DataTypes.DATE,
+    field: 'last_login'
   }
 }, {
   tableName: 'students',
-  timestamps: true,
-  underscored: true,
-  hooks: {
-    beforeCreate: async (student) => {
-      if (student.password && student.changed('password')) {
-        const salt = await bcrypt.genSalt(10);
-        student.password = await bcrypt.hash(student.password, salt);
-      }
-    },
-    beforeUpdate: async (student) => {
-      if (student.password && student.changed('password')) {
-        const salt = await bcrypt.genSalt(10);
-        student.password = await bcrypt.hash(student.password, salt);
-      }
-    }
-  }
+  timestamps: true, // This enables createdAt and updatedAt
+  createdAt: 'created_at', // Map to snake_case column
+  updatedAt: 'updated_at', // Map to snake_case column
+  underscored: false, // Set to false since we're manually mapping
 });
 
 // Instance method to compare password
 Student.prototype.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
-
-// Remove the old associate method and let db.js handle it
-// Associations are now defined in db.js
 
 export default Student;
