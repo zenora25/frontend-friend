@@ -12,7 +12,7 @@ const Student = sequelize.define('Student', {
   fullName: {
     type: DataTypes.STRING,
     allowNull: false,
-    field: 'full_name'
+    field: 'full_name' // Explicit mapping
   },
   email: {
     type: DataTypes.STRING,
@@ -26,7 +26,7 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
-    field: 'matric_number'
+    field: 'matric_number' // Explicit mapping
   },
   password: {
     type: DataTypes.STRING,
@@ -38,35 +38,43 @@ const Student = sequelize.define('Student', {
   },
   companyName: {
     type: DataTypes.STRING,
-    field: 'company_name'
+    field: 'company_name' // Explicit mapping
   },
   companyAddress: {
     type: DataTypes.TEXT,
-    field: 'company_address'
+    field: 'company_address' // Explicit mapping
   },
   assignedSupervisor: {
     type: DataTypes.INTEGER,
-    field: 'assigned_supervisor',
+    field: 'assigned_supervisor', // Explicit mapping
+    references: {
+      model: 'institutionsupervisors',
+      key: 'id',
+    },
   },
   assignedIndustrySupervisor: {
     type: DataTypes.INTEGER,
-    field: 'assigned_industry_supervisor',
+    field: 'assigned_industry_supervisor', // Explicit mapping
+    references: {
+      model: 'industrysupervisors',
+      key: 'id',
+    },
   },
   isVerified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
-    field: 'is_verified'
+    field: 'is_verified' // Explicit mapping
   },
   verificationCodeUsed: {
     type: DataTypes.STRING,
-    field: 'verification_code_used'
+    field: 'verification_code_used' // Explicit mapping
   },
   phone: {
     type: DataTypes.STRING,
   },
   profileImage: {
     type: DataTypes.TEXT,
-    field: 'profile_image'
+    field: 'profile_image' // Explicit mapping
   },
   progress: {
     type: DataTypes.INTEGER,
@@ -82,27 +90,45 @@ const Student = sequelize.define('Student', {
   },
   siwesStartDate: {
     type: DataTypes.DATEONLY,
-    field: 'siwes_start_date'
+    field: 'siwes_start_date' // Explicit mapping
   },
   siwesEndDate: {
     type: DataTypes.DATEONLY,
-    field: 'siwes_end_date'
+    field: 'siwes_end_date' // Explicit mapping
   },
   totalWeeks: {
     type: DataTypes.INTEGER,
     defaultValue: 24,
-    field: 'total_weeks'
+    field: 'total_weeks' // Explicit mapping
   },
   lastLogin: {
     type: DataTypes.DATE,
-    field: 'last_login'
+    field: 'last_login' // Explicit mapping
   }
 }, {
   tableName: 'students',
-  timestamps: true, // This enables createdAt and updatedAt
-  createdAt: 'created_at', // Map to snake_case column
-  updatedAt: 'updated_at', // Map to snake_case column
-  underscored: false, // Set to false since we're manually mapping
+  timestamps: true,
+  createdAt: 'created_at', // Explicit mapping for timestamps
+  updatedAt: 'updated_at', // Explicit mapping for timestamps
+  underscored: true,
+  hooks: {
+    beforeCreate: async (student) => {
+      if (student.password) {
+        const salt = await bcrypt.genSalt(10);
+        student.password = await bcrypt.hash(student.password, salt);
+      }
+      
+      // Temporarily disable email validation to test
+      // Remove or comment out the custom validator
+      console.log(`Creating student with email: ${student.email}`);
+    },
+    beforeUpdate: async (student) => {
+      if (student.password && student.changed('password')) {
+        const salt = await bcrypt.genSalt(10);
+        student.password = await bcrypt.hash(student.password, salt);
+      }
+    }
+  }
 });
 
 // Instance method to compare password

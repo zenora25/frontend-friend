@@ -15,74 +15,58 @@ router.post("/role/login", async (req, res) => {
     const { email, password, role } = req.body;
 
     if (!email || !password || !role) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        error: "Email, password, and role are required"
+        error: "Email, password, and role are required" 
       });
     }
 
     let user;
+    let userModel;
 
-    // Role-specific queries with explicit attributes
     switch (role) {
       case "student":
-        user = await Student.findOne({
-          where: { email },
-          attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'password', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
-        });
+        userModel = Student;
         break;
       case "institutionSupervisor":
-        user = await InstitutionSupervisor.findOne({
-          where: { email },
-          attributes: ['id', 'fullName', 'email', 'department', 'password', 'createdAt', 'updatedAt']
-        });
+        userModel = InstitutionSupervisor;
         break;
       case "industrySupervisor":
-        user = await IndustrySupervisor.findOne({
-          where: { email },
-          attributes: ['id', 'fullName', 'email', 'companyName', 'password', 'phone', 'profileImage', 'companyAddress', 'position', 'department', 'lastLogin', 'createdAt', 'updatedAt']
-        });
+        userModel = IndustrySupervisor;
         break;
       case "hod":
-        // HOD query without phone and profileImage since they don't exist in DB
-        user = await Hod.findOne({
-          where: { email },
-          attributes: ['id', 'fullName', 'email', 'department', 'password', 'createdAt', 'updatedAt']
-        });
+        userModel = Hod;
         break;
       case "siwesCoordinator":
-        user = await Coordinator.findOne({
-          where: { email },
-          attributes: ['id', 'fullName', 'email', 'password', 'createdAt', 'updatedAt']
-        });
+        userModel = Coordinator;
         break;
       default:
-        return res.status(400).json({
+        return res.status(400).json({ 
           success: false,
-          error: "Invalid role specified"
+          error: "Invalid role specified" 
         });
     }
 
+    user = await userModel.findOne({ where: { email } });
+
     if (!user) {
-      return res.status(401).json({
+      return res.status(401).json({ 
         success: false,
-        error: "Invalid email or password"
+        error: "Invalid email or password" 
       });
     }
 
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({
+      return res.status(401).json({ 
         success: false,
-        error: "Invalid email or password"
+        error: "Invalid email or password" 
       });
     }
 
-    // Update last login if the column exists
-    if (user.lastLogin !== undefined) {
-      user.lastLogin = new Date();
-      await user.save();
-    }
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
 
     // Generate token
     const token = jwt.sign(
@@ -102,37 +86,23 @@ router.post("/role/login", async (req, res) => {
       fullName: user.fullName,
       email: user.email,
       role: role,
-      lastLogin: user.lastLogin || null,
     };
 
     // Add role-specific fields
-    switch (role) {
-      case "student":
-        userData.matricNumber = user.matricNumber;
-        userData.department = user.department;
-        userData.progress = user.progress;
-        userData.companyName = user.companyName;
-        userData.phone = user.phone;
-        userData.companyAddress = user.companyAddress;
-        userData.status = user.status;
-        break;
-      case "institutionSupervisor":
-        userData.department = user.department;
-        break;
-      case "industrySupervisor":
-        userData.companyName = user.companyName;
-        userData.position = user.position;
-        userData.companyAddress = user.companyAddress;
-        userData.department = user.department;
-        userData.phone = user.phone;
-        userData.profileImage = user.profileImage;
-        break;
-      case "hod":
-        userData.department = user.department;
-        break;
-      case "siwesCoordinator":
-        // Add any coordinator-specific fields
-        break;
+    if (role === "student") {
+      userData.matricNumber = user.matricNumber;
+      userData.department = user.department;
+      userData.progress = user.progress;
+      userData.companyName = user.companyName;
+    } else if (role === "institutionSupervisor") {
+      userData.department = user.department;
+      userData.title = user.title;
+    } else if (role === "industrySupervisor") {
+      userData.companyName = user.companyName;
+      userData.position = user.position;
+      userData.companyAddress = user.companyAddress;
+    } else if (role === "hod") {
+      userData.department = user.department;
     }
 
     res.json({
@@ -143,10 +113,10 @@ router.post("/role/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
-      error: "Login failed",
-      details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+      error: "Login failed", 
+      details: err.message 
     });
   }
 });
@@ -154,12 +124,12 @@ router.post("/role/login", async (req, res) => {
 // Student registration
 router.post("/student/signup", async (req, res) => {
   try {
-    const {
-      fullName,
-      email,
-      verificationCode,
-      password,
-      matricNumber,
+    const { 
+      fullName, 
+      email, 
+      verificationCode, 
+      password, 
+      matricNumber, 
       department,
       phone,
       companyName,
@@ -168,27 +138,27 @@ router.post("/student/signup", async (req, res) => {
 
     // Check required fields
     if (!fullName || !email || !password || !matricNumber || !department) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        error: "All required fields must be provided"
+        error: "All required fields must be provided" 
       });
     }
 
     // Check if email already exists
     const existingStudent = await Student.findOne({ where: { email } });
     if (existingStudent) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        error: "Email already registered"
+        error: "Email already registered" 
       });
     }
 
     // Check if matric number exists
     const existingMatric = await Student.findOne({ where: { matricNumber } });
     if (existingMatric) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        error: "Matric number already registered"
+        error: "Matric number already registered" 
       });
     }
 
@@ -230,50 +200,53 @@ router.post("/student/signup", async (req, res) => {
         matricNumber: student.matricNumber,
         department: student.department,
         progress: student.progress,
-        companyName: student.companyName,
-        phone: student.phone,
-        companyAddress: student.companyAddress,
-        status: student.status
+        companyName: student.companyName
       },
     });
   } catch (err) {
     console.error("Signup error:", err);
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
-      error: "Registration failed",
-      details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+      error: "Registration failed", 
+      details: err.message 
     });
   }
 });
 
-// Student login (legacy endpoint - can be removed if using /role/login)
+// Student login
 router.post("/student/login", async (req, res) => {
   try {
+    console.log("Student login attempt started"); // Debug log
     const { email, password } = req.body;
+    console.log("Request body:", { email, passwordReceived: !!password }); // Debug log
 
-    const student = await Student.findOne({
-      where: { email },
-      attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'password', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'createdAt', 'updatedAt']
-    });
+    const student = await Student.findOne({ where: { email } });
+    console.log("Student found:", !!student); // Debug log
 
     if (!student) {
-      return res.status(401).json({
+      console.log("Student not found for email:", email); // Debug log
+      return res.status(401).json({ 
         success: false,
-        error: "Invalid email or password"
+        error: "Invalid email or password" 
       });
     }
 
     const isPasswordValid = await student.comparePassword(password);
+    console.log("Password valid:", isPasswordValid); // Debug log
+
     if (!isPasswordValid) {
-      return res.status(401).json({
+      console.log("Invalid password for student:", email); // Debug log
+      return res.status(401).json({ 
         success: false,
-        error: "Invalid email or password"
+        error: "Invalid email or password" 
       });
     }
 
     // Update last login
+    console.log("Updating last login..."); // Debug log
     student.lastLogin = new Date();
     await student.save();
+    console.log("Last login updated."); // Debug log
 
     const token = jwt.sign(
       {
@@ -285,6 +258,7 @@ router.post("/student/login", async (req, res) => {
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "7d" }
     );
+    console.log("Token generated."); // Debug log
 
     res.json({
       success: true,
@@ -299,18 +273,17 @@ router.post("/student/login", async (req, res) => {
         department: student.department,
         progress: student.progress,
         companyName: student.companyName,
-        phone: student.phone,
-        companyAddress: student.companyAddress,
-        status: student.status,
-        lastLogin: student.lastLogin
+        status: student.status
       },
     });
+    console.log("Login successful response sent."); // Debug log
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({
+    console.error("Stack trace:", err.stack); // Debug log
+    res.status(500).json({ 
       success: false,
-      error: "Login failed",
-      details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+      error: "Login failed", 
+      details: err.message 
     });
   }
 });
@@ -319,24 +292,24 @@ router.post("/student/login", async (req, res) => {
 router.get("/verify", (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-
+    
     if (!token) {
-      return res.status(401).json({
+      return res.status(401).json({ 
         success: false,
-        error: "No token provided"
+        error: "No token provided" 
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
-
+    
     res.json({
       success: true,
       user: decoded,
     });
   } catch (err) {
-    res.status(401).json({
+    res.status(401).json({ 
       success: false,
-      error: "Invalid or expired token"
+      error: "Invalid or expired token" 
     });
   }
 });
@@ -345,57 +318,56 @@ router.get("/verify", (req, res) => {
 router.get("/profile", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-
+    
     if (!token) {
-      return res.status(401).json({
+      return res.status(401).json({ 
         success: false,
-        error: "No token provided"
+        error: "No token provided" 
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    
+    let user;
     const { role, id } = decoded;
 
-    let user;
-
-    // Role-specific profile queries with explicit attributes
     switch (role) {
       case "student":
         user = await Student.findByPk(id, {
-          attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'progress', 'companyName', 'phone', 'companyAddress', 'status', 'lastLogin', 'siwesStartDate', 'siwesEndDate', 'totalWeeks', 'createdAt', 'updatedAt']
+          attributes: { exclude: ['password'] }
         });
         break;
       case "institutionSupervisor":
         user = await InstitutionSupervisor.findByPk(id, {
-          attributes: ['id', 'fullName', 'email', 'department', 'createdAt', 'updatedAt']
+          attributes: { exclude: ['password'] }
         });
         break;
       case "industrySupervisor":
         user = await IndustrySupervisor.findByPk(id, {
-          attributes: ['id', 'fullName', 'email', 'companyName', 'phone', 'profileImage', 'companyAddress', 'position', 'department', 'lastLogin', 'createdAt', 'updatedAt']
+          attributes: { exclude: ['password'] }
         });
         break;
       case "hod":
         user = await Hod.findByPk(id, {
-          attributes: ['id', 'fullName', 'email', 'department', 'createdAt', 'updatedAt']
+          attributes: { exclude: ['password'] }
         });
         break;
       case "siwesCoordinator":
         user = await Coordinator.findByPk(id, {
-          attributes: ['id', 'fullName', 'email', 'createdAt', 'updatedAt']
+          attributes: { exclude: ['password'] }
         });
         break;
       default:
-        return res.status(400).json({
+        return res.status(400).json({ 
           success: false,
-          error: "Invalid role"
+          error: "Invalid role" 
         });
     }
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(404).json({ 
         success: false,
-        error: "User not found"
+        error: "User not found" 
       });
     }
 
@@ -405,106 +377,11 @@ router.get("/profile", async (req, res) => {
     });
   } catch (err) {
     console.error("Profile error:", err);
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
-      error: "Failed to fetch profile"
+      error: "Failed to fetch profile" 
     });
   }
-});
-
-// Update user profile
-router.put("/profile", async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: "No token provided"
-      });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
-    const { role, id } = decoded;
-
-    let user;
-    const updates = req.body;
-
-    // Role-specific profile updates
-    switch (role) {
-      case "student":
-        user = await Student.findByPk(id);
-        break;
-      case "institutionSupervisor":
-        user = await InstitutionSupervisor.findByPk(id);
-        break;
-      case "industrySupervisor":
-        user = await IndustrySupervisor.findByPk(id);
-        break;
-      case "hod":
-        user = await Hod.findByPk(id);
-        break;
-      case "siwesCoordinator":
-        user = await Coordinator.findByPk(id);
-        break;
-      default:
-        return res.status(400).json({
-          success: false,
-          error: "Invalid role"
-        });
-    }
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found"
-      });
-    }
-
-    // List of common allowed fields + role specific ones
-    const commonAllowed = ['fullName', 'email', 'phone', 'profileImage'];
-    const roleAllowed = {
-      'student': ['companyName', 'companyAddress', 'siwesStartDate', 'siwesEndDate'],
-      'institutionSupervisor': ['department'],
-      'industrySupervisor': ['companyName', 'companyAddress', 'position', 'department'],
-      'hod': ['department'],
-      'siwesCoordinator': ['department']
-    };
-
-    const allowedFields = [...commonAllowed, ...(roleAllowed[role] || [])];
-    const cleanUpdates = {};
-
-    Object.keys(updates).forEach(key => {
-      if (allowedFields.includes(key)) {
-        cleanUpdates[key] = updates[key];
-      }
-    });
-
-    await user.update(cleanUpdates);
-
-    res.json({
-      success: true,
-      message: "Profile updated successfully",
-      data: user
-    });
-  } catch (err) {
-    console.error("Profile update error:", err);
-    res.status(500).json({
-      success: false,
-      error: "Failed to update profile",
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  }
-});
-
-// Logout (optional - token invalidation)
-router.post("/logout", (req, res) => {
-  // Since we're using stateless JWT, logout is client-side
-  // You could implement token blacklisting here if needed
-  res.json({
-    success: true,
-    message: "Logout successful"
-  });
 });
 
 export default router;
