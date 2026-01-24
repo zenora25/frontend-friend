@@ -108,16 +108,13 @@ const Student = sequelize.define('Student', {
 }, {
   tableName: 'students',
   timestamps: true,
-  createdAt: 'created_at', // Explicit mapping for timestamps
-  updatedAt: 'updated_at', // Explicit mapping for timestamps
-  underscored: true,
   hooks: {
     beforeCreate: async (student) => {
       if (student.password) {
         const salt = await bcrypt.genSalt(10);
         student.password = await bcrypt.hash(student.password, salt);
       }
-      
+
       // Temporarily disable email validation to test
       // Remove or comment out the custom validator
       console.log(`Creating student with email: ${student.email}`);

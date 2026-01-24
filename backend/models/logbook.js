@@ -104,7 +104,6 @@ const Logbook = sequelize.define(
   {
     tableName: "logbooks",
     timestamps: true,
-    underscored: false,
   }
 );
 

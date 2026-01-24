@@ -40,16 +40,6 @@ const HOD = sequelize.define(
             allowNull: true,
             field: "profile_image", // Map to snake_case
         },
-        createdAt: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
-            field: "created_at", // Map to snake_case
-        },
-        updatedAt: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
-            field: "updated_at", // Map to snake_case
-        },
     },
     {
         tableName: "h_o_ds",

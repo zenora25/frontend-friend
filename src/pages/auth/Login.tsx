@@ -31,7 +31,7 @@ const Login = () => {
 
     try {
       await login(email, password, role !== 'student' ? role : undefined);
-      
+
       toast({
         title: "Login successful",
         description: "Welcome back to InternTrack!",
@@ -58,9 +58,10 @@ const Login = () => {
           navigate("/dashboard");
       }
     } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || "Invalid credentials. Please try again.";
       toast({
         title: "Login failed",
-        description: error || "Invalid credentials. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

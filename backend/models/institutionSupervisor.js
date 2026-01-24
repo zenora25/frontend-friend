@@ -45,7 +45,6 @@ const InstitutionSupervisor = sequelize.define(
   {
     tableName: "institutionsupervisors",
     timestamps: true,
-    underscored: false,
     hooks: {
       beforeCreate: async (supervisor) => {
         if (supervisor.password) {

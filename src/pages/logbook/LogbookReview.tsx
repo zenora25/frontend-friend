@@ -21,6 +21,7 @@ const LogbookReview = () => {
         status: "APPROVED",
         comment: "",
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
