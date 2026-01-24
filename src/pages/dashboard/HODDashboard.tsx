@@ -45,7 +45,19 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { hodAPI, studentAPI, institutionSupervisorAPI, defenseAPI, logbookAPI } from "@/lib/api";
+import { hodAPI, studentAPI, institutionSupervisorAPI, defenseAPI, logbookAPI, verificationAPI } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface HODDashboardData {
   hod: {
@@ -142,6 +154,13 @@ const HODDashboard = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
+  // Verification Code States
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [newStudentEmail, setNewStudentEmail] = useState("");
+  const [bulkEmails, setBulkEmails] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTabSub, setActiveTabSub] = useState("single");
+
   useEffect(() => {
     fetchDashboardData();
     fetchStudents();
@@ -177,8 +196,8 @@ const HODDashboard = () => {
       }
 
       const response = await hodAPI.getDepartmentStudents(params);
-      setStudents(response.data.students || []);
-      setTotalPages(response.data.pagination?.pages || 1);
+      setStudents(response.data.data.students || []);
+      setTotalPages(response.data.data.pagination?.pages || 1);
     } catch (error: any) {
       console.error("Failed to fetch students:", error);
       toast({
@@ -198,6 +217,52 @@ const HODDashboard = () => {
   const handleViewStudent = (studentId: string) => {
     // For now, we go to the unified students list or a detail page if implemented
     navigate("/dashboard/students");
+  };
+
+  const handleGenerateCode = async () => {
+    if (activeTabSub === "single") {
+      if (!newStudentEmail) {
+        toast({ title: "Missing email", description: "Please enter a student email", variant: "destructive" });
+        return;
+      }
+      setIsGenerating(true);
+      try {
+        await verificationAPI.generateCode({
+          email: newStudentEmail.trim(),
+          department: dashboardData?.hod.department || user?.department || "",
+        });
+        toast({ title: "Code generated", description: `Verification code created for ${newStudentEmail}` });
+        setIsAddStudentOpen(false);
+        setNewStudentEmail("");
+      } catch (error: any) {
+        toast({ title: "Failed", description: error.error || "Failed to generate code", variant: "destructive" });
+      } finally {
+        setIsGenerating(false);
+      }
+    } else {
+      if (!bulkEmails) {
+        toast({ title: "Missing emails", description: "Please enter student emails", variant: "destructive" });
+        return;
+      }
+      const emails = bulkEmails.split(/[\n,]/).map(e => e.trim()).filter(e => e);
+      setIsGenerating(true);
+      try {
+        const response = await verificationAPI.bulkGenerateCodes({
+          emails,
+          department: dashboardData?.hod.department || user?.department || "",
+        });
+        toast({
+          title: "Codes generated",
+          description: `Successfully generated ${response.data.generatedCodes?.length || 0} codes.`
+        });
+        setIsAddStudentOpen(false);
+        setBulkEmails("");
+      } catch (error: any) {
+        toast({ title: "Failed", description: error.error || "Failed to generate codes", variant: "destructive" });
+      } finally {
+        setIsGenerating(false);
+      }
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -306,10 +371,73 @@ const HODDashboard = () => {
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Student
-          </Button>
+
+          <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Student
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Student</DialogTitle>
+                <DialogDescription>
+                  Generate verification codes for students to register in your department.
+                </DialogDescription>
+              </DialogHeader>
+
+              <Tabs defaultValue="single" value={activeTabSub} onValueChange={setActiveTabSub} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="single">Single Student</TabsTrigger>
+                  <TabsTrigger value="bulk">Bulk Import</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="single" className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Student Email</Label>
+                    <Input
+                      id="email"
+                      placeholder="student@bazeuniversity.edu.ng"
+                      value={newStudentEmail}
+                      onChange={(e) => setNewStudentEmail(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Only @bazeuniversity.edu.ng emails are allowed</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="bulk" className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bulk-emails">Student Emails (comma or newline separated)</Label>
+                    <Textarea
+                      id="bulk-emails"
+                      placeholder="email1@bazeuniversity.edu.ng, email2@bazeuniversity.edu.ng"
+                      className="h-32"
+                      value={bulkEmails}
+                      onChange={(e) => setBulkEmails(e.target.value)}
+                    />
+                  </div>
+                </TabsContent>
+
+                <div className="space-y-2 py-2">
+                  <Label>Department</Label>
+                  <Input
+                    value={dashboardData?.hod.department || user?.department || ""}
+                    disabled
+                    className="bg-gray-50 italic"
+                  />
+                </div>
+              </Tabs>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>Cancel</Button>
+                <Button onClick={handleGenerateCode} disabled={isGenerating}>
+                  {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                  Generate Code(s)
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

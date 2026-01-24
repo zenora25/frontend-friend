@@ -25,6 +25,15 @@ export const generateCode = async (req, res) => {
       return res.status(400).json({ error: "Email and department required" });
     }
 
+    // Restriction for HOD: Can only generate for their own department
+    if (req.user.role === 'hod' && req.user.department !== department) {
+      return res.status(403).json({
+        error: "Access denied. You can only generate codes for your own department",
+        yourDepartment: req.user.department,
+        requestedDepartment: department
+      });
+    }
+
     // Validate email format and domain
     if (!email.toLowerCase().endsWith('@bazeuniversity.edu.ng')) {
       return res.status(400).json({ error: "Only @bazeuniversity.edu.ng emails are allowed" });
@@ -285,6 +294,15 @@ export const bulkGenerateCodes = async (req, res) => {
     if (!emails || !Array.isArray(emails) || emails.length === 0 || !department) {
       return res.status(400).json({
         error: "Emails array and department are required",
+      });
+    }
+
+    // Restriction for HOD: Can only bulk generate for their own department
+    if (req.user.role === 'hod' && req.user.department !== department) {
+      return res.status(403).json({
+        error: "Access denied. You can only generate codes for your own department",
+        yourDepartment: req.user.department,
+        requestedDepartment: department
       });
     }
 

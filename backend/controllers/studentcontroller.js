@@ -15,17 +15,75 @@ export const createStudent = async (req, res) => {
     }
 };
 
-//this is to get users
+import { Op } from "sequelize";
+import InstitutionSupervisor from "../models/institutionSupervisor.js";
+import IndustrySupervisor from "../models/industrySupervisor.js";
+
+//this is to get students with pagination, search and filtering
 export const getStudents = async (req, res) => {
     try {
-        const students = await Student.findAll();
-        res.json(students);
+        const { page = 1, limit = 10, search = '', status, department } = req.query;
+        const offset = (page - 1) * limit;
+
+        const where = {};
+
+        if (status && status !== 'all') {
+            where.status = status;
+        }
+
+        if (department && department !== 'all') {
+            where.department = department;
+        }
+
+        if (search) {
+            where[Op.or] = [
+                { fullName: { [Op.like]: `%${search}%` } },
+                { matricNumber: { [Op.like]: `%${search}%` } },
+                { email: { [Op.like]: `%${search}%` } }
+            ];
+        }
+
+        const { count, rows: students } = await Student.findAndCountAll({
+            where,
+            include: [
+                {
+                    model: InstitutionSupervisor,
+                    as: 'Supervisor',
+                    attributes: ['fullName', 'email']
+                },
+                {
+                    model: IndustrySupervisor,
+                    as: 'IndustrySupervisor',
+                    attributes: ['fullName', 'companyName']
+                }
+            ],
+            attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'createdAt'],
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            success: true,
+            data: {
+                students,
+                pagination: {
+                    total: count,
+                    page: parseInt(page),
+                    pages: Math.ceil(count / limit),
+                    limit: parseInt(limit)
+                }
+            }
+        });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "failed to fetch students" })
+        console.error("❌ Get students error:", err);
+        res.status(500).json({
+            success: false,
+            error: "Failed to fetch students",
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
     }
-
 }
 
 // Update student profile/details

@@ -280,8 +280,8 @@ export const getHODDashboard = async (req, res) => {
                     })),
                     upcomingDefenses: upcomingDefenses.map(def => ({
                         id: def.id,
-                        studentName: def.Student?.fullName || "Unknown", // Defense model uses Student (capitalized) in its own association
-                        studentMatric: def.Student?.matricNumber || "Unknown",
+                        studentName: def.student?.fullName || "Unknown", // Defense model uses student (lowercase) in its own association
+                        studentMatric: def.student?.matricNumber || "Unknown",
                         defenseDate: def.defenseDate,
                         defenseTime: def.defenseTime,
                         venue: def.venue

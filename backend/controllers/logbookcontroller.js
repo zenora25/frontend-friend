@@ -246,18 +246,24 @@ export const getLogbookById = async (req, res) => {
 
         if (userRole === "student") {
             // Students can only view their own logbooks
-            if (logbook.studentId === userId) {
+            if (logbook.studentId == userId) {
                 isAuthorized = true;
+            } else {
+                console.log(`❌ studentId ${logbook.studentId} !== userId ${userId}`);
             }
         } else if (userRole === "institutionSupervisor") {
             // Institution supervisors can view logbooks of their assigned students
             if (logbook.student && logbook.student.assignedSupervisor == userId) {
                 isAuthorized = true;
+            } else {
+                console.log(`❌ assignedSupervisor ${logbook.student?.assignedSupervisor} !== supervisorId ${userId}`);
             }
         } else if (userRole === "industrySupervisor") {
             // Industry supervisors can view logbooks of their assigned interns
             if (logbook.student && logbook.student.assignedIndustrySupervisor == userId) {
                 isAuthorized = true;
+            } else {
+                console.log(`❌ assignedIndustrySupervisor ${logbook.student?.assignedIndustrySupervisor} !== supervisorId ${userId}`);
             }
         } else if (["admin", "hod", "siwesCoordinator", "coordinator"].includes(userRole)) {
             // Admins/HODs/Coordinators can view all (or department filtered - simplifed to all for now/detail view)
@@ -611,20 +617,24 @@ export const reviewLogbook = async (req, res) => {
 
         // Check if supervisor is authorized based on role
         if (userRole === "institutionSupervisor") {
-            if (logbook.student.assignedSupervisor !== supervisorId) {
+            if (logbook.student.assignedSupervisor != supervisorId) {
+                console.log(`❌ Auth failed: student.assignedSupervisor (${logbook.student.assignedSupervisor}) != supervisorId (${supervisorId})`);
                 return res.status(403).json({
                     success: false,
                     error: "Not authorized to review this logbook",
+                    details: `Assigned: ${logbook.student.assignedSupervisor}, User: ${supervisorId}`
                 });
             }
             logbook.institutionStatus = status;
             logbook.institutionComment = comment;
             logbook.institutionReviewedAt = new Date();
         } else if (userRole === "industrySupervisor") {
-            if (logbook.student.assignedIndustrySupervisor !== supervisorId) {
+            if (logbook.student.assignedIndustrySupervisor != supervisorId) {
+                console.log(`❌ Auth failed: student.assignedIndustrySupervisor (${logbook.student.assignedIndustrySupervisor}) != supervisorId (${supervisorId})`);
                 return res.status(403).json({
                     success: false,
                     error: "Not authorized to review this logbook",
+                    details: `Assigned: ${logbook.student.assignedIndustrySupervisor}, User: ${supervisorId}`
                 });
             }
             logbook.industryStatus = status;

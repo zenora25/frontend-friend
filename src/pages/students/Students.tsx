@@ -67,11 +67,11 @@ const Students = () => {
                 return response.data;
             } else if (user?.role === "hod") {
                 const response = await hodAPI.getDepartmentStudents(params);
-                return response.data;
+                return response.data.data;
             } else if (user?.role === "siwesCoordinator") {
                 // Coordinator sees all students
                 const response = await studentAPI.getAll(params);
-                return response.data;
+                return response.data.data;
             }
 
             // Fallback

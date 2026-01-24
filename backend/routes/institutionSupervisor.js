@@ -1,6 +1,6 @@
 import express from "express";
 import protect from "../middleware/authMiddleware.js";
-import { requireCoordinator, requireInstitutionSupervisor } from "../middleware/roleAuth.js";
+import { requireAdmin, requireCoordinator, requireInstitutionSupervisor } from "../middleware/roleAuth.js";
 import {
   createInstitutionSupervisor,
   getInstitutionSupervisors,
@@ -22,7 +22,7 @@ router.get("/test-auth", protect, requireInstitutionSupervisor, testAuth);
 
 // Public routes (for admin/coordinator to manage supervisors)
 router.post("/", protect, requireCoordinator, createInstitutionSupervisor);
-router.get("/", protect, requireCoordinator, getInstitutionSupervisors);
+router.get("/", protect, requireAdmin, getInstitutionSupervisors);
 router.get("/:id", protect, requireCoordinator, getInstitutionSupervisorById);
 router.delete("/:id", protect, requireCoordinator, deleteInstitutionSupervisor);
 

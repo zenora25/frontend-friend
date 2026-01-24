@@ -186,6 +186,7 @@ const roleConfig: Record<RoleKey, {
         navItems: [
             { label: "Dashboard", href: "/dashboard/hod-dashboard", icon: LayoutDashboard, description: "Department overview" },
             { label: "Department Students", href: "/dashboard/students", icon: Users2, description: "All department students" },
+            { label: "Verification Codes", href: "/dashboard/verification-codes", icon: Key, description: "Manage student codes" },
             { label: "Assign Students", href: "/dashboard/assign-students", icon: UserPlus, description: "Assign to supervisors" },
             { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Account settings" },
         ],
@@ -810,7 +811,7 @@ function App() {
                                     <Route
                                         path="verification-codes"
                                         element={
-                                            <ProtectedRoute requiredRole="siwesCoordinator">
+                                            <ProtectedRoute requiredRole={["siwesCoordinator", "hod"]}>
                                                 <VerificationCodes />
                                             </ProtectedRoute>
                                         }

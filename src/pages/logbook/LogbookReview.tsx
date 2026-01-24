@@ -40,14 +40,22 @@ const LogbookReview = () => {
             // Backend returns { success: true, logbook: { ... } }
             if (response.data && response.data.logbook) {
                 setLogbook(response.data.logbook);
-            } else if (response.data && !response.data.success) {
+            } else if (response.data && response.data.success === false) {
                 setError(response.data.error || "Failed to load logbook");
             } else {
                 setLogbook(response.data);
             }
         } catch (err: any) {
             console.error("Failed to fetch logbook:", err);
-            const errorMessage = err.error || "Failed to load logbook. You might not have permission to view it.";
+
+            // Extract error message from axios error response if available
+            const backendError = err.response?.data?.error;
+            const backendDetails = err.response?.data?.details;
+
+            const errorMessage = backendError
+                ? `${backendError}${backendDetails ? `: ${backendDetails}` : ''}`
+                : "Failed to load logbook. You might not have permission to view it.";
+
             setError(errorMessage);
             toast({
                 title: "Error",
@@ -141,6 +149,23 @@ const LogbookReview = () => {
                         <CardTitle className="text-gray-900">{logbook.title}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6 pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { day: "Monday", activity: logbook.mondayActivities },
+                                { day: "Tuesday", activity: logbook.tuesdayActivities },
+                                { day: "Wednesday", activity: logbook.wednesdayActivities },
+                                { day: "Thursday", activity: logbook.thursdayActivities },
+                                { day: "Friday", activity: logbook.fridayActivities },
+                            ].map((item) => (
+                                <div key={item.day} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">{item.day}</h4>
+                                    <p className="text-sm text-gray-700 whitespace-pre-line">
+                                        {item.activity || "No activities recorded"}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+
                         <div>
                             <h3 className="font-semibold mb-2 text-gray-900">Weekly Summary</h3>
                             <p className="whitespace-pre-line text-gray-700">{logbook.weekSummary}</p>
@@ -157,6 +182,13 @@ const LogbookReview = () => {
                             <div>
                                 <h3 className="font-semibold mb-2 text-gray-900">Lessons Learned</h3>
                                 <p className="whitespace-pre-line text-gray-700">{logbook.lessonsLearned}</p>
+                            </div>
+                        )}
+
+                        {logbook.skillsAcquired && (
+                            <div>
+                                <h3 className="font-semibold mb-2 text-gray-900">Skills Acquired</h3>
+                                <p className="whitespace-pre-line text-gray-700">{logbook.skillsAcquired}</p>
                             </div>
                         )}
                     </CardContent>

@@ -62,50 +62,32 @@ const IndustrySupervisorDashboard = () => {
       ]);
 
       const data = dashboardRes.data;
-      const assignedStudents = studentsRes.data || [];
+      const assignedStudents = studentsRes.data || data.assignedStudents || [];
 
       const transformedData: IndustryDashboardData = {
         stats: {
           assignedStudents: data.stats?.assignedStudents || assignedStudents.length,
-          pendingReviews: data.stats?.pendingReviews || 3,
-          reviewedThisWeek: data.stats?.reviewedThisWeek || 8,
-          avgRating: 4.2,
+          pendingReviews: data.stats?.pendingReviews || 0,
+          reviewedThisWeek: data.stats?.reviewedThisWeek || 0,
+          avgRating: data.stats?.avgRating || 0,
         },
-        students: assignedStudents.slice(0, 3).map((student: any, index: number) => ({
+        students: assignedStudents.slice(0, 3).map((student: any) => ({
           id: student.id,
-          name: student.fullName,
+          name: student.fullName || student.name,
           matricNumber: student.matricNumber,
-          role: "Software Developer Intern",
+          role: student.role || "Intern",
           progress: student.progress || 0,
-          lastActivity: "2024-03-11",
-          status: index === 2 ? "inactive" : "active",
+          lastActivity: student.updatedAt || student.lastActivity || "Never",
+          status: student.status?.toLowerCase() === "active" ? "active" : "inactive",
         })),
-        recentSubmissions: [
-          {
-            id: 1,
-            student: "John Doe",
-            week: 8,
-            submittedAt: "2024-03-11",
-            status: "pending",
-            preview: "Worked on implementing REST API endpoints for user management...",
-          },
-          {
-            id: 2,
-            student: "Jane Smith",
-            week: 8,
-            submittedAt: "2024-03-10",
-            status: "pending",
-            preview: "Completed data visualization dashboard using Python and Tableau...",
-          },
-          {
-            id: 3,
-            student: "Mike Johnson",
-            week: 7,
-            submittedAt: "2024-03-04",
-            status: "reviewed",
-            preview: "Conducted regression testing on payment module...",
-          },
-        ],
+        recentSubmissions: (data.recentSubmissions || []).map((submission: any) => ({
+          id: submission.id,
+          student: submission.student,
+          week: submission.week,
+          submittedAt: new Date(submission.submittedAt).toLocaleDateString(),
+          status: submission.status?.toLowerCase() === "pending" ? "pending" : "reviewed",
+          preview: submission.preview,
+        })),
       };
 
       setDashboardData(transformedData);

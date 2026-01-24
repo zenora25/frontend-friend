@@ -56,7 +56,7 @@ const AssignStudents = () => {
 
     const assignMutation = useMutation({
         mutationFn: async ({ studentId, supervisorId }: { studentId: string; supervisorId: string }) => {
-            return await hodAPI.assignStudent(studentId, supervisorId);
+            return await hodAPI.assignStudentToSupervisor({ studentId, institutionSupervisorId: supervisorId });
         },
         onSuccess: () => {
             toast({
