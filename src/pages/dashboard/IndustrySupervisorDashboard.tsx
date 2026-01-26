@@ -326,9 +326,11 @@ const IndustrySupervisorDashboard = () => {
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-2">{submission.preview}</p>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
+                    <Button size="sm" variant="outline" className="flex-1" asChild>
+                      <Link to={`/dashboard/logbook/${submission.id}/review`}>
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Link>
                     </Button>
                     <Button size="sm" variant="ghost">
                       <MessageSquare className="w-4 h-4" />

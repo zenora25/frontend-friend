@@ -20,6 +20,7 @@ import defenseRoutes from './routes/defense.js';
 import verificationRoutes from './routes/VerificationCode.js';
 import assignmentRoutes from './routes/assignment.js';
 import dashboardRoutes from './routes/dashboard.js'; // Import dashboard routes
+import letterRoutes from './routes/letter.js';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use('/api/defense', defenseRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/dashboard', dashboardRoutes); // Mount dashboard routes
+app.use('/api/letter', letterRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -76,6 +78,7 @@ app.get('/api', (req, res) => {
       defense: '/api/defense',
       verification: '/api/verification',
       assignments: '/api/assignments',
+      letter: '/api/letter',
       health: '/api/health'
     },
     documentation: 'Coming soon...'
@@ -107,6 +110,7 @@ app.use((req, res, next) => {
       '/api/defense',
       '/api/verification',
       '/api/assignments',
+      '/api/letter',
       '/api/health'
     ]
   });

@@ -15,6 +15,7 @@ interface User {
   status?: string;
   progress?: number;
   isVerified?: boolean;
+  profileImage?: string;
 }
 
 interface AuthContextType {

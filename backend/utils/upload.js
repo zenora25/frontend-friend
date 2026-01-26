@@ -6,21 +6,32 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../uploads/logbooks');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Ensure upload directories exist
+const uploadLogbookDir = path.join(__dirname, '../uploads/logbooks');
+const uploadLetterDir = path.join(__dirname, '../uploads/letters');
+const uploadProfileDir = path.join(__dirname, '../uploads/profiles');
+
+[uploadLogbookDir, uploadLetterDir, uploadProfileDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
 
 // Configure storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, uploadDir);
+        let dir = uploadLogbookDir;
+        if (file.fieldname === 'letter') dir = uploadLetterDir;
+        if (file.fieldname === 'profileImage') dir = uploadProfileDir;
+        cb(null, dir);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname);
-        cb(null, `logbook-${uniqueSuffix}${ext}`);
+        let prefix = 'logbook';
+        if (file.fieldname === 'letter') prefix = 'letter';
+        if (file.fieldname === 'profileImage') prefix = 'profile';
+        cb(null, `${prefix}-${uniqueSuffix}${ext}`);
     }
 });
 
@@ -51,5 +62,7 @@ const uploadMultiple = upload.array('images', 10); // Max 10 files
 
 // Single file upload middleware
 const uploadSingle = upload.single('image');
+const uploadLetter = upload.single('letter');
+const uploadProfile = upload.single('profileImage');
 
-export { upload, uploadMultiple, uploadSingle };
+export { upload, uploadMultiple, uploadSingle, uploadLetter, uploadProfile };

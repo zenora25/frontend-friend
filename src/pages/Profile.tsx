@@ -10,10 +10,19 @@ import { authAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const { toast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Help construction of image URL
+    const getImageUrl = (path: string | undefined) => {
+        if (!path) return "";
+        if (path.startsWith('http')) return path;
+        const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
+        return `${baseUrl}${path}`;
+    };
+
     const [formData, setFormData] = useState({
         fullName: user?.fullName || "",
         email: user?.email || "",
@@ -24,21 +33,21 @@ const Profile = () => {
     });
 
     useEffect(() => {
-        fetchProfile();
-    }, []);
+        if (user) {
+            setFormData({
+                fullName: user.fullName || "",
+                email: user.email || "",
+                phone: user.phone || "",
+                department: user.department || "",
+                companyName: user.companyName || "",
+                companyAddress: user.companyAddress || "",
+            });
+        }
+    }, [user]);
 
     const fetchProfile = async () => {
         try {
-            const response = await authAPI.getProfile();
-            const data = response.data.data;
-            setFormData({
-                fullName: data.fullName || "",
-                email: data.email || "",
-                phone: data.phone || "",
-                department: data.department || "",
-                companyName: data.companyName || "",
-                companyAddress: data.companyAddress || "",
-            });
+            await refreshUser();
         } catch (error) {
             console.error("Failed to fetch profile:", error);
         }
@@ -48,6 +57,7 @@ const Profile = () => {
         setIsLoading(true);
         try {
             await authAPI.updateProfile(formData);
+            await refreshUser();
             toast({
                 title: "Profile updated",
                 description: "Your profile information has been successfully updated.",
@@ -57,6 +67,32 @@ const Profile = () => {
             toast({
                 title: "Update failed",
                 description: error.response?.data?.error || "Failed to update profile. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const fd = new FormData();
+        fd.append('profileImage', file);
+
+        setIsLoading(true);
+        try {
+            await authAPI.updateProfile(fd);
+            await refreshUser();
+            toast({
+                title: "Photo updated",
+                description: "Your profile picture has been updated successfully.",
+            });
+        } catch (error: any) {
+            toast({
+                title: "Upload failed",
+                description: error.response?.data?.error || "Failed to upload image.",
                 variant: "destructive",
             });
         } finally {
@@ -175,21 +211,45 @@ const Profile = () => {
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Profile Picture</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center space-y-4">
-                        <Avatar className="w-32 h-32">
-                            <AvatarImage src="" />
-                            <AvatarFallback className="text-2xl">
-                                {user?.fullName?.charAt(0)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <Button variant="outline" size="sm">
-                            Change Photo
-                        </Button>
-                        <div className="text-center text-sm text-muted-foreground">
-                            <p>Role: {user?.role}</p>
+                    <CardContent className="flex flex-col items-center space-y-4 pt-6">
+                        <div className="relative group">
+                            <Avatar className="w-32 h-32 border-2 border-primary/10">
+                                <AvatarImage
+                                    src={getImageUrl(user?.profileImage)}
+                                    className="object-cover"
+                                />
+                                <AvatarFallback className="text-4xl bg-primary/5 text-primary">
+                                    {user?.fullName?.charAt(0)}
+                                </AvatarFallback>
+                            </Avatar>
+                            {isLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full">
+                                    <Loader2 className="w-8 h-8 text-white animate-spin" />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col items-center gap-2">
+                            <input
+                                type="file"
+                                id="profile-upload"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                            />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => document.getElementById('profile-upload')?.click()}
+                                disabled={isLoading}
+                            >
+                                <User className="w-4 h-4 mr-2" />
+                                Change Photo
+                            </Button>
+                        </div>
+
+                        <div className="text-center text-sm text-muted-foreground pt-4 border-t w-full">
+                            <p className="font-medium text-foreground">Role: {user?.role}</p>
                             {user?.department && <p>Department: {user.department}</p>}
                             {user?.matricNumber && <p>Matric: {user.matricNumber}</p>}
                         </div>

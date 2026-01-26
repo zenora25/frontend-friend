@@ -106,6 +106,8 @@ const Students = lazy(() => import("@/pages/students/Students"));
 const StudentDetails = lazy(() => import("@/pages/students/StudentDetails"));
 const AssignStudents = lazy(() => import("@/pages/students/AssignStudents"));
 const VerificationCodes = lazy(() => import("@/pages/coordinator/VerificationCodes"));
+const Letters = lazy(() => import("@/pages/Letters"));
+const CoordinatorLetters = lazy(() => import("@/pages/coordinator/CoordinatorLetters"));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -140,6 +142,7 @@ const roleConfig: Record<RoleKey, {
             { label: "My Logbook", href: "/dashboard/logbook", icon: BookText, description: "Weekly entries" },
             { label: "Submit Entry", href: "/dashboard/logbook/submit", icon: FileEdit, description: "New logbook entry" },
             { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Personal information" },
+            { label: "Letters", href: "/dashboard/letters", icon: FileText, description: "Acceptance/completion letters" },
         ],
         dashboardPath: "/dashboard/overview",
         color: "from-gray-700 to-gray-900",
@@ -174,6 +177,7 @@ const roleConfig: Record<RoleKey, {
         navItems: [
             { label: "Dashboard", href: "/dashboard/coordinator-dashboard", icon: LayoutDashboard, description: "System overview" },
             { label: "Verification Codes", href: "/dashboard/verification-codes", icon: Key, description: "Manage student codes" },
+            { label: "SIWES Letters", href: "/dashboard/coordinator-letters", icon: FileText, description: "Manage application letters" },
             { label: "All Students", href: "/dashboard/students", icon: GraduationCap, description: "All registered students" },
             { label: "My Profile", href: "/dashboard/profile", icon: UserCircle, description: "Account settings" },
         ],
@@ -787,6 +791,15 @@ function App() {
                                         }
                                     />
 
+                                    <Route
+                                        path="letters"
+                                        element={
+                                            <ProtectedRoute requiredRole="student">
+                                                <Letters />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+
                                     {/* HOD Assign Students */}
                                     <Route
                                         path="assign-students"
@@ -803,6 +816,15 @@ function App() {
                                         element={
                                             <ProtectedRoute requiredRole="siwesCoordinator">
                                                 <CoordinatorDashboard />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+
+                                    <Route
+                                        path="coordinator-letters"
+                                        element={
+                                            <ProtectedRoute requiredRole="siwesCoordinator">
+                                                <CoordinatorLetters />
                                             </ProtectedRoute>
                                         }
                                     />

@@ -201,7 +201,12 @@ export const authAPI = {
 
   getProfile: () => api.get('/auth/profile'),
 
-  updateProfile: (data: any) => api.put('/auth/profile', data),
+  updateProfile: (data: any) => {
+    const isFormData = data instanceof FormData;
+    return api.put('/auth/profile', data, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {}
+    });
+  },
 
   checkAuth: () => api.get('/auth/check'),
 

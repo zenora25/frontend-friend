@@ -246,21 +246,21 @@ export const getLogbookById = async (req, res) => {
 
         if (userRole === "student") {
             // Students can only view their own logbooks
-            if (logbook.studentId == userId) {
+            if (Number(logbook.studentId) === Number(userId)) {
                 isAuthorized = true;
             } else {
                 console.log(`❌ studentId ${logbook.studentId} !== userId ${userId}`);
             }
         } else if (userRole === "institutionSupervisor") {
             // Institution supervisors can view logbooks of their assigned students
-            if (logbook.student && logbook.student.assignedSupervisor == userId) {
+            if (logbook.student && Number(logbook.student.assignedSupervisor) === Number(userId)) {
                 isAuthorized = true;
             } else {
                 console.log(`❌ assignedSupervisor ${logbook.student?.assignedSupervisor} !== supervisorId ${userId}`);
             }
         } else if (userRole === "industrySupervisor") {
             // Industry supervisors can view logbooks of their assigned interns
-            if (logbook.student && logbook.student.assignedIndustrySupervisor == userId) {
+            if (logbook.student && Number(logbook.student.assignedIndustrySupervisor) === Number(userId)) {
                 isAuthorized = true;
             } else {
                 console.log(`❌ assignedIndustrySupervisor ${logbook.student?.assignedIndustrySupervisor} !== supervisorId ${userId}`);
@@ -283,7 +283,7 @@ export const getLogbookById = async (req, res) => {
         // Transform image URLs to include full path
         if (logbook.images && Array.isArray(logbook.images)) {
             logbook.images = logbook.images.map(image => ({
-                url: `${req.protocol}://${req.get('host')}${image}`,
+                url: `${req.protocol}://${req.get('host')}${image.startsWith('/') ? '' : '/'}${image}`,
                 filename: path.basename(image)
             }));
         }
@@ -617,7 +617,7 @@ export const reviewLogbook = async (req, res) => {
 
         // Check if supervisor is authorized based on role
         if (userRole === "institutionSupervisor") {
-            if (logbook.student.assignedSupervisor != supervisorId) {
+            if (Number(logbook.student.assignedSupervisor) !== Number(supervisorId)) {
                 console.log(`❌ Auth failed: student.assignedSupervisor (${logbook.student.assignedSupervisor}) != supervisorId (${supervisorId})`);
                 return res.status(403).json({
                     success: false,
@@ -629,7 +629,7 @@ export const reviewLogbook = async (req, res) => {
             logbook.institutionComment = comment;
             logbook.institutionReviewedAt = new Date();
         } else if (userRole === "industrySupervisor") {
-            if (logbook.student.assignedIndustrySupervisor != supervisorId) {
+            if (Number(logbook.student.assignedIndustrySupervisor) !== Number(supervisorId)) {
                 console.log(`❌ Auth failed: student.assignedIndustrySupervisor (${logbook.student.assignedIndustrySupervisor}) != supervisorId (${supervisorId})`);
                 return res.status(403).json({
                     success: false,
