@@ -130,25 +130,25 @@ const defineAssociations = () => {
 // Safe model synchronization (no alter to avoid datetime issues)
 export const syncModels = async () => {
   try {
-    console.log('🔄 Defining model associations...');
+    console.log(' Defining model associations...');
     defineAssociations();
 
-    console.log('🔄 Synchronizing models (safe mode)...');
+    console.log(' Synchronizing models (safe mode)...');
     // Use alter: false to avoid datetime and constraint issues
     await sequelize.sync({ alter: false });
 
-    console.log('✅ All models synchronized successfully');
+    console.log(' All models synchronized successfully');
     return true;
   } catch (error) {
-    console.error('❌ Model synchronization failed:', error.message);
+    console.error(' Model synchronization failed:', error.message);
 
     // Provide helpful debugging information
     if (error.original && error.original.sqlMessage) {
-      console.error('🔧 SQL Error:', error.original.sqlMessage);
-      console.error('🔧 SQL Query:', error.sql);
+      console.error(' SQL Error:', error.original.sqlMessage);
+      console.error(' SQL Query:', error.sql);
 
       if (error.original.sqlMessage.includes('datetime')) {
-        console.log('\n💡 Solution for datetime error:');
+        console.log('\n Solution for datetime error:');
         console.log('1. Run this SQL command in your MySQL database:');
         console.log('   SET GLOBAL sql_mode = "NO_ENGINE_SUBSTITUTION";');
         console.log('\n2. Or add this to your my.cnf/my.ini file:');
@@ -164,20 +164,20 @@ export const syncModels = async () => {
 // Alternative safe sync with manual table creation
 export const safeSyncModels = async () => {
   try {
-    console.log('🔄 Starting safe model synchronization...');
+    console.log(' Starting safe model synchronization...');
     defineAssociations();
 
     // First, sync without altering existing tables
     await sequelize.sync({ alter: false });
 
-    console.log('✅ Models synchronized (safe mode)');
+    console.log(' Models synchronized (safe mode)');
     return true;
   } catch (error) {
-    console.error('❌ Safe sync failed:', error.message);
+    console.error(' Safe sync failed:', error.message);
 
     // Try even safer approach - sync individual models
     try {
-      console.log('🔄 Attempting individual model sync...');
+      console.log(' Attempting individual model sync...');
 
       // Sync each model separately
       const models = [
@@ -195,16 +195,16 @@ export const safeSyncModels = async () => {
       for (const model of models) {
         try {
           await model.sync({ alter: false });
-          console.log(`✅ ${model.name} synced`);
+          console.log(` ${model.name} synced`);
         } catch (modelError) {
-          console.warn(`⚠️  Failed to sync ${model.name}:`, modelError.message);
+          console.warn(`  Failed to sync ${model.name}:`, modelError.message);
         }
       }
 
-      console.log('✅ Individual model sync completed');
+      console.log(' Individual model sync completed');
       return true;
     } catch (individualError) {
-      console.error('❌ Individual model sync also failed:', individualError.message);
+      console.error(' Individual model sync also failed:', individualError.message);
       return false;
     }
   }
@@ -213,21 +213,21 @@ export const safeSyncModels = async () => {
 // Force sync (DANGEROUS - drops all tables and recreates them)
 export const forceSyncModels = async () => {
   try {
-    console.log('⚠️  WARNING: Force syncing models (will drop all tables!)');
-    console.log('⚠️  This will delete all data in the database!');
+    console.log('  WARNING: Force syncing models (will drop all tables!)');
+    console.log('  This will delete all data in the database!');
 
     defineAssociations();
 
     // Add a safety delay
     await new Promise(resolve => setTimeout(resolve, 3000));
 
-    console.log('🔄 Force syncing models...');
+    console.log(' Force syncing models...');
     await sequelize.sync({ force: true });
 
-    console.log('✅ All models force-synced successfully (all data lost)');
+    console.log(' All models force-synced successfully (all data lost)');
     return true;
   } catch (error) {
-    console.error('❌ Force sync failed:', error);
+    console.error(' Force sync failed:', error);
     return false;
   }
 };
@@ -235,21 +235,21 @@ export const forceSyncModels = async () => {
 // Sync with alter (can cause datetime issues)
 export const alterSyncModels = async () => {
   try {
-    console.log('🔄 Syncing models with alter...');
+    console.log(' Syncing models with alter...');
     defineAssociations();
 
     await sequelize.sync({ alter: true });
 
-    console.log('✅ Models synchronized with alter');
+    console.log(' Models synchronized with alter');
     return true;
   } catch (error) {
-    console.error('❌ Alter sync failed:', error);
+    console.error(' Alter sync failed:', error);
 
     if (error.original && error.original.sqlMessage) {
-      console.error('🔧 SQL Error:', error.original.sqlMessage);
+      console.error(' SQL Error:', error.original.sqlMessage);
 
       if (error.original.sqlMessage.includes('Incorrect datetime value')) {
-        console.log('\n💡 Fix for datetime error:');
+        console.log('\n Fix for datetime error:');
         console.log('Run these SQL commands in your database:');
         console.log(`
           -- Fix existing tables
@@ -285,11 +285,11 @@ export const checkTables = async () => {
     `);
 
     const tableNames = results.map(row => row.TABLE_NAME);
-    console.log('📊 Existing tables:', tableNames);
+    console.log(' Existing tables:', tableNames);
 
     return tableNames;
   } catch (error) {
-    console.error('❌ Error checking tables:', error.message);
+    console.error(' Error checking tables:', error.message);
     return [];
   }
 };
@@ -306,7 +306,7 @@ export const tableExists = async (tableName) => {
 
     return results.length > 0;
   } catch (error) {
-    console.error('❌ Error checking table existence:', error.message);
+    console.error(' Error checking table existence:', error.message);
     return false;
   }
 };
@@ -333,7 +333,7 @@ export const getDatabaseInfo = async () => {
       tables: tables
     };
   } catch (error) {
-    console.error('❌ Error getting database info:', error.message);
+    console.error(' Error getting database info:', error.message);
     return null;
   }
 };

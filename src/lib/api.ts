@@ -14,14 +14,14 @@ const api = axios.create({
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
-    console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
+    console.log(` ${config.method?.toUpperCase()} ${config.url}`);
 
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('✅ Token added to request');
+      console.log(' Token added to request');
     } else {
-      console.log('⚠️ No token found in localStorage');
+      console.log(' No token found in localStorage');
     }
 
     // Log request data for debugging (excluding passwords)
@@ -44,12 +44,12 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
-    console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`);
-    console.log('📥 Response data:', response.data);
+    console.log(` ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`);
+    console.log(' Response data:', response.data);
     return response;
   },
   async (error) => {
-    console.error('❌ Response error:', {
+    console.error(' Response error:', {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
@@ -65,7 +65,7 @@ api.interceptors.response.use(
 
       switch (status) {
         case 401:
-          console.error('🔒 401 Unauthorized - Token invalid or expired');
+          console.error(' 401 Unauthorized - Token invalid or expired');
           // Clear local storage
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -79,7 +79,7 @@ api.interceptors.response.use(
           break;
 
         case 403:
-          console.error('🚫 403 Forbidden - Insufficient permissions');
+          console.error(' 403 Forbidden - Insufficient permissions');
           // Get current user role
           const userStr = localStorage.getItem('user');
           const user = userStr ? JSON.parse(userStr) : null;
@@ -96,22 +96,22 @@ api.interceptors.response.use(
           break;
 
         case 404:
-          console.error('🔍 404 Not Found');
+          console.error(' 404 Not Found');
           break;
 
         case 500:
-          console.error('💥 500 Internal Server Error');
+          console.error(' 500 Internal Server Error');
           // Could show a toast notification here
           break;
 
         default:
-          console.error(`❌ HTTP Error ${status}`);
+          console.error(` HTTP Error ${status}`);
       }
     } else if (error.request) {
-      console.error('🌐 Network Error - No response received:', error.request);
+      console.error(' Network Error - No response received:', error.request);
       // Could show a network error toast
     } else {
-      console.error('🚨 Request Error:', error.message);
+      console.error(' Request Error:', error.message);
     }
 
     // Return a consistent error format
@@ -175,7 +175,7 @@ export const authAPI = {
 
   roleLogin: (data: { email: string; password: string; role: string }) => {
     const backendRole = mapRoleToBackend(data.role);
-    console.log('🔐 Role login - Frontend role:', data.role, 'Backend role:', backendRole);
+    console.log(' Role login - Frontend role:', data.role, 'Backend role:', backendRole);
     return api.post('/auth/role/login', {
       email: data.email,
       password: data.password,
@@ -449,7 +449,7 @@ export const verificationAPI = {
       email: data.email.trim().toLowerCase(),
       code: data.code.trim().toUpperCase()
     };
-    console.log('🔐 Verifying code with payload:', payload);
+    console.log(' Verifying code with payload:', payload);
     return api.post('/verification/verify', payload);
   },
 

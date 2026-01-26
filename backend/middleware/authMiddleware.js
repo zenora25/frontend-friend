@@ -7,12 +7,12 @@ import IndustrySupervisor from "../models/industrySupervisor.js";
 import Coordinator from "../models/siwesCoordinator.js";
 
 const protect = async (req, res, next) => {
-  console.log("🔐 Auth Middleware - Checking authentication");
+  console.log(" Auth Middleware - Checking authentication");
 
   // Get token from Authorization header
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log("❌ No token found in Authorization header");
+    console.log(" No token found in Authorization header");
     return res.status(401).json({
       success: false,
       error: "Not authorized, no token provided"
@@ -22,7 +22,7 @@ const protect = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   if (!token) {
-    console.log("❌ Token is empty");
+    console.log(" Token is empty");
     return res.status(401).json({
       success: false,
       error: "Not authorized, no token"
@@ -30,25 +30,25 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    console.log("🔍 Verifying JWT token...");
+    console.log(" Verifying JWT token...");
 
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key-change-this");
-    console.log("✅ Token decoded successfully:", decoded);
+    console.log(" Token decoded successfully:", decoded);
 
     let user;
 
     // Fetch the actual user from database based on role
     switch (decoded.role) {
       case "student":
-        console.log("👨‍🎓 Looking for student with ID:", decoded.id);
+        console.log(" Looking for student with ID:", decoded.id);
         user = await Student.findByPk(decoded.id, {
           attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'companyName', 'password']
         });
 
         break;
       case "institutionSupervisor":
-        console.log("👨‍🏫 Looking for institution supervisor with ID:", decoded.id);
+        console.log(" Looking for institution supervisor with ID:", decoded.id);
         user = await InstitutionSupervisor.findByPk(decoded.id, {
           attributes: ['id', 'fullName', 'email', 'department', 'password']
         });
@@ -56,7 +56,7 @@ const protect = async (req, res, next) => {
         break;
 
       case "industrySupervisor":
-        console.log("👔 Looking for industry supervisor with ID:", decoded.id);
+        console.log(" Looking for industry supervisor with ID:", decoded.id);
         user = await IndustrySupervisor.findByPk(decoded.id, {
           attributes: ['id', 'fullName', 'email', 'companyName', 'password']
         });
@@ -68,13 +68,13 @@ const protect = async (req, res, next) => {
         });
         break;
       case "siwesCoordinator":
-        console.log("🛡️ Looking for coordinator with ID:", decoded.id);
+        console.log(" Looking for coordinator with ID:", decoded.id);
         user = await Coordinator.findByPk(decoded.id, {
           attributes: ['id', 'fullName', 'email', 'department', 'password']
         });
         break;
       default:
-        console.log("❌ Invalid user role in token:", decoded.role);
+        console.log(" Invalid user role in token:", decoded.role);
         return res.status(401).json({
           success: false,
           error: "Invalid user role"
@@ -82,14 +82,14 @@ const protect = async (req, res, next) => {
     }
 
     if (!user) {
-      console.log("❌ User not found in database");
+      console.log(" User not found in database");
       return res.status(401).json({
         success: false,
         error: "User not found"
       });
     }
 
-    console.log("✅ User found:", user.email, "Role:", decoded.role);
+    console.log(" User found:", user.email, "Role:", decoded.role);
 
     // Create a clean user object for req.user
     const userData = user.toJSON ? user.toJSON() : user;
@@ -107,10 +107,10 @@ const protect = async (req, res, next) => {
       ...(userData.companyName && { companyName: userData.companyName }),
     };
 
-    console.log("✅ req.user set:", req.user);
+    console.log(" req.user set:", req.user);
     next();
   } catch (err) {
-    console.error("❌ JWT Error:", err.message);
+    console.error(" JWT Error:", err.message);
     if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,

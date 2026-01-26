@@ -31,7 +31,7 @@ const sequelize = new Sequelize(
 export const connectMYSQL = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ MySQL Connected Successfully');
+    console.log(' MySQL Connected Successfully');
 
     // Import models AFTER connection is established
     const models = await Promise.all([
@@ -60,12 +60,12 @@ export const connectMYSQL = async () => {
     // Sync models in development
     if (process.env.NODE_ENV === 'development') {
       await sequelize.sync({ alter: true });
-      console.log('✅ Database tables synced');
+      console.log(' Database tables synced');
     }
 
     return true;
   } catch (error) {
-    console.error('❌ MySQL Connection Failed:', error.message);
+    console.error(' MySQL Connection Failed:', error.message);
     return false;
   }
 };
@@ -169,7 +169,7 @@ function defineAssociations(models) {
     constraints: false
   });
 
-  console.log('✅ All model associations defined');
+  console.log(' All model associations defined');
 }
 
 export default sequelize;

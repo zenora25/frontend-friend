@@ -7,7 +7,7 @@ defineAssociations();
 const test = async () => {
     try {
         await sequelize.authenticate();
-        console.log('✅ Connection established.');
+        console.log(' Connection established.');
 
         // Find any logbook
         const logbook = await Logbook.findOne({
@@ -21,31 +21,31 @@ const test = async () => {
         });
 
         if (!logbook) {
-            console.log('ℹ️ No logbooks found to test review logic.');
+            console.log(' No logbooks found to test review logic.');
             process.exit(0);
         }
 
-        console.log(`🔍 testing review logic for logbook ID: ${logbook.id}`);
-        console.log(`👤 Assigned Supervisor: ${logbook.student ? logbook.student.assignedSupervisor : 'NONE'}`);
+        console.log(` testing review logic for logbook ID: ${logbook.id}`);
+        console.log(` Assigned Supervisor: ${logbook.student ? logbook.student.assignedSupervisor : 'NONE'}`);
 
         const supervisorId = logbook.student.assignedSupervisor;
         const userRole = 'institutionSupervisor';
 
         // Simulate the logic in reviewLogbook
-        console.log(`🛠️ Simulating review check for supervisor ${supervisorId}...`);
+        console.log(` Simulating review check for supervisor ${supervisorId}...`);
 
         if (userRole === "institutionSupervisor") {
             if (logbook.student.assignedSupervisor !== supervisorId) {
-                console.log('❌ Auth logic would fail: logbook.student.assignedSupervisor !== supervisorId');
+                console.log(' Auth logic would fail: logbook.student.assignedSupervisor !== supervisorId');
             } else {
-                console.log('✅ Auth logic passed: logbook.student.assignedSupervisor === supervisorId');
+                console.log(' Auth logic passed: logbook.student.assignedSupervisor === supervisorId');
             }
         }
 
-        console.log('✅ Review logic test completed.');
+        console.log(' Review logic test completed.');
         process.exit(0);
     } catch (error) {
-        console.error('❌ Test failed:', error);
+        console.error(' Test failed:', error);
         process.exit(1);
     }
 };

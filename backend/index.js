@@ -122,42 +122,42 @@ const initializeDatabase = async () => {
 
       // Test database connection
       await sequelize.authenticate();
-      console.log('✅ MySQL Connected Successfully');
+      console.log(' MySQL Connected Successfully');
 
       // Try to sync models with safe approach
       try {
-        console.log('🔄 Synchronizing database models...');
+        console.log(' Synchronizing database models...');
 
         // Use alter: true to update schema for UUID changes
         await alterSyncModels();
         // await syncModels();
-        console.log('✅ Database models synchronized');
+        console.log(' Database models synchronized');
 
 
       } catch (syncError) {
-        console.warn('⚠️  Database synchronization had issues:');
+        console.warn('  Database synchronization had issues:');
         console.warn('   Error:', syncError.message);
 
         if (syncError.original && syncError.original.sqlMessage) {
           console.warn('   SQL Error:', syncError.original.sqlMessage);
         }
 
-        console.log('ℹ️  Server will start anyway. Some database operations may be limited.');
+        console.log('  Server will start anyway. Some database operations may be limited.');
       }
 
       return true; // Success
 
     } catch (error) {
-      console.error(`❌ Database connection attempt failed: ${error.message}`);
+      console.error(` Database connection attempt failed: ${error.message}`);
       retries -= 1;
 
       if (retries > 0) {
-        console.log(`⏳ Retrying in 5 seconds...`);
+        console.log(` Retrying in 5 seconds...`);
         await new Promise(resolve => setTimeout(resolve, 5000));
       } else {
-        console.error('❌ All database connection attempts failed');
-        console.log('⚠️  Starting server without database connection');
-        console.log('⚠️  Some features will not work until database is available');
+        console.error(' All database connection attempts failed');
+        console.log('  Starting server without database connection');
+        console.log('  Some features will not work until database is available');
         return false;
       }
     }
@@ -167,7 +167,7 @@ const initializeDatabase = async () => {
 // Start server
 const startServer = async () => {
   try {
-    console.log('🚀 Starting SIWES Management System Server...\n');
+    console.log(' Starting SIWES Management System Server...\n');
 
     // Initialize database
     await initializeDatabase();
@@ -175,17 +175,17 @@ const startServer = async () => {
     // Start listening
     app.listen(PORT, () => {
       console.log('\n' + '='.repeat(60));
-      console.log('🚀 Server Successfully Started!');
+      console.log(' Server Successfully Started!');
       console.log('='.repeat(60));
-      console.log(`📡 Port: ${PORT}`);
-      console.log(`🔗 URL: http://localhost:${PORT}`);
-      console.log(`🌐 API Base: http://localhost:${PORT}/api`);
-      console.log(`🗄️  Database: ${process.env.DB_NAME || 'Not specified'}`);
-      console.log(`🔐 JWT Secret: ${process.env.JWT_SECRET ? '✓ Set' : '✗ Not set'}`);
-      console.log(`⚙️  Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(` Port: ${PORT}`);
+      console.log(` URL: http://localhost:${PORT}`);
+      console.log(` API Base: http://localhost:${PORT}/api`);
+      console.log(` Database: ${process.env.DB_NAME || 'Not specified'}`);
+      console.log(` JWT Secret: ${process.env.JWT_SECRET ? '✓ Set' : '✗ Not set'}`);
+      console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('='.repeat(60));
 
-      console.log('\n📋 Available API Endpoints:');
+      console.log('\n Available API Endpoints:');
       console.log('   ├── POST   /api/auth/student/login');
       console.log('   ├── POST   /api/auth/role/login');
       console.log('   ├── POST   /api/auth/student/signup');
@@ -199,38 +199,38 @@ const startServer = async () => {
       console.log('   ├── GET    /api/hods/dashboard');
       console.log('   └── GET    /api/coordinators/dashboard');
 
-      console.log('\n⚡ Server is ready to handle requests!');
-      console.log('📝 Logs will appear below:\n');
+      console.log('\n Server is ready to handle requests!');
+      console.log(' Logs will appear below:\n');
     });
 
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error(' Failed to start server:', error);
     process.exit(1);
   }
 };
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Received SIGINT. Closing database connections...');
+  console.log('\n Received SIGINT. Closing database connections...');
   try {
     await sequelize.close();
-    console.log('✅ Database connections closed');
+    console.log(' Database connections closed');
   } catch (error) {
-    console.error('❌ Error closing database connections:', error);
+    console.error(' Error closing database connections:', error);
   }
-  console.log('👋 Server shutting down...');
+  console.log(' Server shutting down...');
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n🛑 Received SIGTERM. Closing database connections...');
+  console.log('\n Received SIGTERM. Closing database connections...');
   try {
     await sequelize.close();
-    console.log('✅ Database connections closed');
+    console.log(' Database connections closed');
   } catch (error) {
-    console.error('❌ Error closing database connections:', error);
+    console.error(' Error closing database connections:', error);
   }
-  console.log('👋 Server shutting down...');
+  console.log(' Server shutting down...');
   process.exit(0);
 });
 

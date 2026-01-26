@@ -13,42 +13,42 @@ import Assignment from "../models/Assignment.js";
 import Defense from "../models/Defense.js";
 
 const seedDatabase = async () => {
-    console.log("🚀 Starting database seeding...");
+    console.log(" Starting database seeding...");
 
     try {
         // Test connection
         await sequelize.authenticate();
-        console.log("✅ Database connection established successfully.");
+        console.log(" Database connection established successfully.");
 
         // Disable foreign key checks
-        console.log("🔧 Disabling foreign key checks...");
+        console.log(" Disabling foreign key checks...");
         await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
 
         // Drop all tables
-        console.log("🧹 Dropping all tables...");
+        console.log(" Dropping all tables...");
         await sequelize.drop();
-        console.log("✅ All tables dropped");
+        console.log(" All tables dropped");
 
         // Re-enable foreign key checks
         await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
 
         // Sync all tables - now they will all use consistent table names
-        console.log("🔄 Syncing all tables...");
+        console.log(" Syncing all tables...");
         await sequelize.sync({ force: true });
-        console.log("✅ All database tables created successfully");
+        console.log(" All database tables created successfully");
 
         // Create SIWES Coordinator
-        console.log("👑 Creating SIWES Coordinator...");
+        console.log(" Creating SIWES Coordinator...");
         const coordinator = await SIWESCoordinator.create({
             fullName: "Dr. Admin Coordinator",
             email: "coordinator@bazeuniversity.edu.ng",
             password: "password123", // Will be hashed by hook
             department: "Faculty of Computing",
         });
-        console.log(`✅ SIWES Coordinator created: ${coordinator.email}`);
+        console.log(` SIWES Coordinator created: ${coordinator.email}`);
 
         // Create HODs
-        console.log("👨‍🏫 Creating HODs...");
+        console.log(" Creating HODs...");
         const hodCS = await HOD.create({
             fullName: "Dr. Computer Science HOD",
             email: "hod.cs@bazeuniversity.edu.ng",
@@ -62,10 +62,10 @@ const seedDatabase = async () => {
             password: "password123",
             department: "Software Engineering",
         });
-        console.log(`✅ HODs created: ${hodCS.email}, ${hodSE.email}`);
+        console.log(` HODs created: ${hodCS.email}, ${hodSE.email}`);
 
         // Create Institution Supervisors
-        console.log("👨‍🏫 Creating Institution Supervisors...");
+        console.log(" Creating Institution Supervisors...");
         const supervisor1 = await InstitutionSupervisor.create({
             fullName: "Dr. Sarah Johnson",
             email: "sarah.johnson@bazeuniversity.edu.ng",
@@ -79,10 +79,10 @@ const seedDatabase = async () => {
             password: "password123",
             department: "Software Engineering",
         });
-        console.log(`✅ Institution Supervisors created: ${supervisor1.email}, ${supervisor2.email}`);
+        console.log(` Institution Supervisors created: ${supervisor1.email}, ${supervisor2.email}`);
 
         // Create Industry Supervisors
-        console.log("👨‍💼 Creating Industry Supervisors...");
+        console.log(" Creating Industry Supervisors...");
         const industrySupervisor1 = await IndustrySupervisor.create({
             fullName: "Mr. James Obi",
             email: "james.obi@techsolutions.com",
@@ -98,10 +98,10 @@ const seedDatabase = async () => {
             companyName: "Digital Innovations",
             phone: "+2348098765432",
         });
-        console.log(`✅ Industry Supervisors created: ${industrySupervisor1.email}, ${industrySupervisor2.email}`);
+        console.log(` Industry Supervisors created: ${industrySupervisor1.email}, ${industrySupervisor2.email}`);
 
         // Create Students
-        console.log("🎓 Creating Students...");
+        console.log(" Creating Students...");
         const student1 = await Student.create({
             fullName: "John Doe",
             email: "john.doe@bazeuniversity.edu.ng",
@@ -133,10 +133,10 @@ const seedDatabase = async () => {
             progress: 68,
             status: "ACTIVE",
         });
-        console.log(`✅ Students created: ${student1.email}, ${student2.email}`);
+        console.log(` Students created: ${student1.email}, ${student2.email}`);
 
         // Create verification codes - FIXED: DEF456 should be unused
-        console.log("🔐 Creating Verification Codes...");
+        console.log(" Creating Verification Codes...");
         const verificationCode1 = await VerificationCode.create({
             code: "ABC123",
             email: "newstudent1@bazeuniversity.edu.ng",
@@ -154,10 +154,10 @@ const seedDatabase = async () => {
             isUsed: false, // CHANGED FROM true TO false
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         });
-        console.log(`✅ Verification codes created`);
+        console.log(` Verification codes created`);
 
         // Create logbook entries
-        console.log("📔 Creating Logbook Entries...");
+        console.log(" Creating Logbook Entries...");
         const logbook1 = await Logbook.create({
             studentId: student1.id,
             weekNumber: 8,
@@ -178,10 +178,10 @@ const seedDatabase = async () => {
             weekSummary: "Designed and implemented database schema.",
             status: "PENDING",
         });
-        console.log(`✅ Logbook entries created`);
+        console.log(` Logbook entries created`);
 
         // Create assignments
-        console.log("🤝 Creating Assignments...");
+        console.log(" Creating Assignments...");
         const assignment1 = await Assignment.create({
             studentId: student1.id,
             institutionSupervisorId: supervisor1.id,
@@ -195,10 +195,10 @@ const seedDatabase = async () => {
             industrySupervisorId: industrySupervisor2.id,
             assignedBy: hodSE.id,
         });
-        console.log(`✅ Assignments created`);
+        console.log(` Assignments created`);
 
         // Create a defense record
-        console.log("🎤 Creating Defense record...");
+        console.log(" Creating Defense record...");
         const defense = await Defense.create({
             studentId: student1.id,
             defenseDate: "2024-06-15",
@@ -209,44 +209,44 @@ const seedDatabase = async () => {
             status: "SCHEDULED",
             scheduledBy: coordinator.id,
         });
-        console.log(`✅ Defense created for ${student1.fullName}`);
+        console.log(` Defense created for ${student1.fullName}`);
 
-        console.log("\n🎉 Seed data created successfully!");
-        console.log("\n📋 =============================");
+        console.log("\n Seed data created successfully!");
+        console.log("\n =============================");
         console.log("   TEST ACCOUNTS");
         console.log("   =============================");
-        console.log("\n👑 SIWES Coordinator:");
+        console.log("\n SIWES Coordinator:");
         console.log("   Email: coordinator@bazeuniversity.edu.ng");
         console.log("   Password: password123");
 
-        console.log("\n👨‍🏫 HOD (Computer Science):");
+        console.log("\n HOD (Computer Science):");
         console.log("   Email: hod.cs@bazeuniversity.edu.ng");
         console.log("   Password: password123");
 
-        console.log("\n👨‍🏫 Institution Supervisor:");
+        console.log("\n Institution Supervisor:");
         console.log("   Email: sarah.johnson@bazeuniversity.edu.ng");
         console.log("   Password: password123");
 
-        console.log("\n👨‍💼 Industry Supervisor:");
+        console.log("\n Industry Supervisor:");
         console.log("   Email: james.obi@techsolutions.com");
         console.log("   Password: password123");
 
-        console.log("\n🎓 Student:");
+        console.log("\n Student:");
         console.log("   Email: john.doe@bazeuniversity.edu.ng");
         console.log("   Password: password123");
         console.log("   Matric: BU/23A/CS/8001");
 
-        console.log("\n🔐 Verification Code (unused):");
+        console.log("\n Verification Code (unused):");
         console.log("   Code: ABC123");
         console.log("   Email: newstudent1@bazeuniversity.edu.ng");
         console.log("   Department: Computer Science");
 
-        console.log("\n🔐 Verification Code (unused - FIXED):");
+        console.log("\n Verification Code (unused - FIXED):");
         console.log("   Code: DEF456");
         console.log("   Email: newstudent2@bazeuniversity.edu.ng");
         console.log("   Department: Software Engineering");
 
-        console.log("\n📊 Summary:");
+        console.log("\n Summary:");
         console.log(`   Total Users: ${await Student.count() + await InstitutionSupervisor.count() + await IndustrySupervisor.count() + await HOD.count() + await SIWESCoordinator.count()}`);
         console.log(`   Students: ${await Student.count()}`);
         console.log(`   Institution Supervisors: ${await InstitutionSupervisor.count()}`);
@@ -260,14 +260,14 @@ const seedDatabase = async () => {
 
         process.exit(0);
     } catch (error) {
-        console.error("❌ Error seeding database:", error.message);
+        console.error(" Error seeding database:", error.message);
         console.error("Full error:", error);
         process.exit(1);
     }
 };
 
 process.on('unhandledRejection', (error) => {
-    console.error('❌ Unhandled Promise Rejection:', error.message);
+    console.error(' Unhandled Promise Rejection:', error.message);
     process.exit(1);
 });
 

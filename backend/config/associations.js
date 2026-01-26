@@ -1,7 +1,7 @@
 // config/associations.js
 export const setupAssociations = () => {
   try {
-    console.log("🔗 Setting up model associations...");
+    console.log(" Setting up model associations...");
     
     // Import models
     import('../models/student.js').then(({ default: Student }) => {
@@ -121,18 +121,18 @@ export const setupAssociations = () => {
                     });
                   };
                   
-                  console.log("✅ Model association functions defined");
+                  console.log(" Model association functions defined");
                   
-                }).catch(err => console.error("❌ Failed to import Coordinator:", err));
-              }).catch(err => console.error("❌ Failed to import HOD:", err));
-            }).catch(err => console.error("❌ Failed to import IndustrySupervisor:", err));
-          }).catch(err => console.error("❌ Failed to import Assignment:", err));
+                }).catch(err => console.error(" Failed to import Coordinator:", err));
+              }).catch(err => console.error(" Failed to import HOD:", err));
+            }).catch(err => console.error(" Failed to import IndustrySupervisor:", err));
+          }).catch(err => console.error(" Failed to import Assignment:", err));
         }).catch(err => console.error(" Failed to import Logbook:", err));
       }).catch(err => console.error(" Failed to import InstitutionSupervisor:", err));
     }).catch(err => console.error(" Failed to import Student:", err));
     
   } catch (error) {
-    console.error("❌ Error setting up associations:", error);
+    console.error(" Error setting up associations:", error);
   }
 };
 

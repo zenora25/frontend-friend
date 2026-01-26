@@ -19,7 +19,7 @@ export const generateCode = async (req, res) => {
     const { email, department } = req.body;
     const coordinatorId = req.user.id;
 
-    console.log('🔵 Generate code request:', { email, department, coordinatorId });
+    console.log(' Generate code request:', { email, department, coordinatorId });
 
     if (!email || !department) {
       return res.status(400).json({ error: "Email and department required" });
@@ -94,7 +94,7 @@ export const generateCode = async (req, res) => {
       isUsed: false,
     });
 
-    console.log('✅ Code generated successfully:', { code, email, expiresAt });
+    console.log(' Code generated successfully:', { code, email, expiresAt });
 
     res.status(201).json({
       message: "Verification code generated successfully",
@@ -104,7 +104,7 @@ export const generateCode = async (req, res) => {
       department: newCode.department,
     });
   } catch (err) {
-    console.error("❌ Generate code error:", err);
+    console.error(" Generate code error:", err);
     res.status(500).json({
       error: "Failed to generate verification code",
       details: err.message,
@@ -117,12 +117,12 @@ export const verifyCode = async (req, res) => {
   try {
     const { email, code } = req.body;
 
-    console.log('\n🔍 ========== VERIFICATION REQUEST ==========');
-    console.log('📧 Email received:', email);
-    console.log('🔑 Code received:', code);
+    console.log('\n ========== VERIFICATION REQUEST ==========');
+    console.log(' Email received:', email);
+    console.log(' Code received:', code);
 
     if (!email || !code) {
-      console.log('❌ Missing email or code');
+      console.log(' Missing email or code');
       return res.status(400).json({ error: "Email and code required" });
     }
 
@@ -130,8 +130,8 @@ export const verifyCode = async (req, res) => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = code.trim().toUpperCase();
 
-    console.log('🧹 Cleaned email:', cleanEmail);
-    console.log('🧹 Cleaned code:', cleanCode);
+    console.log(' Cleaned email:', cleanEmail);
+    console.log(' Cleaned code:', cleanCode);
 
     // Find verification code for this specific email
     const verification = await VerificationCode.findOne({
@@ -142,10 +142,10 @@ export const verifyCode = async (req, res) => {
       },
     });
 
-    console.log('\n📋 Query result:', verification ? 'FOUND ✅' : 'NOT FOUND ❌');
+    console.log('\n Query result:', verification ? 'FOUND ' : 'NOT FOUND ');
 
     if (!verification) {
-      console.log('❌ Code not found for this email');
+      console.log(' Code not found for this email');
       return res.status(400).json({
         error: "Invalid verification code or email"
       });
@@ -155,13 +155,13 @@ export const verifyCode = async (req, res) => {
     const now = new Date();
     const expiryDate = new Date(verification.expiresAt);
 
-    console.log('⏰ Checking expiration:');
+    console.log(' Checking expiration:');
     console.log('  - Now:', now);
     console.log('  - Expires:', expiryDate);
     console.log('  - Is Expired:', now > expiryDate);
 
     if (now > expiryDate) {
-      console.log('❌ Code has expired, deleting...');
+      console.log(' Code has expired, deleting...');
       await VerificationCode.destroy({ where: { id: verification.id } });
       return res.status(400).json({ error: "Verification code has expired" });
     }
@@ -172,7 +172,7 @@ export const verifyCode = async (req, res) => {
       return res.status(400).json({ error: "Student already registered with this email" });
     }
 
-    console.log('✅ Verification successful!\n');
+    console.log(' Verification successful!\n');
     console.log('========================================\n');
 
     res.json({
@@ -182,7 +182,7 @@ export const verifyCode = async (req, res) => {
       email: verification.email,
     });
   } catch (err) {
-    console.error("❌ Verify code error:", err);
+    console.error(" Verify code error:", err);
     res.status(500).json({
       error: "Verification failed",
       details: err.message,
