@@ -107,7 +107,7 @@ export const getHodById = async (req, res) => {
 // Get HOD dashboard - COMPREHENSIVE VERSION
 export const getHODDashboard = async (req, res) => {
     try {
-        console.log("📊 Fetching comprehensive HOD dashboard for user:", req.user.id);
+        console.log(" Fetching comprehensive HOD dashboard for user:", req.user.id);
 
         const hod = await HOD.findByPk(req.user.id, {
             attributes: ['id', 'fullName', 'email', 'department']
@@ -121,7 +121,7 @@ export const getHODDashboard = async (req, res) => {
         }
 
         const dept = hod.department;
-        console.log("🏢 Department:", dept);
+        console.log(" Department:", dept);
 
         if (!dept) {
             return res.status(400).json({
@@ -297,7 +297,7 @@ export const getHODDashboard = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("❌ HOD Dashboard Error:", err);
+        console.error("HOD Dashboard Error:", err);
         res.status(500).json({
             success: false,
             error: "Failed to fetch HOD dashboard",
@@ -710,7 +710,7 @@ export const deleteHod = async (req, res) => {
 // Get department students - ENHANCED VERSION
 export const getDepartmentStudents = async (req, res) => {
     try {
-        console.log("📊 Getting department students for user:", req.user.id);
+        console.log(" Getting department students for user:", req.user.id);
 
         const hod = await HOD.findByPk(req.user.id);
         if (!hod) {
@@ -780,7 +780,7 @@ export const getDepartmentStudents = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("❌ Get department students error:", err);
+        console.error(" Get department students error:", err);
         res.status(500).json({
             success: false,
             error: "Failed to fetch department students",

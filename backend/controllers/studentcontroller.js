@@ -77,7 +77,7 @@ export const getStudents = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("❌ Get students error:", err);
+        console.error(" Get students error:", err);
         res.status(500).json({
             success: false,
             error: "Failed to fetch students",
@@ -122,7 +122,7 @@ export const updateStudent = async (req, res) => {
             student
         });
     } catch (err) {
-        console.error("❌ Update student error:", err.message);
+        console.error(" Update student error:", err.message);
         res.status(500).json({
             success: false,
             error: "Failed to update student",

@@ -4,12 +4,12 @@
 export const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     try {
-      console.log("🔐 Role Authorization Check:");
+      console.log(" Role Authorization Check:");
       console.log("- Request user:", req.user);
       console.log("- Allowed roles:", allowedRoles);
 
       if (!req.user) {
-        console.log("❌ No user in request");
+        console.log(" No user in request");
         return res.status(401).json({ 
           success: false,
           error: "Authentication required" 
@@ -23,7 +23,7 @@ export const requireRole = (allowedRoles) => {
       const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
 
       if (!rolesArray.includes(userRole)) {
-        console.log("❌ Access denied. User role not in allowed roles");
+        console.log(" Access denied. User role not in allowed roles");
         return res.status(403).json({
           success: false,
           error: `Access denied. Required roles: ${rolesArray.join(', ')}`,
@@ -32,10 +32,10 @@ export const requireRole = (allowedRoles) => {
         });
       }
 
-      console.log("✅ Role authorization passed");
+      console.log(" Role authorization passed");
       next();
     } catch (err) {
-      console.error("❌ Role auth error:", err);
+      console.error(" Role auth error:", err);
       res.status(500).json({ 
         success: false,
         error: "Authorization failed" 

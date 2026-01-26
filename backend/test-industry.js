@@ -7,17 +7,17 @@ defineAssociations();
 const test = async () => {
     try {
         await sequelize.authenticate();
-        console.log('✅ Connection established.');
+        console.log(' Connection established.');
 
         // Find any industry supervisor
         const supervisor = await IndustrySupervisor.findOne();
 
         if (!supervisor) {
-            console.log('ℹ️ No industry supervisors found to test.');
+            console.log(' No industry supervisors found to test.');
             process.exit(0);
         }
 
-        console.log(`🔍 Testing dashboard logic for supervisor ID: ${supervisor.id} (${supervisor.fullName})`);
+        console.log(` Testing dashboard logic for supervisor ID: ${supervisor.id} (${supervisor.fullName})`);
 
         // Test the AssingedInterns include logic
         const supervisorWithInterns = await IndustrySupervisor.findByPk(supervisor.id, {
@@ -35,7 +35,7 @@ const test = async () => {
             }]
         });
 
-        console.log(`✅ IndustrySupervisor.findByPk passed. Found ${supervisorWithInterns.AssignedInterns.length} interns.`);
+        console.log(` IndustrySupervisor.findByPk passed. Found ${supervisorWithInterns.AssignedInterns.length} interns.`);
 
         // Test logbook find with student alias
         if (supervisorWithInterns.AssignedInterns.length > 0) {
@@ -48,13 +48,13 @@ const test = async () => {
                     attributes: ['id', 'fullName']
                 }]
             });
-            console.log(`✅ Logbook.findAll with student alias passed. Found ${logbooks.length} logbooks.`);
+            console.log(` Logbook.findAll with student alias passed. Found ${logbooks.length} logbooks.`);
         }
 
-        console.log('✅ Industry supervisor logic test completed successfully.');
+        console.log(' Industry supervisor logic test completed successfully.');
         process.exit(0);
     } catch (error) {
-        console.error('❌ Test failed:', error);
+        console.error(' Test failed:', error);
         console.error('Stack:', error.stack);
         process.exit(1);
     }

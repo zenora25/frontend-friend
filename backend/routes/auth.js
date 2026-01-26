@@ -446,5 +446,293 @@ router.put("/profile", protect, uploadProfile, async (req, res) => {
     });
   }
 });
+// ========== NEW WORKING ENDPOINTS (ADD AT BOTTOM) ==========
+
+//  NEW WORKING STUDENT LOGIN (RAW SQL - NO Sequelize issues)
+router.post("/student/login-working", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    console.log(' NEW WORKING login endpoint called for:', email);
+    console.log(' Using raw SQL to avoid Sequelize issues');
+
+    //  KEY FIX: Use raw SQL query instead of Sequelize
+    // This bypasses all column mapping problems
+    const [students] = await sequelize.query(
+      `SELECT 
+        id, 
+        full_name, 
+        email, 
+        matric_number, 
+        password, 
+        department, 
+        is_verified, 
+        status,
+        company_name,
+        phone,
+        company_address,
+        progress,
+        last_login,
+        created_at,  -- Note: snake_case, not camelCase
+        updated_at   -- Note: snake_case, not camelCase
+      FROM students 
+      WHERE email = ?`,
+      { replacements: [email] }  // This prevents SQL injection
+    );
+
+    console.log(` Found ${students.length} student(s)`);
+
+    // Check if student exists
+    if (students.length === 0) {
+      console.log(' No student found with email:', email);
+      return res.status(404).json({
+        success: false,
+        error: "Student not found. Please check your email."
+      });
+    }
+
+    const student = students[0];
+    console.log(' Student found:', student.email);
+
+    // Verify password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, student.password);
+    
+    console.log(' Password check:', isPasswordValid ? ' Valid' : ' Invalid');
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid email or password"
+      });
+    }
+
+    // Check if student account is verified
+    if (!student.is_verified) {
+      console.log(' Account not verified');
+      return res.status(403).json({
+        success: false,
+        error: "Account not verified. Please verify your account first."
+      });
+    }
+
+    //  Create JWT token
+    const token = jwt.sign(
+      {
+        id: student.id,
+        email: student.email,
+        role: "student",
+        name: student.full_name,
+        matricNumber: student.matric_number,
+        department: student.department
+      },
+      process.env.JWT_SECRET,  // Make sure this matches your .env file
+      { expiresIn: "7d" }
+    );
+
+    console.log(' JWT token created successfully');
+
+    // Prepare user data for response
+    const userData = {
+      id: student.id,
+      fullName: student.full_name,
+      email: student.email,
+      role: "student",
+      matricNumber: student.matric_number,
+      department: student.department,
+      progress: student.progress || 0,
+      companyName: student.company_name || '',
+      phone: student.phone || '',
+      companyAddress: student.company_address || '',
+      status: student.status || 'ACTIVE',
+      isVerified: student.is_verified,
+      lastLogin: new Date().toISOString()
+    };
+
+    console.log(' Login successful!');
+    console.log(' Sending response...');
+
+    // Send success response
+    res.json({
+      success: true,
+      message: "Login successful!",
+      token,
+      user: userData
+    });
+
+  } catch (error) {
+    console.error(' ERROR in working login endpoint:', error);
+    console.error(' Error details:', error.message);
+    console.error(' Error stack:', error.stack);
+    
+    res.status(500).json({
+      success: false,
+      error: "Login failed",
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+//  NEW WORKING ROLE LOGIN 
+router.post("/role/login-working", async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
+    
+    console.log(' NEW WORKING role login for:', email, 'as', role);
+
+    // For now, only handle student role
+    if (role !== "student") {
+      return res.status(501).json({
+        success: false,
+        error: `${role} login coming soon. For now, please use student role.`
+      });
+    }
+
+    // Use the SAME raw SQL query as above
+    const [students] = await sequelize.query(
+      `SELECT * FROM students WHERE email = ? LIMIT 1`,
+      { replacements: [email] }
+    );
+
+    if (students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Student not found"
+      });
+    }
+
+    const student = students[0];
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, student.password);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid email or password"
+      });
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      {
+        id: student.id,
+        email: student.email,
+        role: "student",
+        name: student.full_name,
+        matricNumber: student.matric_number,
+        department: student.department
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Prepare response
+    const userData = {
+      id: student.id,
+      fullName: student.full_name,
+      email: student.email,
+      role: "student",
+      matricNumber: student.matric_number,
+      department: student.department,
+      progress: student.progress || 0,
+      companyName: student.company_name || '',
+      phone: student.phone || '',
+      companyAddress: student.company_address || '',
+      status: student.status || 'ACTIVE',
+      isVerified: student.is_verified,
+      lastLogin: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: userData
+    });
+
+  } catch (error) {
+    console.error(' Error in role login:', error);
+    res.status(500).json({
+      success: false,
+      error: "Login failed",
+      details: error.message
+    });
+  }
+});
+
+//  SIMPLE TEST LOGIN (ALWAYS WORKS - for quick testing)
+router.post("/simple-test-login", (req, res) => {
+  const { email } = req.body;
+  
+  console.log(' Simple test login for:', email);
+  
+  // Always create a valid token
+  const token = jwt.sign(
+    {
+      id: 'test-user-' + Date.now(),
+      email: email,
+      role: "student",
+      name: "Test User",
+      matricNumber: "TEST/2023/CSC/001",
+      department: "Computer Science"
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+  
+  res.json({
+    success: true,
+    message: "Test login successful (for debugging)",
+    token,
+    user: {
+      id: 'test-user-123',
+      fullName: 'Test User',
+      email: email,
+      role: 'student',
+      matricNumber: 'TEST/2023/CSC/001',
+      department: 'Computer Science',
+      status: 'ACTIVE',
+      isVerified: true,
+      lastLogin: new Date().toISOString()
+    },
+    note: "This is a test endpoint only. Use /student/login-working for real login."
+  });
+});
+
+//  DEBUG ENDPOINT - Check database status
+router.get("/debug-db", async (req, res) => {
+  try {
+    console.log('🔧 Debug endpoint called');
+    
+    // Test database connection
+    await sequelize.authenticate();
+    console.log(' Database connection OK');
+    
+    // Get student count
+    const [result] = await sequelize.query("SELECT COUNT(*) as count FROM students");
+    const studentCount = result[0].count;
+    
+    // Get sample students
+    const [students] = await sequelize.query(
+      "SELECT email, full_name, is_verified, status FROM students LIMIT 3"
+    );
+    
+    res.json({
+      success: true,
+      database: {
+        connected: true,
+        studentCount: studentCount,
+        sampleStudents: students
+      }
+    });
+    
+  } catch (error) {
+    console.error(' Debug error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 export default router;

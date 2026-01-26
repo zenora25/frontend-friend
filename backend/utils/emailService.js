@@ -26,7 +26,7 @@ export const sendEmail = async ({ to, subject, text, html }) => {
         } else {
             // Mock email in development
             console.log('\n' + '='.repeat(50));
-            console.log(`📧 MOCK EMAIL NOTIFICATION`);
+            console.log(` MOCK EMAIL NOTIFICATION`);
             console.log(`To: ${to}`);
             console.log(`Subject: ${subject}`);
             console.log(`Body: ${text || html?.substring(0, 100)}...`);

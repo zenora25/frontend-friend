@@ -13,7 +13,7 @@ import { Op } from "sequelize";
 export const getStudentDashboard = async (req, res) => {
     try {
         const studentId = req.user.id;
-        console.log("📊 Fetching dashboard for student:", studentId);
+        console.log(" Fetching dashboard for student:", studentId);
 
         const student = await Student.findByPk(studentId, {
             attributes: [
@@ -40,14 +40,14 @@ export const getStudentDashboard = async (req, res) => {
         });
 
         if (!student) {
-            console.log("❌ Student not found:", studentId);
+            console.log(" Student not found:", studentId);
             return res.status(404).json({
                 success: false,
                 error: "Student not found"
             });
         }
 
-        console.log("✅ Found student:", student.fullName);
+        console.log(" Found student:", student.fullName);
 
         // Get logbook stats
         const totalEntries = await Logbook.count({ where: { studentId } });
@@ -71,10 +71,10 @@ export const getStudentDashboard = async (req, res) => {
                 attributes: ["defenseDate", "defenseTime", "venue", "status", "score"],
             });
             if (defense) {
-                console.log("✅ Found defense info for student");
+                console.log(" Found defense info for student");
             }
         } catch (defenseError) {
-            console.warn("⚠️ Could not fetch defense info:", defenseError.message);
+            console.warn(" Could not fetch defense info:", defenseError.message);
             // Defense table might not exist yet, continue without it
         }
 
@@ -86,7 +86,7 @@ export const getStudentDashboard = async (req, res) => {
             attributes: ["id", "weekNumber", "title", "status", "createdAt"],
         });
 
-        console.log("✅ Found recent logbooks:", recentLogbooks.length);
+        console.log(" Found recent logbooks:", recentLogbooks.length);
 
         res.json({
             success: true,
@@ -122,8 +122,8 @@ export const getStudentDashboard = async (req, res) => {
                 : null,
         });
     } catch (err) {
-        console.error("❌ Get student dashboard error:", err.message);
-        console.error("🔍 Error stack:", err.stack);
+        console.error(" Get student dashboard error:", err.message);
+        console.error(" Error stack:", err.stack);
 
         // Provide more helpful error message
         let errorMessage = "Failed to fetch dashboard data";
@@ -146,7 +146,7 @@ export const getSupervisorDashboard = async (req, res) => {
         const supervisorId = req.user.id;
         const userRole = req.user.role;
 
-        console.log(`👨‍🏫 Fetching dashboard for ${userRole}:`, supervisorId);
+        console.log(` Fetching dashboard for ${userRole}:`, supervisorId);
 
         let stats = {};
         let recentSubmissions = [];
@@ -185,7 +185,7 @@ export const getSupervisorDashboard = async (req, res) => {
             return res.status(403).json({ success: false, error: "Not authorized" });
         }
 
-        console.log(`✅ Found ${assignedStudentsList.length} assigned students`);
+        console.log(` Found ${assignedStudentsList.length} assigned students`);
 
         // Fetch logbooks for all students manully
         const studentIds = assignedStudentsList.map(s => s.id);
@@ -235,7 +235,7 @@ export const getSupervisorDashboard = async (req, res) => {
             })),
         });
     } catch (err) {
-        console.error("❌ Get supervisor dashboard error:", err.message);
+        console.error(" Get supervisor dashboard error:", err.message);
         res.status(500).json({
             success: false,
             error: "Failed to fetch dashboard data",
@@ -248,7 +248,7 @@ export const getSupervisorDashboard = async (req, res) => {
 export const getHODDashboard = async (req, res) => {
     try {
         const hodId = req.user.id;
-        console.log("👨‍💼 Fetching dashboard for HOD:", hodId);
+        console.log(" Fetching dashboard for HOD:", hodId);
 
         const hod = await HOD.findByPk(hodId, {
             attributes: ['id', 'fullName', 'email', 'department']
@@ -260,7 +260,7 @@ export const getHODDashboard = async (req, res) => {
             });
         }
 
-        console.log("✅ Found HOD:", hod.fullName, "Department:", hod.department);
+        console.log(" Found HOD:", hod.fullName, "Department:", hod.department);
 
         // Get department stats
         const totalStudents = await Student.count({
@@ -345,7 +345,7 @@ export const getHODDashboard = async (req, res) => {
             };
         });
 
-        console.log("📊 Department stats calculated");
+        console.log(" Department stats calculated");
 
         res.json({
             success: true,
@@ -372,7 +372,7 @@ export const getHODDashboard = async (req, res) => {
             ],
         });
     } catch (err) {
-        console.error("❌ Get HOD dashboard error:", err.message);
+        console.error(" Get HOD dashboard error:", err.message);
         res.status(500).json({
             success: false,
             error: "Failed to fetch dashboard data",
@@ -400,7 +400,7 @@ export const getCoordinatorDashboard = async (req, res) => {
                 },
             });
         } catch (vcError) {
-            console.warn("⚠️ Could not fetch verification codes:", vcError.message);
+            console.warn(" Could not fetch verification codes:", vcError.message);
             // Verification codes table might not exist
         }
 
@@ -414,7 +414,7 @@ export const getCoordinatorDashboard = async (req, res) => {
                 },
             });
         } catch (defenseError) {
-            console.warn("⚠️ Could not fetch defenses:", defenseError.message);
+            console.warn(" Could not fetch defenses:", defenseError.message);
             // Defenses table might not exist
         }
 
@@ -431,10 +431,10 @@ export const getCoordinatorDashboard = async (req, res) => {
                 limit: 10,
             });
         } catch (vcError) {
-            console.warn("⚠️ Could not fetch recent verification codes:", vcError.message);
+            console.warn(" Could not fetch recent verification codes:", vcError.message);
         }
 
-        console.log("📊 Coordinator stats calculated");
+        console.log(" Coordinator stats calculated");
 
         res.json({
             success: true,
@@ -456,7 +456,7 @@ export const getCoordinatorDashboard = async (req, res) => {
             })),
         });
     } catch (err) {
-        console.error("❌ Get coordinator dashboard error:", err.message);
+        console.error(" Get coordinator dashboard error:", err.message);
         res.status(500).json({
             success: false,
             error: "Failed to fetch dashboard data",
@@ -468,7 +468,7 @@ export const getCoordinatorDashboard = async (req, res) => {
 // Get system-wide stats (Admin/Coordinator)
 export const getSystemStats = async (req, res) => {
     try {
-        console.log("🌐 Fetching system-wide stats");
+        console.log(" Fetching system-wide stats");
 
         const totalStudents = await Student.count();
         const totalSupervisors = await InstitutionSupervisor.count();
@@ -494,7 +494,7 @@ export const getSystemStats = async (req, res) => {
                 where: { status: "COMPLETED" },
             });
         } catch (defenseError) {
-            console.warn("⚠️ Could not fetch defense stats:", defenseError.message);
+            console.warn(" Could not fetch defense stats:", defenseError.message);
         }
 
         // Get department distribution
@@ -506,7 +506,7 @@ export const getSystemStats = async (req, res) => {
             group: ["department"],
         });
 
-        console.log("✅ System stats calculated");
+        console.log(" System stats calculated");
 
         res.json({
             success: true,
@@ -532,7 +532,7 @@ export const getSystemStats = async (req, res) => {
             departments,
         });
     } catch (err) {
-        console.error("❌ Get system stats error:", err.message);
+        console.error(" Get system stats error:", err.message);
         res.status(500).json({
             success: false,
             error: "Failed to fetch system statistics",

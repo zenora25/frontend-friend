@@ -136,7 +136,7 @@ export const getSupervisorStudents = async (req, res) => {
         const supervisorId = req.user.id;
         const userRole = req.user.role;
 
-        console.log(`👨‍🏫 Fetching students for ${userRole}:`, supervisorId);
+        console.log(` Fetching students for ${userRole}:`, supervisorId);
 
         let students = [];
 
@@ -183,7 +183,7 @@ export const getSupervisorStudents = async (req, res) => {
 
         res.json(studentsWithDetails);
     } catch (err) {
-        console.error("❌ Get supervisor students error:", err.message);
+        console.error(" Get supervisor students error:", err.message);
         res.status(500).json({
             error: "Failed to fetch assigned students",
             details: err.message,
