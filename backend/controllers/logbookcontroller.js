@@ -6,11 +6,48 @@ import { Op } from "sequelize";
 import { uploadMultiple } from "../utils/upload.js";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+
 
 // Helper function to get public URL for file
 const getFileUrl = (filename) => {
     return `/uploads/logbooks/${filename}`;
 };
+
+// Helper function to transform logbook entry for response
+const transformLogbook = (logbook, req) => {
+    if (!logbook) return null;
+    const plainLogbook = logbook.get ? logbook.get({ plain: true }) : logbook;
+
+    // Transform image URLs to include full path if any
+    if (plainLogbook.images && Array.isArray(plainLogbook.images)) {
+        plainLogbook.images = plainLogbook.images.map(image => {
+            // If it's already an object with url, keep it (but ensure URL is full)
+            if (typeof image === 'object' && image.url) {
+                const url = image.url.startsWith('http') ? image.url : `${req.protocol}://${req.get('host')}${image.url.startsWith('/') ? '' : '/'}${image.url}`;
+                return {
+                    url,
+                    filename: image.filename || path.basename(image.url)
+                };
+            }
+
+            // If it's a string, convert to object
+            const imagePath = typeof image === 'string' ? image : '';
+            if (imagePath) {
+                return {
+                    url: `${req.protocol}://${req.get('host')}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`,
+                    filename: path.basename(imagePath)
+                };
+            }
+            return image;
+        });
+    } else {
+        plainLogbook.images = [];
+    }
+
+    return plainLogbook;
+};
+
 
 // CREATE logbook entry with images (Student)
 export const createLogbook = async (req, res) => {
@@ -148,16 +185,9 @@ export const createLogbook = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Logbook entry created successfully",
-            logbook: {
-                id: logbook.id,
-                weekNumber: logbook.weekNumber,
-                title: logbook.title,
-                startDate: logbook.startDate,
-                endDate: logbook.endDate,
-                status: logbook.status,
-                createdAt: logbook.createdAt
-            },
+            logbook: transformLogbook(logbook, req),
         });
+
     } catch (err) {
         console.error(" Create logbook error:", err.message);
         console.error(" Error stack:", err.stack);
@@ -201,8 +231,9 @@ export const getMyLogbooks = async (req, res) => {
         res.json({
             success: true,
             count: logbooks.length,
-            logbooks
+            logbooks: logbooks.map(lb => transformLogbook(lb, req))
         });
+
     } catch (err) {
         console.error(" Get my logbooks error:", err.message);
         res.status(500).json({
@@ -246,26 +277,29 @@ export const getLogbookById = async (req, res) => {
 
         if (userRole === "student") {
             // Students can only view their own logbooks
-            if (Number(logbook.studentId) === Number(userId)) {
+            console.log(` Comparing Student ID: "${logbook.studentId}" (type: ${typeof logbook.studentId}) with User ID: "${userId}" (type: ${typeof userId})`);
+            if (String(logbook.studentId) === String(userId)) {
                 isAuthorized = true;
             } else {
                 console.log(` studentId ${logbook.studentId} !== userId ${userId}`);
             }
-        } else if (userRole === "institutionSupervisor") {
+        }
+        else if (userRole === "institutionSupervisor") {
             // Institution supervisors can view logbooks of their assigned students
-            if (logbook.student && Number(logbook.student.assignedSupervisor) === Number(userId)) {
+            if (logbook.student && String(logbook.student.assignedSupervisor) === String(userId)) {
                 isAuthorized = true;
             } else {
                 console.log(` assignedSupervisor ${logbook.student?.assignedSupervisor} !== supervisorId ${userId}`);
             }
         } else if (userRole === "industrySupervisor") {
             // Industry supervisors can view logbooks of their assigned interns
-            if (logbook.student && Number(logbook.student.assignedIndustrySupervisor) === Number(userId)) {
+            if (logbook.student && String(logbook.student.assignedIndustrySupervisor) === String(userId)) {
                 isAuthorized = true;
             } else {
                 console.log(` assignedIndustrySupervisor ${logbook.student?.assignedIndustrySupervisor} !== supervisorId ${userId}`);
             }
-        } else if (["admin", "hod", "siwesCoordinator", "coordinator"].includes(userRole)) {
+        }
+        else if (["admin", "hod", "siwesCoordinator", "coordinator"].includes(userRole)) {
             // Admins/HODs/Coordinators can view all (or department filtered - simplifed to all for now/detail view)
             isAuthorized = true;
         }
@@ -278,20 +312,11 @@ export const getLogbookById = async (req, res) => {
             });
         }
 
-        console.log(` Found logbook: ${logbook.title}`);
-
-        // Transform image URLs to include full path
-        if (logbook.images && Array.isArray(logbook.images)) {
-            logbook.images = logbook.images.map(image => ({
-                url: `${req.protocol}://${req.get('host')}${image.startsWith('/') ? '' : '/'}${image}`,
-                filename: path.basename(image)
-            }));
-        }
-
         res.json({
             success: true,
-            logbook
+            logbook: transformLogbook(logbook, req)
         });
+
     } catch (err) {
         console.error(" Get logbook error:", err.message);
         res.status(500).json({
@@ -350,8 +375,9 @@ export const updateLogbook = async (req, res) => {
         res.json({
             success: true,
             message: "Logbook updated successfully",
-            logbook,
+            logbook: transformLogbook(logbook, req),
         });
+
     } catch (err) {
         console.error(" Update logbook error:", err.message);
         res.status(500).json({
@@ -385,10 +411,16 @@ export const deleteLogbook = async (req, res) => {
         // Delete associated images
         if (logbook.images && Array.isArray(logbook.images)) {
             console.log(` Deleting ${logbook.images.length} associated images`);
+            const __filename = fileURLToPath(import.meta.url);
+            const __dirname = path.dirname(__filename);
+
             for (const image of logbook.images) {
                 try {
-                    const filename = path.basename(image);
-                    const filePath = path.join('uploads/logbooks', filename);
+                    const imagePath = typeof image === 'string' ? image : (image.url || '');
+                    if (!imagePath) continue;
+
+                    const filename = path.basename(imagePath);
+                    const filePath = path.join(__dirname, '../uploads/logbooks', filename);
 
                     if (fs.existsSync(filePath)) {
                         fs.unlinkSync(filePath);
@@ -399,6 +431,7 @@ export const deleteLogbook = async (req, res) => {
                 }
             }
         }
+
 
         await logbook.destroy();
         console.log(` Logbook ${id} deleted successfully`);
@@ -443,8 +476,10 @@ export const deleteLogbookImage = async (req, res) => {
 
         // Delete the physical file
         try {
+            const __filename = fileURLToPath(import.meta.url);
+            const __dirname = path.dirname(__filename);
             const filename = path.basename(imageUrl);
-            const filePath = path.join('uploads/logbooks', filename);
+            const filePath = path.join(__dirname, '../uploads/logbooks', filename);
 
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
@@ -454,6 +489,7 @@ export const deleteLogbookImage = async (req, res) => {
             console.warn(` Could not delete physical file:`, fileError.message);
         }
 
+
         await logbook.update({ images: updatedImages });
 
         console.log(` Image removed from logbook ${id}`);
@@ -461,8 +497,9 @@ export const deleteLogbookImage = async (req, res) => {
         res.json({
             success: true,
             message: "Image deleted successfully",
-            logbook,
+            logbook: transformLogbook(logbook, req),
         });
+
     } catch (err) {
         console.error(" Delete image error:", err.message);
         res.status(500).json({
@@ -566,8 +603,9 @@ export const getSupervisorLogbooks = async (req, res) => {
         res.json({
             success: true,
             count: logbooks.length,
-            logbooks
+            logbooks: logbooks.map(lb => transformLogbook(lb, req))
         });
+
     } catch (err) {
         console.error(" Get supervisor logbooks error:", err.message);
         res.status(500).json({
@@ -710,7 +748,7 @@ export const getAllLogbooks = async (req, res) => {
 
         res.json({
             success: true,
-            logbooks,
+            logbooks: logbooks.map(lb => transformLogbook(lb, req)),
             pagination: {
                 total: count,
                 page: parseInt(page),
@@ -718,6 +756,7 @@ export const getAllLogbooks = async (req, res) => {
                 limit: parseInt(limit),
             },
         });
+
     } catch (err) {
         console.error(" Get all logbooks error:", err.message);
         res.status(500).json({
@@ -752,8 +791,9 @@ export const getStudentLogbook = async (req, res) => {
         res.json({
             success: true,
             count: logbooks.length,
-            logbooks
+            logbooks: logbooks.map(lb => transformLogbook(lb, req))
         });
+
     } catch (err) {
         console.error(" Get student logbook error:", err.message);
         res.status(500).json({

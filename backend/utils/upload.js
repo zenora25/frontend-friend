@@ -23,6 +23,7 @@ const storage = multer.diskStorage({
         let dir = uploadLogbookDir;
         if (file.fieldname === 'letter') dir = uploadLetterDir;
         if (file.fieldname === 'profileImage') dir = uploadProfileDir;
+        console.log(`📂 Multer destination: ${dir} for field: ${file.fieldname}`);
         cb(null, dir);
     },
     filename: (req, file, cb) => {
@@ -31,9 +32,12 @@ const storage = multer.diskStorage({
         let prefix = 'logbook';
         if (file.fieldname === 'letter') prefix = 'letter';
         if (file.fieldname === 'profileImage') prefix = 'profile';
-        cb(null, `${prefix}-${uniqueSuffix}${ext}`);
+        const finalFilename = `${prefix}-${uniqueSuffix}${ext}`;
+        console.log(`📄 Multer filename: ${finalFilename} (Original: ${file.originalname})`);
+        cb(null, finalFilename);
     }
 });
+
 
 // File filter
 const fileFilter = (req, file, cb) => {
