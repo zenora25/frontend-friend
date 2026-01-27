@@ -303,10 +303,36 @@ router.get("/verify", (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const { id, role } = decoded;
+
+    let user;
+    let userModel;
+
+    switch (role) {
+      case "student": userModel = Student; break;
+      case "institutionSupervisor": userModel = InstitutionSupervisor; break;
+      case "industrySupervisor": userModel = IndustrySupervisor; break;
+      case "hod": userModel = Hod; break;
+      case "siwesCoordinator": userModel = Coordinator; break;
+      default: return res.status(401).json({ success: false, error: "Invalid role in token" });
+    }
+
+    user = await userModel.findByPk(id, {
+      attributes: { exclude: ["password"] }
+    });
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: "User not found" });
+    }
+
+    const userData = user.toJSON ? user.toJSON() : user;
 
     res.json({
       success: true,
-      user: decoded,
+      user: {
+        ...userData,
+        role
+      },
     });
   } catch (err) {
     res.status(401).json({
@@ -373,9 +399,14 @@ router.get("/profile", async (req, res) => {
       });
     }
 
+    const userData = user.toJSON ? user.toJSON() : user;
+
     res.json({
       success: true,
-      data: user
+      data: {
+        ...userData,
+        role: decoded.role // Critical: Re-attach role
+      }
     });
   } catch (err) {
     console.error("Profile error:", err);
@@ -452,7 +483,7 @@ router.put("/profile", protect, uploadProfile, async (req, res) => {
 router.post("/student/login-working", async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     console.log(' NEW WORKING login endpoint called for:', email);
     console.log(' Using raw SQL to avoid Sequelize issues');
 
@@ -496,9 +527,9 @@ router.post("/student/login-working", async (req, res) => {
 
     // Verify password using bcrypt
     const isPasswordValid = await bcrypt.compare(password, student.password);
-    
+
     console.log(' Password check:', isPasswordValid ? ' Valid' : ' Invalid');
-    
+
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -563,7 +594,7 @@ router.post("/student/login-working", async (req, res) => {
     console.error(' ERROR in working login endpoint:', error);
     console.error(' Error details:', error.message);
     console.error(' Error stack:', error.stack);
-    
+
     res.status(500).json({
       success: false,
       error: "Login failed",
@@ -576,7 +607,7 @@ router.post("/student/login-working", async (req, res) => {
 router.post("/role/login-working", async (req, res) => {
   try {
     const { email, password, role } = req.body;
-    
+
     console.log(' NEW WORKING role login for:', email, 'as', role);
 
     // For now, only handle student role
@@ -604,7 +635,7 @@ router.post("/role/login-working", async (req, res) => {
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, student.password);
-    
+
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -663,9 +694,9 @@ router.post("/role/login-working", async (req, res) => {
 //  SIMPLE TEST LOGIN (ALWAYS WORKS - for quick testing)
 router.post("/simple-test-login", (req, res) => {
   const { email } = req.body;
-  
+
   console.log(' Simple test login for:', email);
-  
+
   // Always create a valid token
   const token = jwt.sign(
     {
@@ -679,7 +710,7 @@ router.post("/simple-test-login", (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
-  
+
   res.json({
     success: true,
     message: "Test login successful (for debugging)",
@@ -703,20 +734,20 @@ router.post("/simple-test-login", (req, res) => {
 router.get("/debug-db", async (req, res) => {
   try {
     console.log('🔧 Debug endpoint called');
-    
+
     // Test database connection
     await sequelize.authenticate();
     console.log(' Database connection OK');
-    
+
     // Get student count
     const [result] = await sequelize.query("SELECT COUNT(*) as count FROM students");
     const studentCount = result[0].count;
-    
+
     // Get sample students
     const [students] = await sequelize.query(
       "SELECT email, full_name, is_verified, status FROM students LIMIT 3"
     );
-    
+
     res.json({
       success: true,
       database: {
@@ -725,7 +756,7 @@ router.get("/debug-db", async (req, res) => {
         sampleStudents: students
       }
     });
-    
+
   } catch (error) {
     console.error(' Debug error:', error);
     res.status(500).json({

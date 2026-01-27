@@ -43,14 +43,14 @@ const protect = async (req, res, next) => {
       case "student":
         console.log(" Looking for student with ID:", decoded.id);
         user = await Student.findByPk(decoded.id, {
-          attributes: ['id', 'fullName', 'email', 'matricNumber', 'department', 'companyName', 'password']
+          attributes: ["id", "fullName", "email", "matricNumber", "department", "companyName", "profileImage", "password"]
         });
 
         break;
       case "institutionSupervisor":
         console.log(" Looking for institution supervisor with ID:", decoded.id);
         user = await InstitutionSupervisor.findByPk(decoded.id, {
-          attributes: ['id', 'fullName', 'email', 'department', 'password']
+          attributes: ["id", "fullName", "email", "department", "profileImage", "password"]
         });
 
         break;
@@ -58,19 +58,19 @@ const protect = async (req, res, next) => {
       case "industrySupervisor":
         console.log(" Looking for industry supervisor with ID:", decoded.id);
         user = await IndustrySupervisor.findByPk(decoded.id, {
-          attributes: ['id', 'fullName', 'email', 'companyName', 'password']
+          attributes: ["id", "fullName", "email", "companyName", "profileImage", "password"]
         });
         break;
       case "hod":
         console.log("🎓 Looking for HOD with ID:", decoded.id);
         user = await Hod.findByPk(decoded.id, {
-          attributes: ['id', 'fullName', 'email', 'department', 'password']
+          attributes: ["id", "fullName", "email", "department", "profileImage", "password"]
         });
         break;
       case "siwesCoordinator":
         console.log(" Looking for coordinator with ID:", decoded.id);
         user = await Coordinator.findByPk(decoded.id, {
-          attributes: ['id', 'fullName', 'email', 'department', 'password']
+          attributes: ["id", "fullName", "email", "department", "password"]
         });
         break;
       default:
@@ -101,6 +101,7 @@ const protect = async (req, res, next) => {
       fullName: userData.fullName,
       role: decoded.role,
       department: userData.department || null,
+      profileImage: userData.profileImage || null,
       // Add any other important fields
       ...(userData.matricNumber && { matricNumber: userData.matricNumber }),
       ...(userData.phone && { phone: userData.phone }),

@@ -54,15 +54,20 @@ const LogbookReview = () => {
         try {
             if (!id) return;
             const response = await logbookAPI.getById(id!);
-            console.log("📥 Logbook response:", response.data);
+            console.log("📥 Logbook response data:", response.data);
 
-            // Backend returns { success: true, logbook: { ... } }
             if (response.data && response.data.logbook) {
+                console.log("✅ Using response.data.logbook");
                 setLogbook(response.data.logbook);
             } else if (response.data && response.data.success === false) {
+                console.log("❌ Response success is false:", response.data.error);
                 setError(response.data.error || "Failed to load logbook");
-            } else {
+            } else if (response.data && typeof response.data === 'object' && Object.keys(response.data).length > 0) {
+                console.log("✅ Using response.data directly (no logbook wrapper)");
                 setLogbook(response.data);
+            } else {
+                console.log("❌ Response data is empty or unexpected:", response.data);
+                setError("Received empty response from server");
             }
         } catch (err: any) {
             console.error("Failed to fetch logbook:", err);
@@ -140,7 +145,8 @@ const LogbookReview = () => {
         );
     }
 
-    if (error || !logbook) {
+    if (error || !logbook || (logbook && typeof logbook === 'object' && Object.keys(logbook).length === 0)) {
+        console.log("⚠️ Rendering error state. Error:", error, "Logbook:", logbook);
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div className="w-16 h-16 bg-red-50 flex items-center justify-center rounded-full mb-4">
@@ -348,6 +354,9 @@ const LogbookReview = () => {
                                 <X className="w-4 h-4" />
                             </Button>
                         </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            This modal displays a full-size preview of the selected logbook attachment.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="flex items-center justify-center p-6 bg-gray-50/50">
                         {selectedImage && (
