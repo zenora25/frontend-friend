@@ -4,6 +4,7 @@ import Logbook from "../models/logbook.js";
 import Assignment from "../models/Assignment.js";
 import InstitutionSupervisor from "../models/institutionSupervisor.js"; // Added import
 import { Op } from "sequelize";
+import { transformLogbook } from "./logbookcontroller.js";
 
 // Get industry supervisor dashboard
 export const getIndustrySupervisorDashboard = async (req, res) => {
@@ -18,7 +19,7 @@ export const getIndustrySupervisorDashboard = async (req, res) => {
         attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName', 'progress', 'status', 'companyAddress'],
         include: [{
           model: Logbook,
-          attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'updatedAt'],
+          attributes: ['id', 'weekNumber', 'title', 'status', 'images', 'createdAt', 'updatedAt'],
           limit: 3,
           order: [['weekNumber', 'DESC']]
         }]
@@ -45,7 +46,7 @@ export const getIndustrySupervisorDashboard = async (req, res) => {
     const revisionLogbooks = studentLogbooks.filter(logbook => logbook.status === "REVISION").length;
 
     // Get recent activities
-    const recentPendingLogbooks = await Logbook.findAll({
+    const rawPendingLogbooks = await Logbook.findAll({
       where: {
         studentId: studentIds,
         status: "PENDING"
@@ -58,6 +59,8 @@ export const getIndustrySupervisorDashboard = async (req, res) => {
       order: [['createdAt', 'DESC']],
       limit: 10
     });
+
+    const recentPendingLogbooks = rawPendingLogbooks.map(l => transformLogbook(l, req));
 
     // Intern progress overview
     const internProgress = assignedInterns.map(intern => ({
@@ -285,7 +288,7 @@ export const getPendingLogbooks = async (req, res) => {
       });
     }
 
-    const { count, rows: logbooks } = await Logbook.findAndCountAll({
+    const { count, rows: rawLogbooks } = await Logbook.findAndCountAll({
       where: {
         studentId: studentIds,
         status: "PENDING"
@@ -299,6 +302,8 @@ export const getPendingLogbooks = async (req, res) => {
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
+
+    const logbooks = rawLogbooks.map(l => transformLogbook(l, req));
 
     res.json({
       logbooks,

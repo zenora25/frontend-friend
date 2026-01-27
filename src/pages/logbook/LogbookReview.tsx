@@ -1,11 +1,28 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, MessageSquare, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import {
+    ArrowLeft,
+    CheckCircle,
+    MessageSquare,
+    AlertCircle,
+    Loader2,
+    RefreshCw,
+    ImageIcon,
+    Download,
+    Eye,
+    X
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { logbookAPI } from "@/lib/api";
 
@@ -24,6 +41,8 @@ const LogbookReview = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchLogbook();
@@ -65,6 +84,20 @@ const LogbookReview = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleDownloadImage = (imageUrl: string, filename: string) => {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const openImageModal = (imageUrl: string) => {
+        setSelectedImage(imageUrl);
+        setIsDialogOpen(true);
     };
 
     const handleSubmit = async () => {
@@ -191,6 +224,61 @@ const LogbookReview = () => {
                                 <p className="whitespace-pre-line text-gray-700">{logbook.skillsAcquired}</p>
                             </div>
                         )}
+
+                        {/* Images Section */}
+                        {logbook.images && logbook.images.length > 0 && (
+                            <div className="pt-4 border-t border-gray-100">
+                                <h3 className="font-semibold mb-4 text-gray-900 flex items-center gap-2">
+                                    <ImageIcon className="w-5 h-5 text-gray-500" />
+                                    Supporting Images & Documents
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {logbook.images.map((image: any, index: number) => (
+                                        <div key={index} className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                                            <div className="relative group">
+                                                {image.url && (
+                                                    <>
+                                                        <img
+                                                            src={image.url}
+                                                            alt={`Attachment ${index + 1}`}
+                                                            className="w-full h-40 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                                            onClick={() => openImageModal(image.url)}
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="bg-white/90 hover:bg-white text-gray-900 h-8 w-8"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openImageModal(image.url);
+                                                                }}
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="bg-white/90 hover:bg-white text-gray-900 h-8 w-8"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDownloadImage(image.url, image.filename);
+                                                                }}
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="p-2 bg-white">
+                                                <p className="text-xs font-medium text-gray-900 truncate">{image.filename}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -244,6 +332,59 @@ const LogbookReview = () => {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Image Modal Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] bg-white border-none shadow-2xl">
+                    <DialogHeader className="border-b pb-4">
+                        <DialogTitle className="flex items-center justify-between">
+                            <span className="text-gray-900 font-bold">Attachment Preview</span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsDialogOpen(false)}
+                                className="h-8 w-8 rounded-full hover:bg-gray-100"
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex items-center justify-center p-6 bg-gray-50/50">
+                        {selectedImage && (
+                            <img
+                                src={selectedImage}
+                                alt="Preview"
+                                className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-inner"
+                            />
+                        )}
+                    </div>
+                    {selectedImage && (
+                        <div className="flex justify-center gap-4 pt-4 border-t">
+                            <Button
+                                variant="outline"
+                                className="border-gray-300 hover:bg-gray-50"
+                                onClick={() => {
+                                    if (selectedImage) {
+                                        const filename = selectedImage.split('/').pop() || 'attachment';
+                                        handleDownloadImage(selectedImage, filename);
+                                    }
+                                }}
+                            >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download File
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="border-gray-300 hover:bg-gray-50"
+                                onClick={() => window.open(selectedImage, '_blank')}
+                            >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Full Size
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

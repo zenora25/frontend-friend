@@ -3,6 +3,7 @@ import InstitutionSupervisor from "../models/institutionSupervisor.js";
 import Student from "../models/student.js";
 import Logbook from "../models/logbook.js";
 import { Op } from "sequelize";
+import { transformLogbook } from "./logbookcontroller.js";
 
 // ============================================
 // CREATE INSTITUTION SUPERVISOR (Admin/Coordinator)
@@ -226,20 +227,22 @@ export const getSupervisorDashboard = async (req, res) => {
       try {
         allLogbooks = await Logbook.findAll({
           where: { studentId: studentIds },
-          attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'updatedAt', 'studentId'],
+          attributes: ['id', 'weekNumber', 'title', 'status', 'images', 'createdAt', 'updatedAt', 'studentId'],
           order: [['createdAt', 'DESC']],
           limit: 100
         });
 
-        pendingLogbooks = await Logbook.findAll({
+        const rawPendingLogbooks = await Logbook.findAll({
           where: {
             studentId: studentIds,
             status: "PENDING"
           },
-          attributes: ['id', 'weekNumber', 'title', 'status', 'createdAt', 'studentId'],
+          attributes: ['id', 'weekNumber', 'title', 'status', 'images', 'createdAt', 'studentId'],
           order: [['createdAt', 'DESC']],
           limit: 10
         });
+
+        pendingLogbooks = rawPendingLogbooks.map(l => transformLogbook(l, req));
         console.log(` Found ${allLogbooks.length} total logbooks and ${pendingLogbooks.length} pending logbooks`);
       } catch (e) {
         console.error(" Error fetching logbooks:", e);
@@ -691,10 +694,10 @@ export const getPendingLogbooks = async (req, res) => {
           attributes: ['id', 'fullName', 'matricNumber', 'email', 'department', 'companyName']
         });
 
-        return {
+        return transformLogbook({
           ...logbook.toJSON(),
           student: student || null
-        };
+        }, req);
       })
     );
 

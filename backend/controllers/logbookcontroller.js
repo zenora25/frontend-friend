@@ -15,7 +15,7 @@ const getFileUrl = (filename) => {
 };
 
 // Helper function to transform logbook entry for response
-const transformLogbook = (logbook, req) => {
+export const transformLogbook = (logbook, req) => {
     if (!logbook) return null;
     const plainLogbook = logbook.get ? logbook.get({ plain: true }) : logbook;
 
@@ -277,10 +277,10 @@ export const getLogbookById = async (req, res) => {
 
         if (userRole === "student") {
             // Students can only view their own logbooks
-            console.log(` Comparing Student ID: "${logbook.studentId}" (type: ${typeof logbook.studentId}) with User ID: "${userId}" (type: ${typeof userId})`);
             if (String(logbook.studentId) === String(userId)) {
                 isAuthorized = true;
             } else {
+
                 console.log(` studentId ${logbook.studentId} !== userId ${userId}`);
             }
         }
@@ -703,7 +703,7 @@ export const reviewLogbook = async (req, res) => {
         res.json({
             success: true,
             message: `Logbook ${status.toLowerCase()} successfully`,
-            logbook,
+            logbook: transformLogbook(logbook, req),
         });
     } catch (err) {
         console.error(" Review logbook error:", err.message);
