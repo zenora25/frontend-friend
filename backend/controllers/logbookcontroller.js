@@ -250,6 +250,59 @@ export const getMyLogbooks = async (req, res) => {
     }
 };
 
+// GET a student's draft logbook (Student)
+export const getDraft = async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { weekNumber } = req.query;
+
+        console.log(` Fetching draft for student: ${studentId}${weekNumber ? ', Week: ' + weekNumber : ''}`);
+
+        const where = {
+            studentId,
+            status: 'DRAFT'
+        };
+
+        if (weekNumber) {
+            where.weekNumber = parseInt(weekNumber);
+        }
+
+        const draft = await Logbook.findOne({
+            where,
+            include: [{
+                model: Student,
+                as: 'student',
+                attributes: ['fullName', 'matricNumber']
+            }],
+            order: [["updatedAt", "DESC"]]
+        });
+
+        if (!draft) {
+            console.log(" No draft found");
+            return res.json({
+                success: true,
+                message: "No draft logbook found",
+                logbook: null
+            });
+        }
+
+        console.log(` Draft found: ${draft.id} for week ${draft.weekNumber}`);
+
+        res.json({
+            success: true,
+            logbook: transformLogbook(draft, req)
+        });
+
+    } catch (err) {
+        console.error(" Get draft error:", err.message);
+        res.status(500).json({
+            success: false,
+            error: "Failed to fetch draft logbook",
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    }
+};
+
 // GET single logbook by ID with images
 export const getLogbookById = async (req, res) => {
     try {

@@ -205,6 +205,13 @@ router.post("/student/signup", async (req, res) => {
         companyName: student.companyName
       },
     });
+  } catch (err) {
+    console.error("Student registration error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Registration failed",
+      details: err.message
+    });
   }
 });
 
@@ -376,7 +383,7 @@ router.post("/student/login", async (req, res) => {
 });
 
 // Verify token
-router.get("/verify", (req, res) => {
+router.get("/verify", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
 
