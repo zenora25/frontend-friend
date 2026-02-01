@@ -797,12 +797,43 @@ export const reviewLogbook = async (req, res) => {
         }
 
         // Determine overall status
-        if (logbook.institutionStatus === "APPROVED" &&
-            logbook.industryStatus === "APPROVED") {
-            logbook.status = "APPROVED";
-        } else if (logbook.institutionStatus === "REVISION" ||
-            logbook.industryStatus === "REVISION") {
+        // Initialize status flags
+        const hasInstitutionSupervisor = !!logbook.student.assignedSupervisor;
+        const hasIndustrySupervisor = !!logbook.student.assignedIndustrySupervisor;
+
+        let institutionApproved = false;
+        let industryApproved = false;
+        let isRevision = false;
+
+        // Check Institution Status
+        if (hasInstitutionSupervisor) {
+            if (logbook.institutionStatus === "APPROVED") {
+                institutionApproved = true;
+            } else if (logbook.institutionStatus === "REVISION") {
+                isRevision = true;
+            }
+        } else {
+            // Treat as approved if not applicable/assigned so it doesn't block
+            institutionApproved = true;
+        }
+
+        // Check Industry Status
+        if (hasIndustrySupervisor) {
+            if (logbook.industryStatus === "APPROVED") {
+                industryApproved = true;
+            } else if (logbook.industryStatus === "REVISION") {
+                isRevision = true;
+            }
+        } else {
+            // Treat as approved if not applicable/assigned
+            industryApproved = true;
+        }
+
+        // Determine Final Status
+        if (isRevision) {
             logbook.status = "REVISION";
+        } else if (institutionApproved && industryApproved) {
+            logbook.status = "APPROVED";
         } else {
             logbook.status = "PENDING";
         }
