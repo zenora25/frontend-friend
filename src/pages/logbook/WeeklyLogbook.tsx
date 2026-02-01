@@ -31,7 +31,7 @@ interface LogbookEntry {
   week: number;
   startDate: string;
   endDate: string;
-  status: "pending" | "approved" | "revision";
+  status: "pending" | "approved" | "revision" | "draft";
   title: string;
   summary: string;
   supervisorComment: string | null;
@@ -61,7 +61,7 @@ const WeeklyLogbook = () => {
         week: logbook.weekNumber,
         startDate: logbook.startDate,
         endDate: logbook.endDate,
-        status: (logbook.status || "pending").toLowerCase() as "pending" | "approved" | "revision",
+        status: (logbook.status || "pending").toLowerCase() as "pending" | "approved" | "revision" | "draft",
         title: logbook.title,
         summary: logbook.weekSummary,
         supervisorComment: logbook.institutionComment || logbook.industryComment,
@@ -145,6 +145,8 @@ const WeeklyLogbook = () => {
         return <Clock className="w-4 h-4 text-gray-600" />;
       case "revision":
         return <XCircle className="w-4 h-4 text-red-600" />;
+      case "draft":
+        return <Save className="w-4 h-4 text-amber-600" />;
       default:
         return null;
     }
@@ -158,6 +160,8 @@ const WeeklyLogbook = () => {
         return "bg-gray-100 text-gray-800 border-gray-200";
       case "revision":
         return "bg-red-100 text-red-800 border-red-200";
+      case "draft":
+        return "bg-amber-100 text-amber-800 border-amber-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -176,6 +180,7 @@ const WeeklyLogbook = () => {
     approved: logbooks.filter((l) => l.status === "approved").length,
     pending: logbooks.filter((l) => l.status === "pending").length,
     revision: logbooks.filter((l) => l.status === "revision").length,
+    draft: logbooks.filter((l) => l.status === "draft").length,
   };
 
   if (isLoading) {
@@ -248,12 +253,12 @@ const WeeklyLogbook = () => {
         <Card className="border border-gray-200 bg-white">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 border border-red-200 flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 bg-amber-100 border border-amber-200 flex items-center justify-center">
+                <Save className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.revision}</p>
-                <p className="text-xs text-gray-600">Needs Revision</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.draft}</p>
+                <p className="text-xs text-gray-600">Drafts</p>
               </div>
             </div>
           </CardContent>
@@ -281,6 +286,7 @@ const WeeklyLogbook = () => {
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="revision">Needs Revision</SelectItem>
+            <SelectItem value="draft">Drafts</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -332,7 +338,7 @@ const WeeklyLogbook = () => {
 
                 {/* Action */}
                 <Button variant="ghost" size="icon" className="flex-shrink-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100" asChild>
-                  <Link to={`/dashboard/logbook/${logbook.id}`}>
+                  <Link to={logbook.status === "draft" ? `/dashboard/logbook/submit?id=${logbook.id}` : `/dashboard/logbook/${logbook.id}`}>
                     <ChevronRight className="w-5 h-5" />
                   </Link>
                 </Button>

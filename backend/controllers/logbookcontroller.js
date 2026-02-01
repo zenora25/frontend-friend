@@ -104,17 +104,49 @@ export const createLogbook = async (req, res) => {
         const existingLogbook = await Logbook.findOne({
             where: {
                 studentId,
-                weekNumber: weekNum,
-                status: { [Op.not]: 'DRAFT' }
+                weekNumber: weekNum
             },
         });
 
         if (existingLogbook) {
-            console.log(" Logbook already exists for week:", weekNum);
-            return res.status(400).json({
-                error: "Logbook entry for this week already exists",
-                weekNumber: weekNum
-            });
+            if (existingLogbook.status !== 'DRAFT') {
+                console.log(" Logbook already exists for week:", weekNum);
+                return res.status(400).json({
+                    error: "Logbook entry for this week already exists",
+                    weekNumber: weekNum
+                });
+            } else {
+                console.log(" Draft already exists for week:", weekNum, ". Updating existing draft instead of creating new one.");
+                // Update the existing draft
+                const updateData = {
+                    startDate,
+                    endDate,
+                    title,
+                    mondayActivities: mondayActivities || '',
+                    tuesdayActivities: tuesdayActivities || '',
+                    wednesdayActivities: wednesdayActivities || '',
+                    thursdayActivities: thursdayActivities || '',
+                    fridayActivities: fridayActivities || '',
+                    weekSummary,
+                    challengesFaced: challengesFaced || '',
+                    lessonsLearned: lessonsLearned || '',
+                    skillsAcquired: skillsAcquired || '',
+                    status: req.body.status === 'DRAFT' ? 'DRAFT' : 'PENDING'
+                };
+
+                // Handle file upload if any
+                if (imageUrls.length > 0) {
+                    updateData.images = [...(existingLogbook.images || []), ...imageUrls];
+                }
+
+                await existingLogbook.update(updateData);
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Existing draft updated successfully",
+                    logbook: transformLogbook(existingLogbook, req),
+                });
+            }
         }
 
         // Handle file upload (files already processed by middleware)
@@ -228,7 +260,10 @@ export const getMyLogbooks = async (req, res) => {
             order: [["weekNumber", "DESC"]],
             attributes: [
                 'id', 'weekNumber', 'title', 'startDate', 'endDate',
-                'status', 'createdAt', 'updatedAt'
+                'status', 'createdAt', 'updatedAt', 'mondayActivities',
+                'tuesdayActivities', 'wednesdayActivities', 'thursdayActivities',
+                'fridayActivities', 'weekSummary', 'challengesFaced',
+                'lessonsLearned', 'skillsAcquired', 'images'
             ]
         });
 
@@ -394,7 +429,11 @@ export const updateLogbook = async (req, res) => {
         console.log(` Updating logbook ${id} for student ${studentId}`);
 
         const logbook = await Logbook.findOne({
-            where: { id, studentId, status: "PENDING" },
+            where: {
+                id,
+                studentId,
+                status: { [Op.in]: ["PENDING", "DRAFT", "REVISION"] }
+            },
         });
 
         if (!logbook) {
@@ -420,15 +459,21 @@ export const updateLogbook = async (req, res) => {
         const existingImages = logbook.images || [];
         const allImages = [...existingImages, ...newImageUrls];
 
+        // Update status logic
+        // If it was a draft and they aren't explicitly saving it as a draft again,
+        // it should probably move to PENDING if they "submit" it.
+        // If req.body.status is provided (e.g., "PENDING"), use it.
+        const newStatus = req.body.status || "PENDING";
+
         const updatedData = {
             ...req.body,
             images: allImages,
-            status: "PENDING" // Reset to pending when updated
+            status: newStatus
         };
 
         await logbook.update(updatedData);
 
-        console.log(` Logbook ${id} updated successfully`);
+        console.log(` Logbook ${id} updated successfully with status ${newStatus}`);
 
         res.json({
             success: true,
@@ -455,7 +500,11 @@ export const deleteLogbook = async (req, res) => {
         console.log(` Deleting logbook ${id} for student ${studentId}`);
 
         const logbook = await Logbook.findOne({
-            where: { id, studentId, status: "PENDING" },
+            where: {
+                id,
+                studentId,
+                status: { [Op.in]: ["PENDING", "DRAFT", "REVISION"] }
+            },
         });
 
         if (!logbook) {
@@ -518,7 +567,11 @@ export const deleteLogbookImage = async (req, res) => {
         console.log(` Deleting image from logbook ${id}`);
 
         const logbook = await Logbook.findOne({
-            where: { id, studentId, status: "PENDING" },
+            where: {
+                id,
+                studentId,
+                status: { [Op.in]: ["PENDING", "DRAFT", "REVISION"] }
+            },
         });
 
         if (!logbook) {

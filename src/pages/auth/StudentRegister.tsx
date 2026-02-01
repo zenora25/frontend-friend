@@ -272,10 +272,10 @@ const StudentRegister = () => {
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cs">Computer Science</SelectItem>
-                <SelectItem value="se">Software Engineering</SelectItem>
-                <SelectItem value="it">Information Technology</SelectItem>
-                <SelectItem value="cy">Cybersecurity</SelectItem>
+                <SelectItem value="Computer Science">Computer Science</SelectItem>
+                <SelectItem value="Software Engineering">Software Engineering</SelectItem>
+                <SelectItem value="Information Technology">Information Technology</SelectItem>
+                <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
               </SelectContent>
             </Select>
           </div>

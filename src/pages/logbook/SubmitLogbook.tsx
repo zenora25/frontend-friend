@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Save,
@@ -51,6 +51,8 @@ const SubmitLogbook = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [searchParams] = useSearchParams();
+  const logbookId = searchParams.get("id");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<LogbookFormData>({
@@ -68,6 +70,51 @@ const SubmitLogbook = () => {
     lessonsLearned: "",
     skillsAcquired: "",
   });
+
+  const [existingImages, setExistingImages] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (logbookId) {
+      fetchLogbookData(logbookId);
+    }
+  }, [logbookId]);
+
+  const fetchLogbookData = async (id: string) => {
+    try {
+      setIsSubmitting(true);
+      const response = await api.get(`/logbook/${id}`);
+      const entry = response.data.logbook;
+
+      setFormData({
+        weekNumber: entry.weekNumber.toString(),
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+        title: entry.title,
+        mondayActivities: entry.mondayActivities || "",
+        tuesdayActivities: entry.tuesdayActivities || "",
+        wednesdayActivities: entry.wednesdayActivities || "",
+        thursdayActivities: entry.thursdayActivities || "",
+        fridayActivities: entry.fridayActivities || "",
+        weekSummary: entry.weekSummary,
+        challengesFaced: entry.challengesFaced || "",
+        lessonsLearned: entry.lessonsLearned || "",
+        skillsAcquired: entry.skillsAcquired || "",
+      });
+
+      if (entry.images) {
+        setExistingImages(entry.images);
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch logbook data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load logbook data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleChange = (field: keyof LogbookFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -135,6 +182,33 @@ const SubmitLogbook = () => {
     }
   };
 
+  const handleRemoveExistingImage = async (imageUrl: string) => {
+    if (!logbookId) return;
+
+    try {
+      await api.delete(`/logbook/${logbookId}/image`, {
+        data: { imageUrl }
+      });
+
+      setExistingImages(prev => prev.filter(img => {
+        const url = typeof img === 'string' ? img : (img.url || '');
+        return url !== imageUrl;
+      }));
+
+      toast({
+        title: "Image removed",
+        description: "The image has been deleted from the draft.",
+      });
+    } catch (error: any) {
+      console.error("Failed to remove image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSaveDraft = async () => {
     try {
       setIsSubmitting(true);
@@ -165,11 +239,20 @@ const SubmitLogbook = () => {
         }
       });
 
-      await api.post('/logbook', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      let response;
+      if (logbookId) {
+        response = await api.put(`/logbook/${logbookId}`, formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        response = await api.post('/logbook', formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
 
       toast({
         title: "Draft saved",
@@ -177,6 +260,17 @@ const SubmitLogbook = () => {
       });
 
       localStorage.removeItem('logbook_draft');
+
+      // Clear uploaded files and refresh existing images if it's a new entry
+      if (!logbookId && response.data.logbook?.id) {
+        navigate(`/dashboard/logbook/submit?id=${response.data.logbook.id}`, { replace: true });
+      } else {
+        // Refresh local state
+        setUploadedFiles([]);
+        if (response.data.logbook?.images) {
+          setExistingImages(response.data.logbook.images);
+        }
+      }
     } catch (error: any) {
       console.error("Draft save error:", error);
       toast({
@@ -227,12 +321,19 @@ const SubmitLogbook = () => {
         formDataToSend.append('images', file.file);
       });
 
-      // Submit with files using the regular create endpoint
-      await api.post('/logbook', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      if (logbookId) {
+        await api.put(`/logbook/${logbookId}`, formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        await api.post('/logbook', formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
 
       toast({
         title: "Logbook submitted",
@@ -384,7 +485,7 @@ const SubmitLogbook = () => {
               {/* Uploaded files preview */}
               {uploadedFiles.length > 0 && (
                 <div className="mt-6">
-                  <h4 className="font-medium text-gray-900 mb-3">Uploaded Files ({uploadedFiles.length})</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">New Files ({uploadedFiles.length})</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {uploadedFiles.map((file, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -436,6 +537,62 @@ const SubmitLogbook = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Existing files preview */}
+              {existingImages.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="font-medium text-gray-900 mb-3">Existing Files ({existingImages.length})</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {existingImages.map((image, index) => {
+                      const imageUrl = typeof image === 'string' ? image : (image.url || '');
+                      const fileName = typeof image === 'string' ? image.split('/').pop() : (image.filename || 'file');
+
+                      return (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
+                                <ImageIcon className="w-5 h-5 text-gray-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">{fileName}</p>
+                                <p className="text-xs text-gray-500">Already uploaded</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-gray-600 hover:text-gray-900"
+                                onClick={() => window.open(imageUrl, '_blank')}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleRemoveExistingImage(imageUrl)}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <img
+                              src={imageUrl}
+                              alt={fileName}
+                              className="w-full h-32 object-cover rounded border border-gray-200"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
