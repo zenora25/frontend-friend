@@ -476,12 +476,12 @@ export const assignStudentToSupervisor = async (req, res) => {
         console.log("Assigning student to supervisor:", req.body);
 
         const hodId = req.user.id;
-        const { studentId, institutionSupervisorId } = req.body;
+        const { studentId, institutionSupervisorId, industrySupervisorId } = req.body;
 
-        if (!studentId || !institutionSupervisorId) {
+        if (!studentId || (!institutionSupervisorId && !industrySupervisorId)) {
             return res.status(400).json({
                 success: false,
-                error: "Student ID and Institution Supervisor ID are required"
+                error: "Student ID and at least one Supervisor ID (Institution or Industry) are required"
             });
         }
 
@@ -509,30 +509,47 @@ export const assignStudentToSupervisor = async (req, res) => {
             });
         }
 
-        // Check if supervisor exists and belongs to HOD's department
-        const supervisor = await InstitutionSupervisor.findByPk(institutionSupervisorId);
-        if (!supervisor) {
-            return res.status(404).json({
-                success: false,
-                error: "Institution Supervisor not found"
-            });
+        // Check if institution supervisor exists and belongs to HOD's department (if provided)
+        if (institutionSupervisorId) {
+            const supervisor = await InstitutionSupervisor.findByPk(institutionSupervisorId);
+            if (!supervisor) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Institution Supervisor not found"
+                });
+            }
+
+            if (supervisor.department !== hod.department) {
+                return res.status(403).json({
+                    success: false,
+                    error: "Institution Supervisor does not belong to your department"
+                });
+            }
+            student.assignedSupervisor = institutionSupervisorId;
         }
 
-        if (supervisor.department !== hod.department) {
-            return res.status(403).json({
-                success: false,
-                error: "Supervisor does not belong to your department"
-            });
+        // Check if industry supervisor exists (if provided)
+        if (industrySupervisorId) {
+            const industrySupervisor = await IndustrySupervisor.findByPk(industrySupervisorId);
+            if (!industrySupervisor) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Industry Supervisor not found"
+                });
+            }
+            // Note: Industry supervisors don't necessarily stay in departments, 
+            // but we could add a check if they are associated with the student's company.
+            student.assignedIndustrySupervisor = industrySupervisorId;
         }
 
         // Update student assignment
-        student.assignedSupervisor = institutionSupervisorId;
         await student.save();
 
         // Create simple assignment record
         const assignment = await Assignment.create({
             studentId,
-            institutionSupervisorId,
+            institutionSupervisorId: institutionSupervisorId || null,
+            industrySupervisorId: industrySupervisorId || null,
             assignedBy: hodId,
             status: "ACTIVE"
         });

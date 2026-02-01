@@ -293,7 +293,8 @@ export const hodAPI = {
 
   assignStudentToSupervisor: (data: {
     studentId: string;
-    institutionSupervisorId: string;
+    institutionSupervisorId?: string;
+    industrySupervisorId?: string;
   }) => api.post('/hods/assign-student', data),
 
   // Defenses
@@ -617,6 +618,8 @@ export const industrySupervisorAPI = {
     page?: number;
     limit?: number;
   }) => api.get('/industry-supervisors/dashboard/pending-logbooks', { params }),
+
+  getAll: (params?: any) => api.get('/industry-supervisors', { params }),
 
   // Test endpoint
   testAuth: () => api.get('/industry-supervisors/test-auth'),

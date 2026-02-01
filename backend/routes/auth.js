@@ -205,8 +205,93 @@ router.post("/student/signup", async (req, res) => {
         companyName: student.companyName
       },
     });
+  }
+});
+
+// Role registration (Staff: Supervisor, HOD, Coordinator)
+router.post("/role/register", async (req, res) => {
+  try {
+    const { fullName, email, password, role, department, companyName, companyAddress } = req.body;
+
+    if (!fullName || !email || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        error: "Full name, email, password, and role are required"
+      });
+    }
+
+    let userModel;
+    switch (role) {
+      case "institutionSupervisor":
+        userModel = InstitutionSupervisor;
+        break;
+      case "industrySupervisor":
+        userModel = IndustrySupervisor;
+        break;
+      case "hod":
+        userModel = Hod;
+        break;
+      case "siwesCoordinator":
+        userModel = Coordinator;
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          error: "Invalid role for staff registration"
+        });
+    }
+
+    // Check if email already exists in the specific role table
+    const existingUser = await userModel.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: "Email already registered for this role"
+      });
+    }
+
+    // Create user
+    const userData = {
+      fullName,
+      email,
+      password,
+      department: department || 'General'
+    };
+
+    // Role-specific additions
+    if (role === 'industrySupervisor') {
+      userData.companyName = companyName || '';
+      userData.companyAddress = companyAddress || '';
+    }
+
+    const user = await userModel.create(userData);
+
+    // Generate token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: role,
+        name: user.fullName,
+      },
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `${role} registered successfully`,
+      token,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: role,
+        department: user.department
+      },
+    });
   } catch (err) {
-    console.error("Signup error:", err);
+    console.error("Staff registration error:", err);
     res.status(500).json({
       success: false,
       error: "Registration failed",
@@ -326,6 +411,7 @@ router.get("/verify", (req, res) => {
     }
 
     const userData = user.toJSON ? user.toJSON() : user;
+    console.log(`🔍 [GET /verify] User found: ${userData.email}, Role: ${role}, Photo: ${userData.profileImage}`);
 
     res.json({
       success: true,
@@ -400,6 +486,7 @@ router.get("/profile", async (req, res) => {
     }
 
     const userData = user.toJSON ? user.toJSON() : user;
+    console.log(`🔍 [GET /profile] User data: ${userData.email}, Role: ${decoded.role}, Photo: ${userData.profileImage}`);
 
     res.json({
       success: true,
@@ -451,15 +538,18 @@ router.put("/profile", protect, uploadProfile, async (req, res) => {
 
     // Handle profile image upload
     if (req.file) {
+      console.log("📸 Image file received:", req.file.filename);
       user.profileImage = `/uploads/profiles/${req.file.filename}`;
     }
 
     await user.save();
+    console.log(`✅ Profile updated in DB for ${user.email}. New photo: ${user.profileImage}`);
 
     // Prepare clean response
     const userJson = user.toJSON();
     delete userJson.password;
 
+    console.log(`📤 Sending response with role: ${role}`);
     res.json({
       success: true,
       message: "Profile updated successfully",

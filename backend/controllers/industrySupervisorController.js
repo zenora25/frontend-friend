@@ -501,7 +501,35 @@ export const getLogbookStats = async (req, res) => {
   }
 };
 
-// REMOVE THIS DEFAULT EXPORT AT THE BOTTOM
+// Get all industry supervisors (for assignment)
+export const getAllIndustrySupervisors = async (req, res) => {
+  try {
+    const { search, limit = 100 } = req.query;
+
+    const where = {};
+    if (search) {
+      where[Op.or] = [
+        { fullName: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { companyName: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const supervisors = await IndustrySupervisor.findAll({
+      where,
+      attributes: ['id', 'fullName', 'email', 'companyName', 'position'],
+      limit: parseInt(limit)
+    });
+
+    res.json(supervisors);
+  } catch (err) {
+    console.error("Get all industry supervisors error:", err);
+    res.status(500).json({
+      error: "Failed to fetch industry supervisors",
+      details: err.message
+    });
+  }
+};
 // export default {
 //   getIndustrySupervisorDashboard,
 //   getAssignedInterns,

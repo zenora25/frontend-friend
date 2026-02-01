@@ -7,7 +7,8 @@ import {
   reviewLogbook,
   getPendingLogbooks,
   getLogbookStats,
-  changePassword
+  changePassword,
+  getAllIndustrySupervisors
 } from "../controllers/industrySupervisorController.js";
 import protect from "../middleware/authMiddleware.js";
 import { requireIndustrySupervisor } from "../middleware/roleAuth.js";
@@ -16,6 +17,9 @@ const router = express.Router();
 
 // Dashboard
 router.get("/dashboard/overview", protect, requireIndustrySupervisor, getIndustrySupervisorDashboard);
+
+// Get all industry supervisors (for HOD assignment)
+router.get("/", protect, getAllIndustrySupervisors);
 
 // Students (interns)
 router.get("/dashboard/students", protect, requireIndustrySupervisor, getAssignedInterns);

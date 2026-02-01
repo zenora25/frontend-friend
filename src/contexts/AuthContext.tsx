@@ -49,8 +49,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to refresh user data from API
   const refreshUser = async () => {
     try {
+      console.log('🔄 refreshing user data from API...');
       const response = await authAPI.getProfile();
       const userData = response.data.data;
+      console.log('🔄 refreshed user data received:', {
+        email: userData.email,
+        role: userData.role,
+        photo: userData.profileImage
+      });
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
@@ -74,6 +80,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data.success) {
         // Token is valid, update user data
         const userData = response.data.user;
+        console.log('🔍 checkToken valid. User:', {
+          email: userData.email,
+          role: userData.role,
+          photo: userData.profileImage
+        });
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         return true;

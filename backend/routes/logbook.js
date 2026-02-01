@@ -10,7 +10,8 @@ import {
   getStudentLogbook,
   getLogbookStats,
   deleteLogbookImage,
-  deleteLogbook  // Make sure this is included
+  deleteLogbook,
+  getDraft
 } from "../controllers/logbookcontroller.js";
 import protect from "../middleware/authMiddleware.js";
 import { uploadMultiple } from "../utils/upload.js"; // Import upload middleware
@@ -27,6 +28,7 @@ const router = express.Router();
 // Student routes
 router.post("/", protect, requireStudent, uploadMultiple, createLogbook); // Add middleware here
 router.get("/my-logbook", protect, requireStudent, getMyLogbooks);
+router.get("/draft", protect, requireStudent, getDraft);
 router.get("/stats", protect, requireStudent, getLogbookStats);
 router.get("/:id", protect, getLogbookById);
 router.put("/:id", protect, requireStudent, uploadMultiple, updateLogbook);

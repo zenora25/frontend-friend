@@ -43,7 +43,7 @@ const Logbook = sequelize.define(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION"),
+      type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION", "DRAFT"),
       defaultValue: "PENDING",
     },
     supervisorComment: {
@@ -51,7 +51,7 @@ const Logbook = sequelize.define(
     },
     // Industry supervisor review fields
     industryStatus: {
-      type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION"),
+      type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION", "DRAFT"),
       defaultValue: "PENDING",
     },
     industryComment: {
@@ -62,7 +62,7 @@ const Logbook = sequelize.define(
     },
     // Institution supervisor review fields
     institutionStatus: {
-      type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION"),
+      type: DataTypes.ENUM("PENDING", "APPROVED", "REVISION", "DRAFT"),
       defaultValue: "PENDING",
     },
     institutionComment: {

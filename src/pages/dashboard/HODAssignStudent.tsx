@@ -42,7 +42,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { hodAPI, studentAPI, institutionSupervisorAPI } from "@/lib/api";
+import { hodAPI, studentAPI, institutionSupervisorAPI, industrySupervisorAPI } from "@/lib/api";
 
 interface Student {
     id: string;
@@ -57,6 +57,10 @@ interface Student {
         fullName: string;
         email: string;
     };
+    IndustrySupervisor?: {
+        fullName: string;
+        email: string;
+    };
 }
 
 interface Supervisor {
@@ -66,6 +70,7 @@ interface Supervisor {
     department: string;
     assignedStudentsCount: number;
     reviewRate: number;
+    companyName?: string;
 }
 
 const HODAssignStudent = () => {
@@ -73,17 +78,20 @@ const HODAssignStudent = () => {
     const { toast } = useToast();
     const [students, setStudents] = useState<Student[]>([]);
     const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+    const [industrySupervisors, setIndustrySupervisors] = useState<Supervisor[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [selectedSupervisorId, setSelectedSupervisorId] = useState<string | null>(null);
+    const [supervisorType, setSupervisorType] = useState<"institution" | "industry">("institution");
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
     const [isLoadingAssignment, setIsLoadingAssignment] = useState(false);
 
     useEffect(() => {
         fetchUnassignedStudents();
         fetchSupervisors();
+        fetchIndustrySupervisors();
     }, [statusFilter, searchQuery]);
 
     const fetchUnassignedStudents = async () => {
@@ -101,9 +109,9 @@ const HODAssignStudent = () => {
             const response = await hodAPI.getDepartmentStudents(params);
             const allStudents = response.data.students || [];
 
-            // Filter for unassigned students
+            // Filter for unassigned students (missing either institution or industry supervisor)
             const unassignedStudents = allStudents.filter(
-                (student: Student) => !student.Supervisor
+                (student: Student) => !student.Supervisor || !student.IndustrySupervisor
             );
 
             setStudents(unassignedStudents);
@@ -157,9 +165,29 @@ const HODAssignStudent = () => {
         }
     };
 
+    const fetchIndustrySupervisors = async () => {
+        try {
+            const response = await industrySupervisorAPI.getAll();
+            const allIndustrySupervisors = response.data || [];
+
+            setIndustrySupervisors(allIndustrySupervisors.map((sup: any) => ({
+                id: sup.id,
+                fullName: sup.fullName,
+                email: sup.email,
+                department: sup.department || "Industry",
+                companyName: sup.companyName,
+                assignedStudentsCount: 0,
+                reviewRate: 0,
+            })));
+        } catch (error: any) {
+            console.error("Failed to fetch industry supervisors:", error);
+        }
+    };
+
     const handleOpenAssignDialog = (studentId: string) => {
         setSelectedStudentId(studentId);
         setSelectedSupervisorId(null);
+        setSupervisorType("institution");
         setIsAssignDialogOpen(true);
     };
 
@@ -177,7 +205,8 @@ const HODAssignStudent = () => {
         try {
             await hodAPI.assignStudentToSupervisor({
                 studentId: selectedStudentId,
-                institutionSupervisorId: selectedSupervisorId,
+                institutionSupervisorId: supervisorType === "institution" ? selectedSupervisorId : undefined,
+                industrySupervisorId: supervisorType === "industry" ? selectedSupervisorId : undefined,
             });
 
             toast({
@@ -421,14 +450,36 @@ const HODAssignStudent = () => {
                                 })()}
                             </div>
 
+                            {/* Supervisor Type Selection */}
+                            <div className="space-y-3">
+                                <Label>Supervisor Type</Label>
+                                <RadioGroup
+                                    value={supervisorType}
+                                    onValueChange={(value: any) => {
+                                        setSupervisorType(value);
+                                        setSelectedSupervisorId(null);
+                                    }}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="institution" id="type-institution" />
+                                        <Label htmlFor="type-institution">Institution</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="industry" id="type-industry" />
+                                        <Label htmlFor="type-industry">Industry</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+
                             {/* Supervisor Selection */}
                             <div className="space-y-3">
-                                <Label htmlFor="supervisor">Select Supervisor</Label>
+                                <Label htmlFor="supervisor">Select {supervisorType === "institution" ? "Institution" : "Industry"} Supervisor</Label>
                                 <RadioGroup
                                     value={selectedSupervisorId || ""}
                                     onValueChange={setSelectedSupervisorId}
                                 >
-                                    {supervisors.map((supervisor) => (
+                                    {(supervisorType === "institution" ? supervisors : industrySupervisors).map((supervisor) => (
                                         <div key={supervisor.id} className="flex items-center space-x-2">
                                             <RadioGroupItem value={supervisor.id} id={`supervisor-${supervisor.id}`} />
                                             <Label

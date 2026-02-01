@@ -100,11 +100,12 @@ export const createLogbook = async (req, res) => {
 
         console.log(" Checking for existing logbook...");
 
-        // Check if logbook for this week already exists
+        // Check if logbook for this week already exists (unless it's a draft)
         const existingLogbook = await Logbook.findOne({
             where: {
                 studentId,
                 weekNumber: weekNum,
+                status: { [Op.not]: 'DRAFT' }
             },
         });
 
@@ -149,7 +150,7 @@ export const createLogbook = async (req, res) => {
             lessonsLearned: lessonsLearned || '',
             skillsAcquired: skillsAcquired || '',
             images: imageUrls,
-            status: "PENDING",
+            status: req.body.status === 'DRAFT' ? 'DRAFT' : 'PENDING',
         });
 
         console.log(" Logbook created with ID:", logbook.id);
@@ -219,6 +220,11 @@ export const getMyLogbooks = async (req, res) => {
 
         const logbooks = await Logbook.findAll({
             where: { studentId },
+            include: [{
+                model: Student,
+                as: 'student',
+                attributes: ['fullName', 'matricNumber']
+            }],
             order: [["weekNumber", "DESC"]],
             attributes: [
                 'id', 'weekNumber', 'title', 'startDate', 'endDate',
@@ -276,27 +282,26 @@ export const getLogbookById = async (req, res) => {
         let isAuthorized = false;
 
         if (userRole === "student") {
-            // Students can only view their own logbooks
+            // Students can view their own logbooks including drafts
             if (String(logbook.studentId) === String(userId)) {
                 isAuthorized = true;
             } else {
-
                 console.log(` studentId ${logbook.studentId} !== userId ${userId}`);
             }
         }
         else if (userRole === "institutionSupervisor") {
-            // Institution supervisors can view logbooks of their assigned students
-            if (logbook.student && String(logbook.student.assignedSupervisor) === String(userId)) {
+            // Institution supervisors can only view non-draft logbooks of their assigned students
+            if (logbook.status !== 'DRAFT' && logbook.student && String(logbook.student.assignedSupervisor) === String(userId)) {
                 isAuthorized = true;
             } else {
-                console.log(` assignedSupervisor ${logbook.student?.assignedSupervisor} !== supervisorId ${userId}`);
+                console.log(` assignedSupervisor ${logbook.student?.assignedSupervisor} !== supervisorId ${userId}, Draft: ${logbook.status === 'DRAFT'}`);
             }
         } else if (userRole === "industrySupervisor") {
-            // Industry supervisors can view logbooks of their assigned interns
-            if (logbook.student && String(logbook.student.assignedIndustrySupervisor) === String(userId)) {
+            // Industry supervisors can only view non-draft logbooks of their assigned interns
+            if (logbook.status !== 'DRAFT' && logbook.student && String(logbook.student.assignedIndustrySupervisor) === String(userId)) {
                 isAuthorized = true;
             } else {
-                console.log(` assignedIndustrySupervisor ${logbook.student?.assignedIndustrySupervisor} !== supervisorId ${userId}`);
+                console.log(` assignedIndustrySupervisor ${logbook.student?.assignedIndustrySupervisor} !== supervisorId ${userId}, Draft: ${logbook.status === 'DRAFT'}`);
             }
         }
         else if (["admin", "hod", "siwesCoordinator", "coordinator"].includes(userRole)) {
@@ -655,7 +660,7 @@ export const reviewLogbook = async (req, res) => {
 
         // Check if supervisor is authorized based on role
         if (userRole === "institutionSupervisor") {
-            if (Number(logbook.student.assignedSupervisor) !== Number(supervisorId)) {
+            if (String(logbook.student.assignedSupervisor) !== String(supervisorId)) {
                 console.log(` Auth failed: student.assignedSupervisor (${logbook.student.assignedSupervisor}) != supervisorId (${supervisorId})`);
                 return res.status(403).json({
                     success: false,
@@ -667,7 +672,7 @@ export const reviewLogbook = async (req, res) => {
             logbook.institutionComment = comment;
             logbook.institutionReviewedAt = new Date();
         } else if (userRole === "industrySupervisor") {
-            if (Number(logbook.student.assignedIndustrySupervisor) !== Number(supervisorId)) {
+            if (String(logbook.student.assignedIndustrySupervisor) !== String(supervisorId)) {
                 console.log(` Auth failed: student.assignedIndustrySupervisor (${logbook.student.assignedIndustrySupervisor}) != supervisorId (${supervisorId})`);
                 return res.status(403).json({
                     success: false,

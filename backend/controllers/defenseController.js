@@ -31,20 +31,19 @@ export const scheduleDefense = async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    // Check if all logbooks are approved (weeks 1-13)
+    // Check if at least some logbooks are approved (relaxed from 13 weeks)
     const logbooks = await Logbook.findAll({
       where: { studentId, status: 'APPROVED' }
     });
 
-    const approvedWeeks = new Set(logbooks.map(l => l.weekNumber));
-    const allWeeksApproved = Array.from({ length: 13 }, (_, i) => i + 1)
-      .every(week => approvedWeeks.has(week));
-
-    if (!allWeeksApproved) {
+    if (logbooks.length === 0) {
       return res.status(400).json({
-        error: "All 13 weeks of logbooks must be approved before scheduling defense"
+        error: "At least one week of logbooks must be approved before scheduling defense"
       });
     }
+
+    const approvedWeeks = new Set(logbooks.map(l => l.weekNumber));
+    console.log(`Student ${studentId} has ${approvedWeeks.size} weeks approved. Proceeding with defense scheduling.`);
 
     // Check if student already has a defense scheduled
     const existingDefense = await Defense.findOne({
